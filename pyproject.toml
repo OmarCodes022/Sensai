@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sensai"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = ["pydantic>=2.6", "pydantic-settings>=2.2", "requests>=2.31"]
+
+[project.scripts]
+sensai = "sensai.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src", "tests"]
+testpaths = ["tests"]
