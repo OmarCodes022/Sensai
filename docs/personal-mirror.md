@@ -35,7 +35,7 @@ Before activation, personal CI passes if its tests pass, reports that mirroring
 is disabled, and skips the mirror job; this is **not** evidence that Epitech is
 up to date. If enabled without the secret, the mirror job fails explicitly.
 A maintainer with write access can perform a one-time
-non-forced `git push origin HEAD:refs/heads/main` from a locally tested
+non-forced `git push epitech HEAD:refs/heads/main` from a locally tested
 personal `main` checkout, if Epitech permits direct pushes. Future personal
 pushes still need the secret for automatic mirroring. After configuring it,
 manually run **Test and mirror personal main** from Actions on `main` (or rerun
@@ -46,6 +46,7 @@ push. The Epitech organization's Actions budget does not fund the personal
 workflow, but Epitech-only workflows remain blocked until its budget is
 restored.
 
-From this local clone, `personal` is the personal remote and `origin` remains
-the Epitech remote. Push work to `personal`, not `origin`, when using the
-personal repository as the source.
+In the personal checkout, `origin` points to `OmarCodes022/Sensai` and
+`epitech` points to the Epitech repository. An independent Epitech checkout
+has its own `origin` pointing to Epitech. Push everyday work to the personal
+checkout's `origin`; use `epitech` only for an intentional manual mirror.
