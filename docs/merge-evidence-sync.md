@@ -14,6 +14,12 @@ selects tracker records or determines tracker writes.
 
 ## One-time configuration
 
+An organization billing admin must ensure GitHub Actions has an available
+budget for this private repository. If the PR's `unit-tests` job reports
+"The job was not started because an Actions budget is preventing further use,"
+no runner or script executed. Restore the budget and rerun the PR check before
+reviewing this workflow for merge.
+
 1. Set an Actions repository secret `GH_PROJECT_TOKEN` with access to the
    organization **Sensai 67** Project (number 269, ID
    `PVT_kwDODOAw1s4BkNJr`) and read access to this private repository's PRs and
