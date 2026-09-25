@@ -2,10 +2,11 @@
 
 `OmarCodes022/Sensai` is public. It was initially populated from the two
 branches that existed on the private Epitech repository: `main` and
-`ci/merge-evidence-sync-20260925`. Both branches retain their original commit
-IDs and history; there were no tags. Old local remote-tracking branches that
-no longer exist on GitHub were not copied. Local untracked files are not part
-of either repository.
+`ci/merge-evidence-sync-20260925`. The four recent setup commits were later
+rewritten to remove co-author trailers; their commit IDs changed, but their
+file trees did not. There were no tags. Old local remote-tracking branches
+that no longer exist on GitHub were not copied. Local untracked files are
+not part of either repository.
 
 The **personal `main` branch is the working source**. Pull requests and pushes
 to personal `main` run unit tests. After tests pass, the workflow attempts a
