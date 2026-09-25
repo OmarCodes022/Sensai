@@ -28,9 +28,12 @@ variables → Actions. Never put its value in code, an issue, or chat. This
 secret is not available to the read-only test job or pull requests; the
 mirror job only runs on personal `main` or a manual run of that branch.
 
-Until the secret is configured, the mirror job fails explicitly and the
-Epitech repository remains unchanged. After configuring it, manually run
-**Test and mirror personal main** from Actions on the `main` branch (or rerun
+Until the secret is configured, the mirror job fails explicitly and makes no
+Epitech changes. A maintainer with write access can perform a one-time
+non-forced `git push origin HEAD:refs/heads/main` from a locally tested
+personal `main` checkout, if Epitech permits direct pushes. Future personal
+pushes still need the secret for automatic mirroring. After configuring it,
+manually run **Test and mirror personal main** from Actions on `main` (or rerun
 the failed run) and verify that both repositories' `main` commit IDs match.
 If the organization rejects the token or a protected branch blocks the
 push, request authorization or switch to a PR-based handoff; do not force
