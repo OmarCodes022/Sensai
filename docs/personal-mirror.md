@@ -9,12 +9,12 @@ that no longer exist on GitHub were not copied. Local untracked files are
 not part of either repository.
 
 The **personal `main` branch is the working source**. Pull requests and pushes
-to personal `main` run unit tests. After tests pass, the workflow attempts a
-non-forced fast-forward of Epitech `main` to the exact tested commit. It does
-not mirror other branches or tags, delete Epitech refs, or run its jobs in the
-Epitech repository. If Epitech `main` advances independently, the push fails
-rather than discarding a teammate's work: integrate those commits into
-personal `main`, rerun tests, then retry. Epitech branch protection may
+to personal `main` run unit tests. When mirroring is enabled, passing tests
+allow a non-forced fast-forward of Epitech `main` to the exact tested commit.
+It does not mirror other branches or tags, delete Epitech refs, or run its
+jobs in the Epitech repository. If Epitech `main` advances independently, the
+push fails rather than discarding a teammate's work: integrate those commits
+into personal `main`, rerun tests, then retry. Epitech branch protection may
 require a reviewed PR instead of a direct push; this workflow does not bypass
 that rule.
 
@@ -25,12 +25,16 @@ repository, with repository **Contents: read and write** permission and
 organization approval/SSO if required. Do not reuse the GitHub CLI's broad
 login token. Store it as an **Actions repository secret**
 `EPITECH_PUSH_TOKEN` in `OmarCodes022/Sensai` under Settings → Secrets and
-variables → Actions. Never put its value in code, an issue, or chat. This
-secret is not available to the read-only test job or pull requests; the
-mirror job only runs on personal `main` or a manual run of that branch.
+variables → Actions. Then set the nonsecret repository variable
+`EPITECH_MIRROR_ENABLED` to `true` in the same settings area. Never put the
+token value in code, an issue, or chat. This secret is not available to the
+read-only test job or pull requests; the mirror job only runs on personal
+`main` or a manual run of that branch **when the variable is `true`**.
 
-Until the secret is configured, the mirror job fails explicitly and makes no
-Epitech changes. A maintainer with write access can perform a one-time
+Before activation, personal CI passes if its tests pass, reports that mirroring
+is disabled, and skips the mirror job; this is **not** evidence that Epitech is
+up to date. If enabled without the secret, the mirror job fails explicitly.
+A maintainer with write access can perform a one-time
 non-forced `git push origin HEAD:refs/heads/main` from a locally tested
 personal `main` checkout, if Epitech permits direct pushes. Future personal
 pushes still need the secret for automatic mirroring. After configuring it,
