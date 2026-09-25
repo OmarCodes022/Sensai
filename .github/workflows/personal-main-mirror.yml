@@ -1,0 +1,70 @@
+name: Test and mirror personal main
+
+'on':
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: personal-main-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  unit-tests:
+    if: github.repository == 'OmarCodes022/Sensai'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Run unit tests
+        run: python -m pytest -q tests/unit
+
+  mirror:
+    if: github.repository == 'OmarCodes022/Sensai' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: [unit-tests]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Require Epitech repository access
+        env:
+          EPITECH_PUSH_TOKEN: ${{ secrets.EPITECH_PUSH_TOKEN }}
+        run: |
+          if [ -z "$EPITECH_PUSH_TOKEN" ]; then
+            echo "::error::Set EPITECH_PUSH_TOKEN with Epitech repository Contents write access, then rerun this workflow."
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+        with:
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: EpitechPGE3-2026/G-AIA-500-STG-5-1-sensai-1
+          ref: main
+          path: epitech
+          fetch-depth: 0
+          token: ${{ secrets.EPITECH_PUSH_TOKEN }}
+      - name: Fast-forward Epitech main from tested personal main
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          git -C epitech fetch --no-tags ../source HEAD
+          if [ "$(git -C epitech rev-parse FETCH_HEAD)" != "$SOURCE_SHA" ]; then
+            echo "::error::Source checkout does not match the tested personal commit."
+            exit 1
+          fi
+          git -C epitech merge --ff-only FETCH_HEAD
+          git -C epitech push origin HEAD:refs/heads/main
