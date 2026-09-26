@@ -1,42 +1,47 @@
-name: Sync merged PR evidence
+name: Review main pushes and sync evidence
 
 'on':
-  pull_request:
-    types: [closed]
+  push:
     branches: [main]
   workflow_dispatch:
     inputs:
-      pr_number:
-        description: Merged PR number to replay
+      before:
+        description: Starting commit SHA (exclusive) for a main push to replay
         required: true
-        type: number
+        type: string
+      after:
+        description: Ending commit SHA (inclusive), reachable from main
+        required: true
+        type: string
 
 permissions:
   contents: read
+  copilot-requests: write
 
 concurrency:
-  group: merge-evidence-${{ github.repository }}-${{ github.event.pull_request.number || inputs.pr_number }}
+  group: main-evidence-${{ github.repository }}
   cancel-in-progress: false
 
 jobs:
   inactive:
-    if: github.repository == 'OmarCodes022/Sensai' && (github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true) && vars.SENSAI_EVIDENCE_SYNC_ENABLED != 'true'
+    if: github.repository == 'OmarCodes022/Sensai' && vars.SENSAI_EVIDENCE_SYNC_ENABLED != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
       - name: Explain disabled evidence sync
         run: |
-          echo "::notice::Project/Notion evidence sync is disabled. Configure its scoped credentials and set SENSAI_EVIDENCE_SYNC_ENABLED=true in personal repository Actions variables."
-          echo "Project/Notion evidence sync is disabled pending activation. No tracker writes were attempted." >> "$GITHUB_STEP_SUMMARY"
+          echo "::notice::Push review and Project/Notion evidence sync are disabled. Configure scoped credentials and set SENSAI_EVIDENCE_SYNC_ENABLED=true."
+          echo "Push review and Project/Notion sync are disabled. No tracker writes were attempted." >> "$GITHUB_STEP_SUMMARY"
 
-  unit-tests:
-    if: github.repository == 'OmarCodes022/Sensai' && (github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true) && vars.SENSAI_EVIDENCE_SYNC_ENABLED == 'true'
+  review-and-sync:
+    if: github.repository == 'OmarCodes022/Sensai' && vars.SENSAI_EVIDENCE_SYNC_ENABLED == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
           ref: main
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
@@ -45,52 +50,27 @@ jobs:
         run: python -m pip install -r requirements.txt
       - name: Run unit tests
         run: python -m pytest -q tests/unit
-
-  copilot-summary:
-    if: github.repository == 'OmarCodes022/Sensai' && (github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true) && vars.SENSAI_EVIDENCE_SYNC_ENABLED == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-      pull-requests: read
-      copilot-requests: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
-          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
       - name: Install Copilot CLI
         run: npm install -g @github/copilot
-      - name: Summarize and validate landed code (read-only)
+      - name: Read existing Notion task and feature titles
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          BEFORE: ${{ inputs.before || github.event.before }}
+          AFTER: ${{ inputs.after || github.sha }}
+        run: python scripts/sync_push_evidence.py prepare --before "$BEFORE" --after "$AFTER" --catalog "$RUNNER_TEMP/evidence-catalog.json"
+      - name: Review changed code (no tracker credentials)
+        env:
           COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_TOKEN || github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
-        run: python scripts/copilot_merge_summary.py --pr "$PR_NUMBER"
-
-  sync:
-    if: github.repository == 'OmarCodes022/Sensai' && (github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true) && vars.SENSAI_EVIDENCE_SYNC_ENABLED == 'true'
-    needs: [unit-tests, copilot-summary]
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-          persist-credentials: false
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: Sync Project, then Notion (deterministic)
+          BEFORE: ${{ inputs.before || github.event.before }}
+          AFTER: ${{ inputs.after || github.sha }}
+        run: python scripts/sync_push_evidence.py review --before "$BEFORE" --after "$AFTER" --catalog "$RUNNER_TEMP/evidence-catalog.json" --plan "$RUNNER_TEMP/evidence-plan.json"
+      - name: Update existing issues, Project, task/feature evidence, and work log
         env:
           GH_PROJECT_TOKEN: ${{ secrets.GH_PROJECT_TOKEN }}
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
-        run: python scripts/sync_merge_evidence.py --pr "$PR_NUMBER"
+          BEFORE: ${{ inputs.before || github.event.before }}
+          AFTER: ${{ inputs.after || github.sha }}
+        run: python scripts/sync_push_evidence.py apply --before "$BEFORE" --after "$AFTER" --catalog "$RUNNER_TEMP/evidence-catalog.json" --plan "$RUNNER_TEMP/evidence-plan.json"

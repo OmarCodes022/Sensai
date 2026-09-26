@@ -1,17 +1,34 @@
-# Merged PR evidence sync
+# Main push code review and evidence sync
 
-This workflow runs in **OmarCodes022/Sensai** for PRs merged into its `main`.
-Normal personal-repo PR and push unit tests live in `personal-main-mirror.yml`.
-The evidence workflow independently re-reads the personal PR from GitHub and
-rejects unmerged PRs or other base branches. It checks out trusted `main`,
-not the PR head. With the activation variable unset, merged PRs report an
-explicit disabled notice and make **no Project or Notion writes**; the
-mirrored Epitech copy skips every job. When activated, unit tests and a
-read-only Copilot CLI summary run separately, and only after both succeed
-does a deterministic job synchronize the organization Project and Notion.
-Copilot output **never** selects tracker records or determines tracker writes.
-Replay a merged personal PR from Actions → **Sync merged PR evidence** →
-**Run workflow** with its `pr_number`.
+`.github/workflows/sync-merge-evidence.yml` runs on **every push to personal
+`main`**, including a merged PR. It does not run on PR close separately, so
+one merge causes one code-review run. The personal repo's other workflow
+(`personal-main-mirror.yml`) runs PR/push tests and optionally mirrors `main`
+to Epitech; **the two workflows are independent**. Evidence sync does not
+wait for Epitech mirroring, and the mirrored Epitech copy skips its jobs.
+
+When enabled, this workflow checks out trusted personal `main` with full
+history, checks that the event's before/after commits form a fast-forward
+range on `main`, runs unit tests, reads existing Notion Delivery tasks and
+Feature tracker row titles/IDs, and gives a bounded diff and that metadata
+to a read-only Copilot CLI review. Direct pushes need no PR or linked issue.
+The agent picks relevant **existing** rows and writes a short summary to a
+validated JSON plan; it does not receive Project/Notion write credentials.
+A separate deterministic step re-reads and validates those rows, then appends
+evidence to matched task/feature pages and **always** appends a code-change
+entry to the work log, even if no row matches. When a matched row links an
+existing GitHub issue, the writer also adds that issue to the organization
+Project if missing and posts an idempotent evidence comment. It never creates
+issues, rewrites requirements, or changes status/completion fields. All
+entries say *code landed, not verified*. An agent match is a suggestion of
+relevance, not proof of accepted feature completion.
+
+With activation off, pushes produce an explicit notice and **no tracker
+writes**. Manually replay a historical main push from Actions →
+**Review main pushes and sync evidence** → **Run workflow** by supplying the
+exact 40-character `before` (exclusive) and `after` (inclusive) commit SHAs.
+The range must still be reachable from `main`. Replays detect existing
+work-log, row and issue evidence for the ending commit.
 
 ## One-time configuration
 
@@ -20,23 +37,27 @@ Actions budget still prevents its runners from starting. This workflow does
 not require those runners. Before enabling writes, set the following secrets
 on **OmarCodes022/Sensai**, not on the Epitech repo:
 
-1. Set an Actions repository secret `GH_PROJECT_TOKEN` with access to the
+1. Set Actions repository secret `GH_PROJECT_TOKEN` with write access to the
    organization **Sensai 67** Project (number 269, ID
-   `PVT_kwDODOAw1s4BkNJr`) and read access to the **personal public repo's**
-   PRs and issues. For a classic PAT, authorize it for the organization
-   (including SSO if required) with `project` scope; alternatively, use an
-   authorized GitHub App installation token with organization Projects write
-   and personal repository Pull requests and Issues read permissions. Use a
-   dedicated minimally privileged account/token. The `EPITECH_PUSH_TOKEN`
-   used for mirroring is a different credential and is **not** a substitute
-   for Project write access.
+   `PVT_kwDODOAw1s4BkNJr`) and **Issues read/write** access to the Epitech
+   repository if its existing issues are linked on Notion rows. If linking
+   personal issues too, it also needs Issues read/write in the personal repo.
+   Authorize the credential for the organization (including SSO or token
+   approval if required). A classic PAT needs `project` and `repo` scopes
+   for the private organization issue access; a fine-grained credential
+   needs the equivalent Project and Issues permissions. Use a dedicated
+   minimally privileged credential.
+   `EPITECH_PUSH_TOKEN` is a *different* mirror credential and is **not** a
+   substitute for Project and issue write access.
    The workflow's built-in `GITHUB_TOKEN` cannot be relied on for editing an
    organization Project. GitHub's [Project API guide][project-api] requires
    `project` scope for classic-PAT Project mutations or an authorized GitHub
    App installation token.
 2. Create a **Notion internal integration**, enable read, update, and insert
-   content capabilities, and explicitly share the Epitech **Feature tracker**,
-   **Roadmap**, **Stories by feature**, and **Delivery tasks** databases with it.
+   content capabilities, and explicitly share the Epitech **Feature tracker**
+   and **Delivery tasks** databases, plus the **Work log and evidence** page,
+   with it. The old merged-PR script also uses Roadmap and Stories by feature,
+   but the main-push review only updates tasks, features and the work log.
    Save its integration secret as
    Actions repository secret `NOTION_TOKEN`. Do **not** use or store a personal
    Notion OAuth token; do not put tokens in source, PR bodies, logs, or vars.
@@ -46,26 +67,19 @@ on **OmarCodes022/Sensai**, not on the Epitech repo:
    Requests** permission for an authorized Copilot seat. The CLI accepts
    `COPILOT_GITHUB_TOKEN` (which this workflow sets from `COPILOT_TOKEN`, or
    falls back to `GITHUB_TOKEN`). Classic PATs are **not** supported for
-   Copilot CLI. The first job has only repository read and Copilot request
-   permissions; it receives **no** Project/Notion credentials. If neither
-   authentication path is authorized, the job fails **before tracker writes**.
+   Copilot CLI. The Copilot **step** receives no Notion or Project token;
+   Notion read and deterministic write steps use step-scoped credentials.
+   If neither authentication path is authorized, the workflow fails
+   **before tracker writes**.
    See [GitHub's Actions authentication instructions][copilot-actions-auth].
-4. In the feature tracker and stories database, populate `Issue URL` with an
-   exact URL such as
-   `https://github.com/OmarCodes022/Sensai/issues/7`.
-   In the roadmap, `GitHub URL` may similarly link an issue; Delivery tasks
-   uses `GitHub issue`. Only issues in
-   **personal** repository included in the merged PR's GitHub
-   `closingIssuesReferences` are considered (for example, a GitHub-linked
-   closing reference such as `Closes #18`). A title, label, feature ID,
-   prefilled PR URL, commit message, loose issue mention, or `Issue: #18`
-   in body text is **not** a validated link in this workflow. Without a
-   GitHub-linked issue, only the merged PR is added to the Project; no
-   Notion requests or updates are made. The log reports
-   `issue_sync: no_linked_issues`.
-   Existing Epitech issue URLs in Notion do **not** match personal issues.
-   Do not relabel them by number: create/identify the actual personal issue
-   first, then update the relevant Notion row's URL deliberately.
+4. Existing `GitHub issue` (Delivery tasks) and `Issue URL` (Feature tracker)
+   fields may link an actual issue in either
+   `EpitechPGE3-2026/G-AIA-500-STG-5-1-sensai-1` or
+   `OmarCodes022/Sensai`. Only those exact URLs on agent-selected rows may
+   be used for existing-issue comments/Project membership. The writer
+   verifies the issue with GitHub before any change; it never guesses an
+   issue number from a feature ID, commit message or PR body. A missing
+   issue link **does not prevent Notion row and work-log evidence**.
 
 5. Only after the credentials and personal issue links are ready, set the
    nonsecret repository Actions variable `SENSAI_EVIDENCE_SYNC_ENABLED` to
@@ -73,32 +87,25 @@ on **OmarCodes022/Sensai**, not on the Epitech repo:
    with an unset variable reports disabled and does not write; enabling
    without working secrets fails rather than reporting a successful sync.
 
-Missing secrets, Copilot authentication/validation failures, authorization
-failures, invalid PRs, partial pagination, or API errors fail the workflow;
-inspect the Actions failure and replay the PR after fixing configuration.
-The sync prints non-sensitive counts (no tokens or raw API errors).
-Transient failures on reads and idempotent property
-updates retry with bounded backoff. Ambiguous failures on Project item additions
-or Notion block appends fail rather than blindly repeating a non-idempotent
-write; replays detect existing Project membership and evidence blocks.
+Missing secrets, Copilot failures, invalid/force-pushed commit ranges,
+partial pagination or API errors fail the workflow; inspect Actions and
+replay the same range after fixing configuration. API failures never log
+credential values or response bodies. Ambiguous failures on Project item
+additions, issue comments or Notion appends fail instead of blindly
+repeating non-idempotent writes; replay checks existing membership,
+comments and evidence blocks. A multi-commit push receives **one** review
+for its before→after diff.
 
 ## What is (and is not) synchronized
 
-After the Copilot gate, the merged PR and its linked same-repository issues are added as
-content items to **Sensai 67** if absent. Existing Project items/fields are
-left alone. Next, **only existing Notion rows with exact matching linked issue
-URLs**
-receive an append-only paragraph linking the merged PR and merge commit,
-explicitly labeled *code landed, not verified*. Empty `PR URL` and
-`Evidence URL` properties in matching feature rows, empty `Evidence URL`
-in matching story rows, or empty `PR` in matching Delivery tasks are filled
-once; nonempty values are preserved. Roadmap rows only receive an evidence
-paragraph. Other page content, owner,
-scope, status, dependencies, and criteria are never rewritten. Later merged
-PRs add further evidence paragraphs without overwriting previous links.
-Notion does not get new guessed features, stories, or roadmap entries.
-The script uses [PATCH page][notion-page] only for listed URL properties and
-[append block children][notion-blocks] for evidence; it never replaces a page.
+The writer appends a commit-linked paragraph to each selected existing
+Delivery task and Feature tracker page. It also appends a summary to the
+existing Work log and evidence page **on every reviewed push**, even with
+zero task/feature/issue matches. It preserves properties, owner, scope,
+status, dependencies and acceptance criteria. If a matched row already
+links a verified existing issue, the writer adds that issue to **Sensai 67**
+if absent and posts a commit-linked comment on the issue. It cannot create
+issues, edit their titles/bodies/statuses or infer new Notion rows.
 
 **A merged PR is not proof that a feature is fully implemented, accepted,
 tested, or approved.** The sync never sets Project Status or Notion statuses
@@ -108,35 +115,33 @@ review those rules independently. In Project 269, Status field
 `PVTSSF_lADODOAw1s4BkNJrzhi-kII` is not written: existing `Done` items
 (including B1) are not duplicated or reset. In particular, undecided A3/epics/optional
 features retain their manual decisions. The GitHub stage completes before
-Notion begins; a failed Notion stage may leave Project additions in place.
-Replay safely after repairing the failure. Do not trigger the workflow against
-live services just to test it; use `python -m pytest -q
-tests/unit/test_copilot_merge_summary.py tests/unit/test_sync_merge_evidence.py`
-for the offline mocked suite.
+Notion writes begin; a failed Notion stage may leave an issue comment or
+Project addition in place. Replay after repairing the failure. Test locally
+with `python -m pytest -q tests/unit` rather than activating live writes
+just to test.
 
-## Required, machine-validated Copilot CLI summary
+## Required, machine-validated Copilot CLI review
 
-Every merged PR starts the headless `@github/copilot` CLI via `copilot -p ...
---no-ask-user -s`. The first job fetches the merged PR and first-parent merge
-diff with **read-only** repository credentials, passes a bounded excerpt as
-untrusted evidence, disables repository custom instructions, and limits CLI
-tools to `read` (`--available-tools=read`). It validates a single JSON object
-against the exact PR URL, commit SHA, evidence level
-`code_landed_not_verified`, and a bounded plain-text summary with no approval
-or verification claims. Invalid/unavailable output fails the workflow; the
-summary is printed to the job log, **not** passed to the sync job. The second
-job independently rereads the PR and uses only linked GitHub/Notion records.
-No Copilot-generated text can set Project Status or Notion status.
+Every enabled push starts headless `@github/copilot` via `copilot -p ...
+--no-ask-user -s`. The review receives only a bounded before→after code diff
+and existing Notion task/feature titles, IDs and issue URLs, with no Notion or
+Project credentials. It cannot use shell or write tools. Its single JSON
+object must match both SHAs and contain a bounded plain-text summary plus at
+most 10 existing task and 10 existing feature page IDs from the read-only
+metadata. The writer re-reads the rows and rejects changed or unknown
+records before any writes. The review output is never allowed to choose
+statuses or invent destinations. If the diff is truncated, the prompt
+requires the summary to say it covers only an excerpt.
 
 GitHub [documents headless Actions invocation][copilot-actions], [authentication
 precedence and PAT support][copilot-reference], and [recommends gh-aw for its
 broader guardrails][copilot-actions]. This workflow uses direct CLI rather than
 gh-aw to keep a strict read-only AI stage and deterministic, testable writes.
-Because direct CLI can access its job environment, the Copilot job is separate
-from—and has no secrets for—the Project/Notion write job. No output artifact
-is needed: the validated summary is logged, while the subsequent job rereads
-authoritative PR evidence independently.
-The summary is not a test run, review, or feature acceptance.
+The CLI step receives only its Copilot authentication token (no Project or
+Notion token); candidate metadata and the JSON plan are kept in the
+runner's temporary directory, not committed or uploaded as artifacts. The
+writer validates references and writes deterministically.
+The summary is not a test result, feature acceptance or approval.
 
 [copilot-actions]: https://docs.github.com/en/copilot/how-tos/copilot-cli/automate-copilot-cli/automate-with-actions
 [copilot-actions-auth]: https://docs.github.com/en/copilot/how-tos/copilot-cli/use-copilot-cli-in-actions
