@@ -19,7 +19,9 @@ The Lambda does not bypass organization SSH authorization.
 
 As of 2026-09-26 the schedule is enabled. A controlled Lambda invocation
 fast-forwarded Epitech `main` to the CI-tested personal SHA
-`d32b99a912076ff61a369c1bf33c63dbf42b6b4e`. The user explicitly
+`d32b99a912076ff61a369c1bf33c63dbf42b6b4e`; the next push was
+automatically mirrored after CI to `e89d87dd151fa0105d6f4a8bc3d0b13a1263e93a`.
+The user explicitly
 authorized storing their **existing personal SSH key** in AWS Secrets
 Manager rather than adding a dedicated key; replace it with a dedicated,
 authorized key when possible to reduce the impact of a compromised Lambda
@@ -51,6 +53,7 @@ chat, container images, or build logs.
    (`.../sensai-mirror@sha256:...`) and run
    `terraform -chdir=infra/aws-mirror apply -var="image_uri=..."`.
    Terraform state is local and ignored by Git; protect and back it up.
+   The ECR repository is created separately and is not destroyed by Terraform.
 2. Put an authorized GitHub SSH private key into the created Secrets Manager
    secret `sensai/mirror/epitech-ssh` (a `SecretString`). **Prefer a new,
    dedicated key:** add its public half in GitHub account settings as an
@@ -71,10 +74,10 @@ chat, container images, or build logs.
    only after that verification. If CI or
    GitHub SSH authorization is not ready, leave it disabled.
 
-The old Actions PAT mirror is retired; `EPITECH_MIRROR_ENABLED=false` and the
-old `EPITECH_PUSH_TOKEN` do not activate AWS mirroring. Remove that unused
-token when the new mirror is working. In the personal checkout, `origin` is
-personal and `epitech` is Epitech. To manually mirror an already-tested
+The old Actions PAT mirror is retired: its `EPITECH_MIRROR_ENABLED` variable
+and `EPITECH_PUSH_TOKEN` secret were removed from personal Actions after AWS
+mirroring succeeded. In the personal checkout, `origin` is personal and
+`epitech` is Epitech. To manually mirror an already-tested
 commit if authorized, use
 `git fetch origin main && git push epitech refs/remotes/origin/main:refs/heads/main`
 (no force).
