@@ -221,13 +221,12 @@ resource "aws_cloudwatch_log_group" "lambda" {
 }
 
 resource "aws_lambda_function" "mirror" {
-  function_name                  = "sensai-main-mirror"
-  package_type                   = "Image"
-  image_uri                      = var.image_uri
-  role                           = aws_iam_role.lambda.arn
-  timeout                        = 55
-  memory_size                    = 256
-  reserved_concurrent_executions = 1
+  function_name = "sensai-main-mirror"
+  package_type  = "Image"
+  image_uri     = var.image_uri
+  role          = aws_iam_role.lambda.arn
+  timeout       = 55
+  memory_size   = 256
 
   ephemeral_storage {
     size = 1024
