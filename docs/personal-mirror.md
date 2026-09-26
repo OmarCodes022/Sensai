@@ -17,6 +17,17 @@ the push, Lambda fails and its CloudWatch alarm fires; integrate the divergent
 work into personal `main` or resolve branch protection before retrying.
 The Lambda does not bypass organization SSH authorization.
 
+As of 2026-09-26 the schedule is enabled. A controlled Lambda invocation
+fast-forwarded Epitech `main` to the CI-tested personal SHA
+`d32b99a912076ff61a369c1bf33c63dbf42b6b4e`. The user explicitly
+authorized storing their **existing personal SSH key** in AWS Secrets
+Manager rather than adding a dedicated key; replace it with a dedicated,
+authorized key when possible to reduce the impact of a compromised Lambda
+role or secret. AWS provisioning used the selected account-root profile;
+use a least-privileged IAM identity for future maintenance. Terraform state
+is kept locally outside Git and contains resource metadata, not the private
+SSH key.
+
 ## AWS setup and activation
 
 The infrastructure and implementation are under `infra/aws-mirror/`. It uses
