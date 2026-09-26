@@ -121,23 +121,21 @@ def test_missing_copilot_auth_fails_explicitly(capsys):
     assert "must both be configured" in capsys.readouterr().err
 
 
-def test_workflow_gates_sync_on_tests_and_copilot_without_exposing_tracker_credentials():
+def test_workflow_reviews_pushes_without_exposing_tracker_credentials_to_agent():
     workflow = (SCRIPTS.parent / ".github/workflows/sync-merge-evidence.yml").read_text()
-    before, after = workflow.split("\n  sync:\n", 1)
-    assert "types: [closed]" in before
-    assert "  inactive:\n" in before
-    assert "No tracker writes were attempted." in before
-    assert "  unit-tests:\n" in before
-    assert "ref: main" in before
-    assert "python -m pytest -q tests/unit" in before
-    assert "  copilot-summary:\n" in before
-    assert "scripts/copilot_merge_summary.py" in before
-    assert "copilot-requests: write" in before
-    assert "GH_PROJECT_TOKEN" not in before and "NOTION_TOKEN" not in before
-    active = "github.repository == 'OmarCodes022/Sensai' && (github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true) && vars.SENSAI_EVIDENCE_SYNC_ENABLED == 'true'"
-    assert before.count(active) == 2
-    assert active in after
-    assert "needs: [unit-tests, copilot-summary]" in after
-    assert "scripts/sync_merge_evidence.py" in after
-    assert "GH_PROJECT_TOKEN: ${{ secrets.GH_PROJECT_TOKEN }}" in after
-    assert "NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}" in after
+    assert "  push:\n    branches: [main]" in workflow
+    assert "  workflow_dispatch:\n" in workflow
+    assert "  pull_request:\n" not in workflow
+    assert "No tracker writes were attempted." in workflow
+    assert "github.repository == 'OmarCodes022/Sensai'" in workflow
+    assert "vars.SENSAI_EVIDENCE_SYNC_ENABLED == 'true'" in workflow
+    assert "python -m pytest -q tests/unit" in workflow
+    assert "copilot-requests: write" in workflow
+    _, after_read = workflow.split("      - name: Read existing Notion task and feature titles\n", 1)
+    read, after_agent = after_read.split("      - name: Review changed code (no tracker credentials)\n", 1)
+    agent, writer = after_agent.split(
+        "      - name: Update existing issues, Project, task/feature evidence, and work log\n", 1
+    )
+    assert "secrets.NOTION_TOKEN" in read
+    assert "NOTION_TOKEN" not in agent and "GH_PROJECT_TOKEN" not in agent
+    assert "secrets.GH_PROJECT_TOKEN" in writer and "secrets.NOTION_TOKEN" in writer
