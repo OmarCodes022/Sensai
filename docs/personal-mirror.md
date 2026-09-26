@@ -20,8 +20,8 @@ The Lambda does not bypass organization SSH authorization.
 ## AWS setup and activation
 
 The infrastructure and implementation are under `infra/aws-mirror/`. It uses
-an ECR container (Git and OpenSSH), a Secrets Manager secret for a **new,
-dedicated** GitHub SSH key, a scoped Lambda role, a GitHub OIDC role that can
+an ECR container (Git and OpenSSH), a Secrets Manager secret for an authorized
+GitHub SSH key, a scoped Lambda role, a GitHub OIDC role that can
 write only the tested SHA parameter, a one-minute EventBridge rule, 14-day
 logs, and an error alarm. The alarm is visible in CloudWatch but does **not**
 send notifications until a notification action is configured. The rule starts
@@ -31,10 +31,13 @@ Do not put credentials in Terraform state, this repository, Actions secrets,
 chat, container images, or build logs.
 
 1. Use an approved AWS IAM provisioning identity (`AWS_PROFILE`), in Paris
-   (`AWS_REGION=eu-west-3`). Create ECR repository `sensai-mirror` there and
-   build/push `infra/aws-mirror/Dockerfile` for `linux/amd64`. Obtain the
-   resulting immutable image digest URI (`.../sensai-mirror@sha256:...`).
-   Run `terraform -chdir=infra/aws-mirror init` and
+   (`AWS_REGION=eu-west-3`). Create ECR repository `sensai-mirror` there.
+   Run `terraform -chdir=infra/aws-mirror init`, then
+   `terraform -chdir=infra/aws-mirror apply -target=aws_codebuild_project.image -var="image_uri=..."`.
+   Build the exact reviewed personal commit with
+   `aws codebuild start-build --project-name sensai-mirror-image --environment-variables-override name=SOURCE_COMMIT,value=<sha>,type=PLAINTEXT`.
+   After the build succeeds, obtain its immutable ECR digest URI
+   (`.../sensai-mirror@sha256:...`) and run
    `terraform -chdir=infra/aws-mirror apply -var="image_uri=..."`.
    Terraform state is local and ignored by Git; protect and back it up.
 2. Put an authorized GitHub SSH private key into the created Secrets Manager

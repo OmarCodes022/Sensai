@@ -25,6 +25,108 @@ variable "enable_schedule" {
 
 data "aws_caller_identity" "current" {}
 
+data "aws_ecr_repository" "mirror" {
+  name = "sensai-mirror"
+}
+
+resource "aws_cloudwatch_log_group" "build" {
+  name              = "/aws/codebuild/sensai-mirror-image"
+  retention_in_days = 7
+}
+
+resource "aws_iam_role" "build" {
+  name = "sensai-mirror-image-build"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "codebuild.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "build" {
+  role = aws_iam_role.build.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "ecr:GetAuthorizationToken"
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:BatchCheckLayerAvailability", "ecr:InitiateLayerUpload",
+          "ecr:UploadLayerPart", "ecr:CompleteLayerUpload", "ecr:PutImage"
+        ]
+        Resource = data.aws_ecr_repository.mirror.arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["logs:CreateLogStream", "logs:PutLogEvents"]
+        Resource = "${aws_cloudwatch_log_group.build.arn}:*"
+      }
+    ]
+  })
+}
+
+resource "aws_codebuild_project" "image" {
+  name         = "sensai-mirror-image"
+  service_role = aws_iam_role.build.arn
+
+  artifacts {
+    type = "NO_ARTIFACTS"
+  }
+
+  source {
+    type      = "NO_SOURCE"
+    buildspec = <<-YAML
+      version: 0.2
+      phases:
+        install:
+          commands:
+            - git clone --quiet https://github.com/OmarCodes022/Sensai.git /tmp/sensai
+            - git -C /tmp/sensai checkout --quiet "$SOURCE_COMMIT"
+        build:
+          commands:
+            - docker build --platform linux/amd64 -t "$REPOSITORY_URI:$SOURCE_COMMIT" /tmp/sensai/infra/aws-mirror
+        post_build:
+          commands:
+            - aws ecr get-login-password | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+            - docker push "$REPOSITORY_URI:$SOURCE_COMMIT"
+      YAML
+  }
+
+  environment {
+    compute_type                = "BUILD_GENERAL1_SMALL"
+    image                       = "aws/codebuild/amazonlinux-x86_64-standard:5.0"
+    type                        = "LINUX_CONTAINER"
+    privileged_mode             = true
+    image_pull_credentials_type = "CODEBUILD"
+
+    environment_variable {
+      name  = "REPOSITORY_URI"
+      value = data.aws_ecr_repository.mirror.repository_url
+    }
+
+    environment_variable {
+      name  = "ECR_REGISTRY"
+      value = "${data.aws_caller_identity.current.account_id}.dkr.ecr.eu-west-3.amazonaws.com"
+    }
+  }
+
+  logs_config {
+    cloudwatch_logs {
+      group_name = aws_cloudwatch_log_group.build.name
+    }
+  }
+
+  depends_on = [aws_iam_role_policy.build]
+}
+
 resource "aws_iam_openid_connect_provider" "github" {
   url            = "https://token.actions.githubusercontent.com"
   client_id_list = ["sts.amazonaws.com"]
