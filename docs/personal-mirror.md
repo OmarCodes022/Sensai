@@ -1,52 +1,66 @@
 # Personal repository and Epitech mirror
 
-`OmarCodes022/Sensai` is public. It was initially populated from the two
-branches that existed on the private Epitech repository: `main` and
-`ci/merge-evidence-sync-20260925`. The four recent setup commits were later
-rewritten to remove co-author trailers; their commit IDs changed, but their
-file trees did not. There were no tags. Old local remote-tracking branches
-that no longer exist on GitHub were not copied. Local untracked files are
-not part of either repository.
+`OmarCodes022/Sensai` is public and is the source of truth for `main`.
+`EpitechPGE3-2026/G-AIA-500-STG-5-1-sensai-1` is the private destination.
+The personal repo was initially populated from the two then-existing Epitech
+branches; the four setup commits were later rewritten to remove co-author
+trailers. Untracked files are not mirrored.
 
-The **personal `main` branch is the working source**. Pull requests and pushes
-to personal `main` run unit tests. When mirroring is enabled, passing tests
-allow a non-forced fast-forward of Epitech `main` to the exact tested commit.
-It does not mirror other branches or tags, delete Epitech refs, or run its
-jobs in the Epitech repository. If Epitech `main` advances independently, the
-push fails rather than discarding a teammate's work: integrate those commits
-into personal `main`, rerun tests, then retry. Epitech branch protection may
-require a reviewed PR instead of a direct push; this workflow does not bypass
-that rule.
+Personal pushes and PRs run unit tests. An AWS Lambda in `eu-west-3` checks
+the public personal `main` once per minute. **Only a passing personal `main`
+run** can publish its exact tested commit ID to AWS Systems Manager via GitHub
+Actions OIDC. The Lambda skips the push unless that ID is still the current
+personal head; it fetches both histories and fast-forwards only Epitech
+`main`. No force pushes, other branches, tags, ref deletions, or CI on Epitech
+are involved. If Epitech has independent commits or branch protection blocks
+the push, Lambda fails and its CloudWatch alarm fires; integrate the divergent
+work into personal `main` or resolve branch protection before retrying.
+The Lambda does not bypass organization SSH authorization.
 
-## Activate automatic mirroring
+## AWS setup and activation
 
-Create a **dedicated fine-grained personal access token** for the Epitech
-repository, with repository **Contents: read and write** permission and
-organization approval/SSO if required. Do not reuse the GitHub CLI's broad
-login token. Store it as an **Actions repository secret**
-`EPITECH_PUSH_TOKEN` in `OmarCodes022/Sensai` under Settings → Secrets and
-variables → Actions. Then set the nonsecret repository variable
-`EPITECH_MIRROR_ENABLED` to `true` in the same settings area. Never put the
-token value in code, an issue, or chat. This secret is not available to the
-read-only test job or pull requests; the mirror job only runs on personal
-`main` or a manual run of that branch **when the variable is `true`**.
+The infrastructure and implementation are under `infra/aws-mirror/`. It uses
+an ECR container (Git and OpenSSH), a Secrets Manager secret for a **new,
+dedicated** GitHub SSH key, a scoped Lambda role, a GitHub OIDC role that can
+write only the tested SHA parameter, a one-minute EventBridge rule, 14-day
+logs, and an error alarm. The alarm is visible in CloudWatch but does **not**
+send notifications until a notification action is configured. The rule starts
+disabled. Lambda, ECR storage, Secrets Manager and logging may incur AWS
+charges even with the rule disabled; review usage and clean up when unused.
+Do not put credentials in Terraform state, this repository, Actions secrets,
+chat, container images, or build logs.
 
-Before activation, personal CI passes if its tests pass, reports that mirroring
-is disabled, and skips the mirror job; this is **not** evidence that Epitech is
-up to date. If enabled without the secret, the mirror job fails explicitly.
-A maintainer with write access can perform a one-time
-non-forced `git push epitech HEAD:refs/heads/main` from a locally tested
-personal `main` checkout, if Epitech permits direct pushes. Future personal
-pushes still need the secret for automatic mirroring. After configuring it,
-manually run **Test and mirror personal main** from Actions on `main` (or rerun
-the failed run) and verify that both repositories' `main` commit IDs match.
-If the organization rejects the token or a protected branch blocks the
-push, request authorization or switch to a PR-based handoff; do not force
-push. The Epitech organization's Actions budget does not fund the personal
-workflow, but Epitech-only workflows remain blocked until its budget is
-restored.
+1. Use an approved AWS IAM provisioning identity (`AWS_PROFILE`), in Paris
+   (`AWS_REGION=eu-west-3`). Create ECR repository `sensai-mirror` there and
+   build/push `infra/aws-mirror/Dockerfile` for `linux/amd64`. Obtain the
+   resulting immutable image digest URI (`.../sensai-mirror@sha256:...`).
+   Run `terraform -chdir=infra/aws-mirror init` and
+   `terraform -chdir=infra/aws-mirror apply -var="image_uri=..."`.
+   Terraform state is local and ignored by Git; protect and back it up.
+2. Put an authorized GitHub SSH private key into the created Secrets Manager
+   secret `sensai/mirror/epitech-ssh` (a `SecretString`). **Prefer a new,
+   dedicated key:** add its public half in GitHub account settings as an
+   authentication key and authorize Epitech SSO if prompted. With the key
+   owner's explicit consent, an existing GitHub SSH key may be used instead;
+   this extends that personal key's access to the AWS Lambda and raises its
+   impact if AWS access is compromised. Never use the unapproved
+   `EPITECH_PUSH_TOKEN`, and rotate any copied personal key if AWS is
+   compromised. If GitHub refuses the key, request an authorized credential
+   instead of working around the policy.
+3. Set personal repository Actions variable `AWS_MIRROR_OIDC_ROLE_ARN` to
+   Terraform output `ci_role_arn`, then `AWS_MIRROR_ENABLED=true`. Run the
+   personal workflow on `main`; confirm the `authorize-aws-mirror` job passed
+   and SSM `/sensai/mirror/last-tested-sha` is the exact tested `main` SHA.
+4. Invoke `sensai-main-mirror` manually and verify its result says `mirrored`
+   or `up_to_date` and both remote `main` SHAs match. Enable the schedule
+   with `terraform -chdir=infra/aws-mirror apply -var="image_uri=..." -var="enable_schedule=true"`
+   only after that verification. If CI or
+   GitHub SSH authorization is not ready, leave it disabled.
 
-In the personal checkout, `origin` points to `OmarCodes022/Sensai` and
-`epitech` points to the Epitech repository. An independent Epitech checkout
-has its own `origin` pointing to Epitech. Push everyday work to the personal
-checkout's `origin`; use `epitech` only for an intentional manual mirror.
+The old Actions PAT mirror is retired; `EPITECH_MIRROR_ENABLED=false` and the
+old `EPITECH_PUSH_TOKEN` do not activate AWS mirroring. Remove that unused
+token when the new mirror is working. In the personal checkout, `origin` is
+personal and `epitech` is Epitech. To manually mirror an already-tested
+commit if authorized, use
+`git fetch origin main && git push epitech refs/remotes/origin/main:refs/heads/main`
+(no force).

@@ -1,4 +1,4 @@
-name: Test and mirror personal main
+name: Test personal main and authorize AWS mirror
 
 'on':
   pull_request:
@@ -30,46 +30,18 @@ jobs:
         run: python -m pip install -r requirements.txt
       - name: Run unit tests
         run: python -m pytest -q tests/unit
-      - name: Report inactive Epitech mirror
-        if: github.event_name != 'pull_request' && vars.EPITECH_MIRROR_ENABLED != 'true'
-        run: |
-          echo "::notice::Epitech mirroring is disabled. Add the EPITECH_PUSH_TOKEN secret and set EPITECH_MIRROR_ENABLED=true to activate it."
-          echo "Epitech mirroring is disabled pending its repository token and activation variable." >> "$GITHUB_STEP_SUMMARY"
 
-  mirror:
-    if: github.repository == 'OmarCodes022/Sensai' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.EPITECH_MIRROR_ENABLED == 'true'
+  authorize-aws-mirror:
+    if: github.repository == 'OmarCodes022/Sensai' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.AWS_MIRROR_ENABLED == 'true'
     needs: [unit-tests]
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    permissions:
+      id-token: write
+      contents: read
     steps:
-      - name: Require Epitech repository access
-        env:
-          EPITECH_PUSH_TOKEN: ${{ secrets.EPITECH_PUSH_TOKEN }}
-        run: |
-          if [ -z "$EPITECH_PUSH_TOKEN" ]; then
-            echo "::error::Set EPITECH_PUSH_TOKEN with Epitech repository Contents write access, then rerun this workflow."
-            exit 1
-          fi
-      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
-          path: source
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: actions/checkout@v4
-        with:
-          repository: EpitechPGE3-2026/G-AIA-500-STG-5-1-sensai-1
-          ref: main
-          path: epitech
-          fetch-depth: 0
-          token: ${{ secrets.EPITECH_PUSH_TOKEN }}
-      - name: Fast-forward Epitech main from tested personal main
-        env:
-          SOURCE_SHA: ${{ github.sha }}
-        run: |
-          git -C epitech fetch --no-tags ../source HEAD
-          if [ "$(git -C epitech rev-parse FETCH_HEAD)" != "$SOURCE_SHA" ]; then
-            echo "::error::Source checkout does not match the tested personal commit."
-            exit 1
-          fi
-          git -C epitech merge --ff-only FETCH_HEAD
-          git -C epitech push origin HEAD:refs/heads/main
+          role-to-assume: ${{ vars.AWS_MIRROR_OIDC_ROLE_ARN }}
+          aws-region: eu-west-3
+      - name: Record exact tested main commit for the AWS poller
+        run: aws ssm put-parameter --name /sensai/mirror/last-tested-sha --type String --value "$GITHUB_SHA" --overwrite >/dev/null

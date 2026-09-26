@@ -3,3 +3,7 @@ __pycache__/
 .pytest_cache/
 .env
 *.egg-info/
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfplan
