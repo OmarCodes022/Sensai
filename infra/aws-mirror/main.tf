@@ -155,7 +155,7 @@ resource "aws_iam_role" "ci" {
       Condition = {
         StringEquals = {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-          "token.actions.githubusercontent.com:sub" = "repo:OmarCodes022/Sensai:ref:refs/heads/main"
+          "token.actions.githubusercontent.com:sub" = "repo:OmarCodes022@182362574/Sensai@1387808431:ref:refs/heads/main"
         }
       }
     }]
