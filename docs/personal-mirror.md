@@ -6,6 +6,16 @@ The personal repo was initially populated from the two then-existing Epitech
 branches; the four setup commits were later rewritten to remove co-author
 trailers. Untracked files are not mirrored.
 
+Personal `main` requires a pull request with one approving review from someone
+with write access; approvals are dismissed if the PR changes. Contributors
+without admin access cannot push directly to `main` or merge an unapproved PR.
+Administrators can bypass these requirements; Omar is currently the only
+administrator, so he can still push directly or merge his own PR without a
+review. Adding another administrator would give them the same bypass. Force
+pushes and branch deletion are disabled by the rule. Unit tests run on PRs but
+are not configured as required merge checks. This protection applies only to
+the personal repository, not the Epitech destination.
+
 Personal pushes and PRs run unit tests. An AWS Lambda in `eu-west-3` checks
 the public personal `main` once per minute. **Only a passing personal `main`
 run** can publish its exact tested commit ID to AWS Systems Manager via GitHub
