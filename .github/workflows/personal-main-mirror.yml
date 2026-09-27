@@ -1,4 +1,4 @@
-name: Test personal main and authorize AWS mirror
+name: Test personal PRs and mirror main
 
 'on':
   pull_request:
@@ -31,10 +31,10 @@ jobs:
       - name: Run unit tests
         run: python -m pytest -q tests/unit
 
-  authorize-aws-mirror:
+  mirror:
     if: github.repository == 'OmarCodes022/Sensai' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.AWS_MIRROR_ENABLED == 'true'
-    needs: [unit-tests]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       id-token: write
       contents: read
@@ -43,5 +43,26 @@ jobs:
         with:
           role-to-assume: ${{ vars.AWS_MIRROR_OIDC_ROLE_ARN }}
           aws-region: eu-west-3
-      - name: Record exact tested main commit for the AWS poller
-        run: aws ssm put-parameter --name /sensai/mirror/last-tested-sha --type String --value "$GITHUB_SHA" --overwrite >/dev/null
+      - name: Fast-forward Epitech main
+        run: |
+          printf '{"sha":"%s"}' "$GITHUB_SHA" > "$RUNNER_TEMP/mirror-request.json"
+          aws lambda invoke --function-name sensai-main-mirror \
+            --payload "fileb://$RUNNER_TEMP/mirror-request.json" \
+            "$RUNNER_TEMP/mirror-result.json" > "$RUNNER_TEMP/mirror-metadata.json"
+          python3 - "$RUNNER_TEMP/mirror-metadata.json" "$RUNNER_TEMP/mirror-result.json" "$GITHUB_SHA" <<'PY'
+          import json
+          import sys
+
+          with open(sys.argv[1], encoding="utf-8") as response:
+              metadata = json.load(response)
+          if metadata.get("StatusCode") != 200 or metadata.get("FunctionError"):
+              raise SystemExit("AWS mirror failed; inspect the Lambda log")
+          with open(sys.argv[2], encoding="utf-8") as response:
+              result = json.load(response)
+          if result.get("status") == "superseded":
+              print(f"Commit {sys.argv[3]} was superseded by {result['source']}")
+          elif result.get("status") in ("mirrored", "up_to_date") and result.get("source") == sys.argv[3]:
+              print(f"Epitech main matches personal main at {sys.argv[3]}")
+          else:
+              raise SystemExit("AWS mirror did not confirm this personal main commit")
+          PY

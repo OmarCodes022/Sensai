@@ -1,4 +1,4 @@
-"""Scheduled, CI-gated fast-forward of personal main to Epitech main."""
+"""Event-triggered fast-forward of personal main to Epitech main."""
 
 import logging
 import os
@@ -9,7 +9,6 @@ from pathlib import Path
 
 SOURCE = "https://github.com/OmarCodes022/Sensai.git"
 DESTINATION = "git@github.com:EpitechPGE3-2026/G-AIA-500-STG-5-1-sensai-1.git"
-MARKER = "/sensai/mirror/last-tested-sha"
 HOST_KEY = (
     "github.com ssh-ed25519 "
     "AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl\n"
@@ -34,9 +33,13 @@ def git(directory, *args, env=None):
     return result.stdout.strip()
 
 
-def mirror(tested_sha, private_key):
-    if len(tested_sha) != 40 or any(c not in "0123456789abcdef" for c in tested_sha):
-        raise ValueError("Invalid tested commit SHA")
+def mirror(private_key, expected_sha=None):
+    if expected_sha is not None and (
+        not isinstance(expected_sha, str)
+        or len(expected_sha) != 40
+        or any(c not in "0123456789abcdef" for c in expected_sha)
+    ):
+        raise ValueError("Invalid requested commit SHA")
     if not private_key.startswith("-----BEGIN OPENSSH PRIVATE KEY-----"):
         raise ValueError("Expected an OpenSSH private key in Secrets Manager")
 
@@ -63,9 +66,9 @@ def mirror(tested_sha, private_key):
         git(repository, "fetch", "--quiet", "--no-tags", SOURCE,
             "refs/heads/main:refs/remotes/personal/main", env=env)
         source = git(repository, "rev-parse", "refs/remotes/personal/main", env=env)
-        if source != tested_sha:
-            LOG.info("Waiting for CI on current personal main %s", source)
-            return {"status": "waiting_for_ci", "source": source}
+        if expected_sha is not None and source != expected_sha:
+            LOG.info("Push %s superseded by personal main %s", expected_sha, source)
+            return {"status": "superseded", "source": source}
 
         git(repository, "fetch", "--quiet", "--no-tags", DESTINATION,
             "refs/heads/main:refs/remotes/epitech/main", env=env)
@@ -80,11 +83,13 @@ def mirror(tested_sha, private_key):
         return {"status": "mirrored", "source": source, "previous": target}
 
 
-def handler(_event, _context):
+def handler(event, _context):
+    expected_sha = event.get("sha") if isinstance(event, dict) else None
+    if isinstance(event, dict) and "sha" in event and expected_sha is None:
+        raise ValueError("Invalid requested commit SHA")
     import boto3
 
-    marker = boto3.client("ssm").get_parameter(Name=MARKER)["Parameter"]["Value"]
     secret = boto3.client("secretsmanager").get_secret_value(
         SecretId=os.environ["SSH_SECRET_ARN"]
     )["SecretString"]
-    return mirror(marker, secret)
+    return mirror(secret, expected_sha)
