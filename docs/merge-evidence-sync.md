@@ -25,7 +25,7 @@ relevance, not proof of accepted feature completion.
 
 With activation off, pushes produce an explicit notice and **no tracker
 writes**. Manually replay a historical main push from Actions →
-**Review main pushes and sync evidence** → **Run workflow** by supplying the
+**Project and Notion** → **Run workflow** by supplying the
 exact 40-character `before` (exclusive) and `after` (inclusive) commit SHAs.
 The range must still be reachable from `main`. Replays detect existing
 work-log, row and issue evidence for the ending commit.

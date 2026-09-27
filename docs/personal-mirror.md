@@ -5,8 +5,8 @@
 
 1. **Getting into personal `main`:** Other contributors must open a PR,
    receive one approval from someone with write access, and pass the GitHub
-   Actions `unit-tests` check on an up-to-date branch. New commits dismiss
-   prior approvals. The `unit-tests` check is pinned to GitHub Actions, not
+   Actions `CI / Unit tests` check on an up-to-date branch. New commits dismiss
+   prior approvals. The `Unit tests` check is pinned to GitHub Actions, not
    an arbitrary commit status. Non-admins cannot push directly or merge an
    unapproved/failing PR. Omar is currently the only administrator; he can
    bypass review/checks or push directly. Adding another admin gives them
@@ -30,6 +30,13 @@
    GitHub Project, and Copilot credentials are not configured. Its green
    inactive notice is **not** a completed sync. Activation is documented in
    [merge-evidence-sync.md](merge-evidence-sync.md).
+
+GitHub shows four checks on a personal `main` commit: `CI / Unit tests`
+and `CI / Mirror to Epitech` are active; `Project and Notion / Not configured`
+is a notice, not a successful sync, and `Project and Notion / Sync evidence`
+is skipped until activation. On a PR, the mirror job is skipped because
+only personal `main` is mirrored. Old commits retain their historical check
+names; renaming the workflows affects new runs only.
 
 The two repositories cannot update atomically: personal `main` moves first,
 then the Lambda invocation normally catches Epitech up. If Epitech receives

@@ -1,4 +1,4 @@
-name: Review main pushes and sync evidence
+name: Project and Notion
 
 'on':
   push:
@@ -24,6 +24,7 @@ concurrency:
 
 jobs:
   inactive:
+    name: Not configured
     if: github.repository == 'OmarCodes022/Sensai' && vars.SENSAI_EVIDENCE_SYNC_ENABLED != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 2
@@ -34,6 +35,7 @@ jobs:
           echo "Push review and Project/Notion sync are disabled. No tracker writes were attempted." >> "$GITHUB_STEP_SUMMARY"
 
   review-and-sync:
+    name: Sync evidence
     if: github.repository == 'OmarCodes022/Sensai' && vars.SENSAI_EVIDENCE_SYNC_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
