@@ -2,10 +2,11 @@
 
 `.github/workflows/sync-merge-evidence.yml` runs on **every push to personal
 `main`**, including a merged PR. It does not run on PR close separately, so
-one merge causes one code-review run. The personal repo's other workflow
+one merge triggers at most one code review. The personal repo's other workflow
 (`personal-main-mirror.yml`) runs PR/push tests and invokes the AWS mirror
-on personal `main` pushes; **the two workflows are independent**. Evidence sync does not
-wait for Epitech mirroring, and the mirrored Epitech copy skips its jobs.
+on personal `main` pushes; **the two workflows are independent**. Evidence
+sync does not wait for Epitech mirroring, and the mirrored Epitech copy
+skips its job.
 
 When enabled, this workflow checks out trusted personal `main` with full
 history, checks that the event's before/after commits form a fast-forward
@@ -23,8 +24,8 @@ issues, rewrites requirements, or changes status/completion fields. All
 entries say *code landed, not verified*. An agent match is a suggestion of
 relevance, not proof of accepted feature completion.
 
-With activation off, pushes produce an explicit notice and **no tracker
-writes**. Manually replay a historical main push from Actions →
+With activation off, the single `Sync evidence` job is skipped and **no tracker
+writes** occur. Manually replay a historical main push from Actions →
 **Project and Notion** → **Run workflow** by supplying the
 exact 40-character `before` (exclusive) and `after` (inclusive) commit SHAs.
 The range must still be reachable from `main`. Replays detect existing
@@ -84,7 +85,7 @@ on **OmarCodes022/Sensai**, not on the Epitech repo:
 5. Only after the credentials and personal issue links are ready, set the
    nonsecret repository Actions variable `SENSAI_EVIDENCE_SYNC_ENABLED` to
    `true`. This is independent of the AWS Epitech mirror. A manual replay
-   with an unset variable reports disabled and does not write; enabling
+   with an unset variable skips the job and does not write; enabling
    without working secrets fails rather than reporting a successful sync.
 
 Missing secrets, Copilot failures, invalid/force-pushed commit ranges,

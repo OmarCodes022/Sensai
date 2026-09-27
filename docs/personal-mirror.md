@@ -27,16 +27,15 @@
    starts on each personal `main` push (direct or merged PR), not on Epitech.
    It does **not** wait for mirror success. It is currently disabled:
    `SENSAI_EVIDENCE_SYNC_ENABLED` is unset and the required Notion,
-   GitHub Project, and Copilot credentials are not configured. Its green
-   inactive notice is **not** a completed sync. Activation is documented in
+   GitHub Project, and Copilot credentials are not configured. Its single
+   `Sync evidence` job is skipped until activation, as documented in
    [merge-evidence-sync.md](merge-evidence-sync.md).
 
-GitHub shows four checks on a personal `main` commit: `CI / Unit tests`
-and `CI / Mirror to Epitech` are active; `Project and Notion / Not configured`
-is a notice, not a successful sync, and `Project and Notion / Sync evidence`
-is skipped until activation. On a PR, the mirror job is skipped because
-only personal `main` is mirrored. Old commits retain their historical check
-names; renaming the workflows affects new runs only.
+GitHub shows three checks on a personal `main` commit: `CI / Unit tests`
+and `CI / Mirror to Epitech` are active; `Project and Notion / Sync evidence`
+is skipped until activation, then runs normally under the same name. On a
+PR, the mirror job is skipped because only personal `main` is mirrored.
+Old commits retain their historical check results.
 
 The two repositories cannot update atomically: personal `main` moves first,
 then the Lambda invocation normally catches Epitech up. If Epitech receives

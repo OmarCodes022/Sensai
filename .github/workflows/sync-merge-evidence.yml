@@ -23,17 +23,6 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  inactive:
-    name: Not configured
-    if: github.repository == 'OmarCodes022/Sensai' && vars.SENSAI_EVIDENCE_SYNC_ENABLED != 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    steps:
-      - name: Explain disabled evidence sync
-        run: |
-          echo "::notice::Push review and Project/Notion evidence sync are disabled. Configure scoped credentials and set SENSAI_EVIDENCE_SYNC_ENABLED=true."
-          echo "Push review and Project/Notion sync are disabled. No tracker writes were attempted." >> "$GITHUB_STEP_SUMMARY"
-
   review-and-sync:
     name: Sync evidence
     if: github.repository == 'OmarCodes022/Sensai' && vars.SENSAI_EVIDENCE_SYNC_ENABLED == 'true'
