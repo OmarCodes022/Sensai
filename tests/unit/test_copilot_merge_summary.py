@@ -126,7 +126,9 @@ def test_workflow_reviews_pushes_without_exposing_tracker_credentials_to_agent()
     assert "  push:\n    branches: [main]" in workflow
     assert "  workflow_dispatch:\n" in workflow
     assert "  pull_request:\n" not in workflow
-    assert "No tracker writes were attempted." in workflow
+    assert workflow.count("\n  review-and-sync:\n") == 1
+    assert "  inactive:\n" not in workflow
+    assert "    name: Sync evidence\n" in workflow
     assert "github.repository == 'OmarCodes022/Sensai'" in workflow
     assert "vars.SENSAI_EVIDENCE_SYNC_ENABLED == 'true'" in workflow
     assert "python -m pytest -q tests/unit" in workflow
