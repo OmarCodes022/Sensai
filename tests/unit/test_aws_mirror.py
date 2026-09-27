@@ -1,6 +1,8 @@
 import importlib.util
 import subprocess
+import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -44,15 +46,36 @@ def repositories(tmp_path, monkeypatch):
     return source, target, work, first, second
 
 
-def test_only_exact_tested_tip_fast_forwards(repositories):
+def test_current_personal_tip_fast_forwards_with_or_without_event(repositories):
     _, target, _, first, second = repositories
-    assert mirror.mirror(first, KEY) == {"status": "waiting_for_ci", "source": second}
+    assert mirror.mirror(KEY, first) == {"status": "superseded", "source": second}
     assert git(f"--git-dir={target}", "rev-parse", "refs/heads/main") == first
-    assert mirror.mirror(second, KEY) == {
+    assert mirror.mirror(KEY, second) == {
         "status": "mirrored", "source": second, "previous": first
     }
     assert git(f"--git-dir={target}", "rev-parse", "refs/heads/main") == second
-    assert mirror.mirror(second, KEY) == {"status": "up_to_date", "source": second}
+    assert mirror.mirror(KEY) == {"status": "up_to_date", "source": second}
+
+
+def test_timer_mirrors_even_without_ci_marker(repositories):
+    _, target, _, first, second = repositories
+    assert mirror.mirror(KEY) == {
+        "status": "mirrored", "source": second, "previous": first
+    }
+    assert git(f"--git-dir={target}", "rev-parse", "refs/heads/main") == second
+
+
+def test_handler_uses_only_ssh_secret(repositories, monkeypatch):
+    _, target, _, _, second = repositories
+    monkeypatch.setenv("SSH_SECRET_ARN", "mirror-key")
+
+    def client(service):
+        assert service == "secretsmanager"
+        return SimpleNamespace(get_secret_value=lambda SecretId: {"SecretString": KEY})
+
+    monkeypatch.setitem(sys.modules, "boto3", SimpleNamespace(client=client))
+    assert mirror.handler({"source": "aws.events"}, None)["status"] == "mirrored"
+    assert git(f"--git-dir={target}", "rev-parse", "refs/heads/main") == second
 
 
 def test_rejects_divergent_destination(repositories):
@@ -65,16 +88,21 @@ def test_rejects_divergent_destination(repositories):
     different = git("rev-parse", "HEAD", cwd=work)
     git("push", target, "HEAD:main", cwd=work)
     with pytest.raises(RuntimeError, match="merge-base failed"):
-        mirror.mirror(second, KEY)
+        mirror.mirror(KEY, second)
     assert git(f"--git-dir={target}", "rev-parse", "refs/heads/main") == different
 
 
 @pytest.mark.parametrize("sha", ["", "a" * 39, "z" * 40])
 def test_rejects_bad_marker(sha):
     with pytest.raises(ValueError, match="commit SHA"):
-        mirror.mirror(sha, KEY)
+        mirror.mirror(KEY, sha)
 
 
 def test_rejects_bad_key():
     with pytest.raises(ValueError, match="OpenSSH private key"):
-        mirror.mirror("a" * 40, "not a key")
+        mirror.mirror("not a key", "a" * 40)
+
+
+def test_rejects_null_event_sha():
+    with pytest.raises(ValueError, match="commit SHA"):
+        mirror.handler({"sha": None}, None)

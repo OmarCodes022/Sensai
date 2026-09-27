@@ -132,16 +132,6 @@ resource "aws_iam_openid_connect_provider" "github" {
   client_id_list = ["sts.amazonaws.com"]
 }
 
-resource "aws_ssm_parameter" "tested_sha" {
-  name  = "/sensai/mirror/last-tested-sha"
-  type  = "String"
-  value = "awaiting-first-successful-ci-run"
-
-  lifecycle {
-    ignore_changes = [value]
-  }
-}
-
 resource "aws_iam_role" "ci" {
   name = "sensai-personal-main-ci"
   assume_role_policy = jsonencode({
@@ -168,8 +158,8 @@ resource "aws_iam_role_policy" "ci" {
     Version = "2012-10-17"
     Statement = [{
       Effect   = "Allow"
-      Action   = "ssm:PutParameter"
-      Resource = aws_ssm_parameter.tested_sha.arn
+      Action   = "lambda:InvokeFunction"
+      Resource = aws_lambda_function.mirror.arn
     }]
   })
 }
@@ -200,11 +190,6 @@ resource "aws_iam_role_policy" "lambda" {
         Effect   = "Allow"
         Action   = ["logs:CreateLogStream", "logs:PutLogEvents"]
         Resource = "${aws_cloudwatch_log_group.lambda.arn}:*"
-      },
-      {
-        Effect   = "Allow"
-        Action   = "ssm:GetParameter"
-        Resource = aws_ssm_parameter.tested_sha.arn
       },
       {
         Effect   = "Allow"

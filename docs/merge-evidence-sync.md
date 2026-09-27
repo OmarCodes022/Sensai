@@ -3,8 +3,8 @@
 `.github/workflows/sync-merge-evidence.yml` runs on **every push to personal
 `main`**, including a merged PR. It does not run on PR close separately, so
 one merge causes one code-review run. The personal repo's other workflow
-(`personal-main-mirror.yml`) runs PR/push tests and optionally mirrors `main`
-to Epitech; **the two workflows are independent**. Evidence sync does not
+(`personal-main-mirror.yml`) runs PR/push tests and invokes the AWS mirror
+on personal `main` pushes; **the two workflows are independent**. Evidence sync does not
 wait for Epitech mirroring, and the mirrored Epitech copy skips its jobs.
 
 When enabled, this workflow checks out trusted personal `main` with full
@@ -47,8 +47,8 @@ on **OmarCodes022/Sensai**, not on the Epitech repo:
    for the private organization issue access; a fine-grained credential
    needs the equivalent Project and Issues permissions. Use a dedicated
    minimally privileged credential.
-   `EPITECH_PUSH_TOKEN` is a *different* mirror credential and is **not** a
-   substitute for Project and issue write access.
+   The AWS mirror's SSH credential is separate and is **not** a substitute
+   for Project and issue write access.
    The workflow's built-in `GITHUB_TOKEN` cannot be relied on for editing an
    organization Project. GitHub's [Project API guide][project-api] requires
    `project` scope for classic-PAT Project mutations or an authorized GitHub
@@ -83,7 +83,7 @@ on **OmarCodes022/Sensai**, not on the Epitech repo:
 
 5. Only after the credentials and personal issue links are ready, set the
    nonsecret repository Actions variable `SENSAI_EVIDENCE_SYNC_ENABLED` to
-   `true`. This is independent of `EPITECH_MIRROR_ENABLED`. A manual replay
+   `true`. This is independent of the AWS Epitech mirror. A manual replay
    with an unset variable reports disabled and does not write; enabling
    without working secrets fails rather than reporting a successful sync.
 
