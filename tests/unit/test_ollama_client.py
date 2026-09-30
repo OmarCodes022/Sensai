@@ -47,11 +47,13 @@ def test_unknown_model():
             list(OllamaClient().stream("m", MSGS))
 
 
-def test_bad_request_surfaces_server_message():
-    resp = fake_response([], status=400, body={"error": "missing request body"})
+def test_bad_request_does_not_surface_server_message():
+    resp = fake_response([], status=400, body={"error": "private request body"})
     with patch(POST, return_value=resp):
-        with pytest.raises(LLMError, match="missing request body"):
+        with pytest.raises(LLMError, match="Ollama rejected the request") as error:
             list(OllamaClient().stream("m", MSGS))
+    assert "private" not in str(error.value)
+    resp.close.assert_called_once()
 
 
 def test_connection_failure():
@@ -68,10 +70,12 @@ def test_timeout():
 
 def test_error_line_in_stream():
     resp = MagicMock(status_code=200)
-    resp.iter_lines.return_value = [b'{"error": "out of memory"}']
+    resp.iter_lines.return_value = [b'{"error": "private response"}']
     with patch(POST, return_value=resp):
-        with pytest.raises(LLMError, match="out of memory"):
+        with pytest.raises(LLMError, match="Ollama stream reported an error") as error:
             list(OllamaClient().stream("m", MSGS))
+    assert "private" not in str(error.value)
+    resp.close.assert_called_once()
 
 
 def test_garbage_line_in_stream():
