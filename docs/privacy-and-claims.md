@@ -6,6 +6,11 @@ Enforcement belongs to T38. Brand-specific facts and actual evidence may be
 refined independently; every example below is fictional and is not an
 approval of a real skincare claim.
 
+`prompts/system.txt` now expresses these boundaries as model instructions.
+This does not enforce the policy or sanitize inputs before generation.
+[The T10 manual runner](adversarial-testing.md) lets Diana test and record
+the current model's behavior without claiming that a validation gate exists.
+
 ## Decisions for inputs and outputs
 
 `src/sensai/policy.py` provides immutable typed `PolicySpec`, `PrivacyRule`,
