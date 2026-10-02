@@ -1,0 +1,49 @@
+{
+    "version": "1.0",
+    "brand": {
+        "name": "Serein Studio",
+        "owner": "Nadia",
+        "timezone": "Europe/Paris",
+        "voice": "Warm, simple, honest, no medical promises",
+        "channels": ["Instagram"]
+    },
+    "products": [{
+            "id": "P01",
+            "name": "Hydra Glow Serum",
+            "claims": [{
+                    "id": "C01",
+                    "text": "Hydrates skin for up to 8 hours",
+                    "source": "internal lab test v1.2",
+                    "valid_until": "2027-06-01",
+                    "approved": true
+                },
+                {
+                    "id": "C02",
+                    "text": "Cures eczema",
+                    "source": null,
+                    "valid_until": null,
+                    "approved": false
+                }
+            ]
+        },
+        {
+            "id": "P02",
+            "name": "Calm Barrier Cream",
+            "claims": [{
+                    "id": "C03",
+                    "text": "Reduces redness in 4 weeks",
+                    "source": "internal lab test v2.0",
+                    "valid_until": "2027-12-01",
+                    "approved": true
+                },
+                {
+                    "id": "C04",
+                    "text": "Soothes sensitive skin overnight",
+                    "source": "internal lab test v1.0",
+                    "valid_until": "2025-12-01",
+                    "approved": false
+                }
+            ]
+        }
+    ]
+}
