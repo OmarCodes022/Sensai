@@ -6,7 +6,7 @@ from threading import Lock
 
 import requests
 
-from sensai.errors import LLMConnectionError, LLMError, ModelNotFoundError
+from sensai.core.errors import LLMConnectionError, LLMError, ModelNotFoundError
 
 
 class EmbeddingError(LLMError):

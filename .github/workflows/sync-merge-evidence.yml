@@ -51,17 +51,17 @@ jobs:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           BEFORE: ${{ inputs.before || github.event.before }}
           AFTER: ${{ inputs.after || github.sha }}
-        run: python scripts/sync_push_evidence.py prepare --before "$BEFORE" --after "$AFTER" --catalog "$RUNNER_TEMP/evidence-catalog.json"
+        run: python scripts/delivery/sync_push_evidence.py prepare --before "$BEFORE" --after "$AFTER" --catalog "$RUNNER_TEMP/evidence-catalog.json"
       - name: Review changed code (no tracker credentials)
         env:
           COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_TOKEN || github.token }}
           BEFORE: ${{ inputs.before || github.event.before }}
           AFTER: ${{ inputs.after || github.sha }}
-        run: python scripts/sync_push_evidence.py review --before "$BEFORE" --after "$AFTER" --catalog "$RUNNER_TEMP/evidence-catalog.json" --plan "$RUNNER_TEMP/evidence-plan.json"
+        run: python scripts/delivery/sync_push_evidence.py review --before "$BEFORE" --after "$AFTER" --catalog "$RUNNER_TEMP/evidence-catalog.json" --plan "$RUNNER_TEMP/evidence-plan.json"
       - name: Update existing issues, Project, task/feature evidence, and work log
         env:
           GH_PROJECT_TOKEN: ${{ secrets.GH_PROJECT_TOKEN }}
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           BEFORE: ${{ inputs.before || github.event.before }}
           AFTER: ${{ inputs.after || github.sha }}
-        run: python scripts/sync_push_evidence.py apply --before "$BEFORE" --after "$AFTER" --catalog "$RUNNER_TEMP/evidence-catalog.json" --plan "$RUNNER_TEMP/evidence-plan.json"
+        run: python scripts/delivery/sync_push_evidence.py apply --before "$BEFORE" --after "$AFTER" --catalog "$RUNNER_TEMP/evidence-catalog.json" --plan "$RUNNER_TEMP/evidence-plan.json"

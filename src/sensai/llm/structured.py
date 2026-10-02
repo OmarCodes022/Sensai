@@ -8,8 +8,8 @@ from typing import TypeVar
 import requests
 from pydantic import BaseModel, ValidationError
 
-from sensai.errors import LLMConnectionError, LLMError, ModelNotFoundError
-from sensai.messages import Message
+from sensai.core.errors import LLMConnectionError, LLMError, ModelNotFoundError
+from sensai.core.messages import Message
 
 T = TypeVar("T", bound=BaseModel)
 

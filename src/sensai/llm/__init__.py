@@ -1,6 +1,6 @@
 from sensai.llm.base import LLMClient
 from sensai.llm.ollama import OllamaClient
-from sensai.settings import Settings
+from sensai.app.settings import Settings
 
 
 def create_client(settings: Settings) -> LLMClient:

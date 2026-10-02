@@ -2,7 +2,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterator, Sequence
 
-from sensai.messages import Message
+from sensai.core.messages import Message
 
 
 class LLMClient(ABC):

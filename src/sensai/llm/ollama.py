@@ -9,13 +9,13 @@ from typing import TYPE_CHECKING
 import requests
 from pydantic import ValidationError
 
-from sensai.errors import LLMConnectionError, LLMError, ModelNotFoundError
+from sensai.core.errors import LLMConnectionError, LLMError, ModelNotFoundError
 from sensai.llm.base import LLMClient
 from sensai.llm.schemas import ChatChunk, ChatRequest, OllamaUsage, UsageError
-from sensai.messages import Message
+from sensai.core.messages import Message
 
 if TYPE_CHECKING:
-    from sensai.contracts import EventPort
+    from sensai.core.contracts import EventPort
 
 
 class _ResponseError(LLMError):
@@ -36,7 +36,7 @@ class OllamaClient(LLMClient):
         self.timeout = timeout
         self._telemetry = None
         if event_sink is not None:
-            from sensai.telemetry import Telemetry
+            from sensai.observability.telemetry import Telemetry
 
             self._telemetry = Telemetry(event_sink)
         self._usage_sink = usage_sink
@@ -46,7 +46,7 @@ class OllamaClient(LLMClient):
         started = perf_counter()
         operation_id = None
         if self._telemetry is not None:
-            from sensai.telemetry import new_operation_id
+            from sensai.observability.telemetry import new_operation_id
 
             operation_id = new_operation_id()
             self._telemetry.request_started(operation_id)

@@ -4,7 +4,7 @@ from enum import Enum
 
 from pydantic import BaseModel, Field, StrictInt
 
-from sensai.messages import Message
+from sensai.core.messages import Message
 
 
 class ChatRequest(BaseModel):

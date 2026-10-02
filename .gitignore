@@ -2,8 +2,13 @@
 __pycache__/
 .pytest_cache/
 .env
+.env.*
+!.env.example
+.DS_Store
 adversarial-reports/
 *.egg-info/
+build/
+dist/
 .terraform/
 *.tfstate
 *.tfstate.backup

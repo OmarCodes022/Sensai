@@ -5,11 +5,11 @@ Model comes from SENSAI_TEST_MODEL (see .env.example).
 import pytest
 import requests
 
-from sensai.errors import LLMConnectionError, ModelNotFoundError
+from sensai.core.errors import LLMConnectionError, ModelNotFoundError
 from sensai.llm.ollama import OllamaClient
-from sensai.messages import Message
-from sensai.session import ChatSession
-from sensai.settings import Settings
+from sensai.core.messages import Message
+from sensai.app.session import ChatSession
+from sensai.app.settings import Settings
 
 S = Settings()
 HI = [Message(role="user", content="hi")]
