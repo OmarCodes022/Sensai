@@ -20,7 +20,22 @@ python3 -m venv .venv
 .venv/bin/sensai gemma3:1b
 ```
 
-Replace `gemma3:1b` with your installed model. Type `exit` to quit.
+Replace `gemma3:1b` with your installed model. Type `exit` or `quit`, or press
+`Ctrl+D` on empty input, to quit. On Linux/macOS terminals, `Ctrl+C` or lone
+`Échap` clears input or interrupts the current response.
+Printed partial text stays visible, but the abandoned
+turn is removed from conversation history; the next prompt remains usable.
+
+Each complete turn has a 120-second budget. Set `SENSAI_OPERATION_TIMEOUT` or
+pass `--operation-timeout 30` to change it (positive finite seconds).
+`SENSAI_TIMEOUT` separately controls HTTP connection/read waits. A timed-out
+turn displays `Délai maximal dépassé` and returns to the prompt. Input pipes
+retain line-based reading and `Ctrl+C`; native Windows terminal handling is
+outside this implementation.
+
+Cancellation terminates the local HTTP worker and closes its connection; it
+cannot guarantee that an independently running Ollama server stops computing.
+See [the cancellation contract](docs/architecture/cancellation.md).
 Configuration comes from environment variables or a local `.env`; see
 [`.env.example`](.env.example) for the available settings. Copy that example
 only if you do not already have a `.env`. The default system prompt is

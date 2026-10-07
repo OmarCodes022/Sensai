@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Literal, Protocol, runtime_checkable
 
 from sensai.core.errors import SensaiError
+from sensai.core.cancellation import CancellationToken, OperationCancelled, OperationTimedOut
 from sensai.core.messages import Message
 from sensai.app.session import ChatSession
 
@@ -17,37 +18,22 @@ class PolicyDenied(PortError):
     """A caller chose to surface a denied policy decision as an error."""
 
 
-class OperationCancelled(SensaiError):
-    """Cooperative cancellation; previously emitted chunks cannot be undone."""
-
-
-class CancellationToken:
-    def __init__(self) -> None:
-        self.cancelled = False
-
-    def cancel(self) -> None:
-        self.cancelled = True
-
-    def raise_if_cancelled(self) -> None:
-        if self.cancelled:
-            raise OperationCancelled("operation cancelled")
-
-
 @runtime_checkable
 class LLMStreamPort(Protocol):
-    def stream(self, model: str, messages: Sequence[Message]) -> Iterator[str]: ...
+    def stream(self, model: str, messages: Sequence[Message],
+               cancellation: CancellationToken | None = None) -> Iterator[str]: ...
 
 
 @runtime_checkable
 class ConversationPort(Protocol):
-    def send(self, text: str) -> Iterator[str]: ...
+    def send(self, text: str, cancellation: CancellationToken | None = None) -> Iterator[str]: ...
 
 
 class B1SessionAdapter:
     """Expose B1 history and roll back an interrupted in-memory turn.
 
-    Consumption is single-threaded, as with ChatSession. Cancellation is checked
-    between chunks; it cannot interrupt a blocked backend request.
+    Consumption is single-threaded, as with ChatSession. The backend owns
+    interrupting blocked requests; the session owns complete-turn history.
     """
 
     def __init__(self, session: ChatSession):
@@ -60,25 +46,7 @@ class B1SessionAdapter:
     def send(
         self, text: str, cancellation: CancellationToken | None = None
     ) -> Iterator[str]:
-        if cancellation is not None:
-            cancellation.raise_if_cancelled()
-        count = len(self.session.messages)
-        stream = self.session.send(text)
-        completed = False
-        try:
-            while True:
-                if cancellation is not None:
-                    cancellation.raise_if_cancelled()
-                try:
-                    chunk = next(stream)
-                except StopIteration:
-                    completed = True
-                    return
-                yield chunk
-        finally:
-            stream.close()
-            if not completed and len(self.session.messages) == count + 1:
-                self.session.messages.pop()
+        yield from self.session.send(text, cancellation)
 
 
 @dataclass(frozen=True)
@@ -170,7 +138,7 @@ class ToolResult:
 
 @runtime_checkable
 class ToolPort(Protocol):
-    def execute(self, call: ToolCall) -> ToolResult: ...
+    def execute(self, call: ToolCall, cancellation: CancellationToken | None = None) -> ToolResult: ...
 
 
 @dataclass(frozen=True)

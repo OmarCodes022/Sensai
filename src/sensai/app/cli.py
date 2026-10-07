@@ -1,9 +1,13 @@
 """Command line interface."""
 import argparse
 import sys
+from math import isfinite
+from time import monotonic
 from collections.abc import Callable, Sequence
 
 from sensai.core.errors import SensaiError
+from sensai.core.cancellation import CancellationToken, OperationCancelled, OperationTimedOut
+from sensai.app.terminal import TerminalInput
 from sensai.llm import create_client
 from sensai.app.prompts import load_system_prompt
 from sensai.app.session import ChatSession
@@ -15,29 +19,52 @@ def parse_args(settings: Settings, argv: Sequence[str] | None = None) -> argpars
     p.add_argument("model", nargs="?", default=settings.model, help="model (or set SENSAI_MODEL)")
     p.add_argument("--prompt", default=settings.prompt_path, help="system prompt file")
     p.add_argument("--host", default=settings.host, help="Ollama base URL")
+    def positive_timeout(value):
+        try:
+            number = float(value)
+        except ValueError:
+            raise argparse.ArgumentTypeError("timeout must be a positive finite number") from None
+        if not isfinite(number) or number <= 0:
+            raise argparse.ArgumentTypeError("timeout must be a positive finite number")
+        return number
+    p.add_argument("--operation-timeout", type=positive_timeout,
+                   default=settings.operation_timeout, help="maximum seconds per complete turn")
     args = p.parse_args(argv)
     if not args.model:
         p.error("no model given: pass one or set SENSAI_MODEL in .env")
     return args
 
 
-def repl(session: ChatSession, read: Callable[[str], str] = input, write=print) -> None:
+def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
+         operation_timeout: float = 120.0, cancel_requested=None) -> None:
     while True:
         try:
             text = read("\n> ")
-        except (EOFError, KeyboardInterrupt):
+        except EOFError:
             write()
             return
+        except KeyboardInterrupt:
+            write()
+            continue
         if text.strip().lower() in ("exit", "quit"):
             return
+        token = CancellationToken(monotonic() + operation_timeout, cancel_requested)
+        stream = session.send(text, token)
         try:
-            for chunk in session.send(text):
+            for chunk in stream:
                 write(chunk, end="", flush=True)
             write()
+        except (KeyboardInterrupt, OperationCancelled):
+            token.cancel()
+            write("\nRéponse interrompue")
+        except OperationTimedOut:
+            write("\nDélai maximal dépassé")
         except ValueError:
             write("Please type something.")
         except SensaiError as e:
             write(f"error: {e}")
+        finally:
+            stream.close()
 
 
 def main(argv: Sequence[str] | None = None) -> None:
@@ -49,4 +76,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         sys.exit(f"error: cannot read system prompt: {e}")
     client = create_client(settings.model_copy(update={"host": args.host}))
     print(f"Chatting with {args.model}. Type 'exit' to quit.")
-    repl(ChatSession(client, args.model, prompt))
+    with TerminalInput() as terminal:
+        repl(ChatSession(client, args.model, prompt), read=terminal.read,
+             operation_timeout=args.operation_timeout,
+             cancel_requested=terminal.cancel_requested)
