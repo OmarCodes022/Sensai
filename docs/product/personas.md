@@ -5,8 +5,10 @@ working roles. **Rédaction** prepares posts and captions in the supplied brand
 voice; **Communauté** prepares unsent suggestions for fictional or already
 sanitized non-sensitive questions; **Analyse** interprets supplied aggregate
 metrics and proposes next-week recommendations. Each profile instructs the
-model to follow the language of the user's message and the shared claim,
-privacy and action instructions. Rédaction and Communauté request two variants
+model to honor an explicitly requested response language, otherwise the language
+of the latest user message, including headings and variants. Prior replies or
+the instruction language should not determine that choice. Shared claim,
+privacy and action instructions still apply. Rédaction and Communauté request two variants
 by default when the required safe inputs are available; Analyse requests a
 detailed response separating figures, interpretations, limitations and
 recommendations.
@@ -47,8 +49,11 @@ Acceptance criteria:
 ## Manual checks and feature boundary
 
 Use a locally installed model and the commands in the root README. For each
-persona, ask a question in French, then in English; check language, tone and
-scope. Use only fictional inputs and the policy's fictional approval scenario
+persona, start with `hello`, then ask in French about the assistant's role or
+request a post/reply/report, and explicitly ask for French if needed. Finally
+request English to check that language selection follows the current request
+rather than the first exchange. Check language, tone and scope. Use only
+fictional inputs and the policy's fictional approval scenario
 when checking post/reply variants. For Analyse, supply matching-period,
 sourced aggregate counts, then repeat with missing figures or zero reach;
 check that the model distinguishes unavailable data from zero and avoids
@@ -62,6 +67,24 @@ instructions. `mistral:latest` also invented skincare claims in drafting and
 community replies, and answered the drafting request in English. These are
 observed model-quality failures, not passing persona-behavior acceptance
 checks.
+
+The built-in profiles now use French instructions and a bilingual reminder
+with short examples to follow the latest message or explicitly requested
+language at each turn. This prompt adjustment is not a language detector or
+an enforcement gate; the checks above still require observing a real model's
+responses.
+
+After that adjustment (2026-10-09), actual CLI checks with `gemma3:1b` covered
+English greetings followed by French and explicit English requests for all
+three profiles. Rédaction identified itself in French, and an explicit
+`En français` request produced French throughout, including the introduction
+and headings. However, its spontaneous French post request still received
+English, as did French requests to Communauté and Analyse; unsupported claims
+and invented metrics remained. Explicit English requests received English.
+This is a partial language improvement, not passing behavior acceptance.
+The same five-turn Rédaction comparison with `mistral:latest` reached the
+test harness's overall 210-second limit before producing complete output;
+that attempt establishes no conclusion about language compliance.
 
 Unit tests establish catalogue validation, selection and prompt assembly, not
 the quality or safety of every model response. These persona instructions

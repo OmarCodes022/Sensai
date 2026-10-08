@@ -29,8 +29,21 @@ def test_builtins_load_without_repository_cwd(tmp_path, monkeypatch):
         persona = registry.get(persona_id)
         assert persona.id == persona_id
         assert name in persona.system_prompt
-        assert "language of the user's message" in persona.system_prompt
-        assert "next launch" in persona.system_prompt
+        assert "prochain lancement" in persona.system_prompt
+
+
+@pytest.mark.parametrize("persona_id", ["redaction", "communaute", "analyse", "editor"])
+def test_prompt_language_rule_handles_explicit_requests_and_changing_history(persona_id):
+    registry = PersonaRegistry([PROFILE]) if persona_id == "editor" else PersonaRegistry.from_file()
+    prompt = registry.get(persona_id).system_prompt
+    assert "d'abord la langue explicitement demandée" in prompt
+    assert "langue du message utilisateur le plus récent" in prompt
+    assert "même si l'historique est dans une autre langue" in prompt
+    assert "La langue des instructions et des réponses précédentes ne détermine pas" in prompt
+    assert "toute la réponse, y compris les titres et les variantes" in prompt
+    assert "user 'hello'" in prompt and "next user 'Tu es quelle persona ?'" in prompt
+    assert "user 'EN français' -> 'Réponse :" in prompt
+    assert "user 'Answer in English' -> 'Answer:" in prompt
 
 
 def test_custom_catalogue_replaces_builtins(tmp_path):
