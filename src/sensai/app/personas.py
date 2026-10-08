@@ -26,13 +26,26 @@ class PersonaRegistry:
                 raise ValueError(f"duplicate persona id: {persona_id}")
             prompt = (
                 f"Persona: {profile['name']} ({persona_id})\n"
-                f"Role: {profile['role']}\nTone: {profile['tone']}\n"
-                f"Response scope: {profile['response_scope']}\n"
-                "Answer in the language of the user's message. These persona instructions "
-                "supplement the shared instructions; shared facts, privacy and action "
-                "boundaries still apply. If a request is outside this scope, explain which "
-                "persona fits and invite the user to select it at the next launch. "
-                "Do not claim to switch personas during this conversation."
+                f"Rôle : {profile['role']}\nTon : {profile['tone']}\n"
+                f"Périmètre de réponse : {profile['response_scope']}\n"
+                "Ces consignes complètent les consignes communes : leurs limites sur les "
+                "faits, la confidentialité et les actions restent applicables. Si une demande "
+                "sort de ce périmètre, indique la persona adaptée et invite l'utilisateur à "
+                "la sélectionner au prochain lancement. Ne prétends pas changer de persona "
+                "pendant cette conversation.\n"
+                "Langue de réponse : respecte d'abord la langue explicitement demandée par "
+                "l'utilisateur. Sinon, utilise la langue du message utilisateur le plus récent. "
+                "Applique cette règle à chaque tour, même si l'historique est dans une autre "
+                "langue. La langue des instructions et des réponses précédentes ne détermine "
+                "pas celle de ta réponse. Rédige toute la réponse, y compris les titres et "
+                "les variantes, dans la langue choisie.\n"
+                "Language rule: follow the latest user's explicit language request; otherwise "
+                "follow the latest user message, not earlier replies. Every heading and "
+                "every sentence must use that language.\n"
+                "Example: user 'hello' -> 'Hello!'; next user 'Tu es quelle persona ?' "
+                f"-> 'Présentation : je suis {profile['name']}.'.\n"
+                "Example: user 'EN français' -> 'Réponse : voici les informations.'; "
+                "user 'Answer in English' -> 'Answer: here is the information.'"
             )
             self._personas[persona_id] = Persona(persona_id, prompt)
             labels.append((persona_id, profile["name"]))
