@@ -13,6 +13,7 @@ from sensai.core.errors import LLMConnectionError, LLMError, ModelNotFoundError
 from sensai.llm.base import LLMClient
 from sensai.llm.schemas import ChatChunk, ChatRequest, OllamaUsage, UsageError
 from sensai.core.messages import Message
+from sensai.core.cancellation import CancellationToken
 
 if TYPE_CHECKING:
     from sensai.core.contracts import EventPort
@@ -41,7 +42,21 @@ class OllamaClient(LLMClient):
             self._telemetry = Telemetry(event_sink)
         self._usage_sink = usage_sink
 
-    def stream(self, model: str, messages: Sequence[Message]) -> Iterator[str]:
+    def stream(self, model: str, messages: Sequence[Message],
+               cancellation: CancellationToken | None = None) -> Iterator[str]:
+        if cancellation is not None:
+            from functools import partial
+            from sensai.core.execution import ControlledLLMClient
+            sink = self._telemetry._sink if self._telemetry is not None else None
+            controlled = ControlledLLMClient(
+                partial(OllamaClient, self.host, self.timeout),
+                event_sink=sink, usage_sink=self._usage_sink,
+            )
+            yield from controlled.stream(model, messages, cancellation)
+            return
+        yield from self._stream_direct(model, messages)
+
+    def _stream_direct(self, model: str, messages: Sequence[Message]) -> Iterator[str]:
         body = ChatRequest(model=model, messages=list(messages)).model_dump(mode="json")
         started = perf_counter()
         operation_id = None
