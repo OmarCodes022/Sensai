@@ -25,7 +25,7 @@ optional tool request → PermissionPort.check → ApprovalPort.request if neede
 
 The bracketed paths are **handoff points**, not implemented features. A caller
 may compose `B1SessionAdapter` around `ChatSession` for a read-only history
-snapshot and cancellation between chunks, without modifying B1. Never call
+snapshot and propagation of cancellation/deadlines. Never call
 `save` from inside a partially consumed generator: full exhaustion is the
 success boundary. Storage, embeddings, retrieval, tools, policy, and events
 must be independently injected behind the small protocols in
@@ -43,19 +43,15 @@ required to implement these ports.
 
 ## Error, cancellation, privacy invariants
 
-- B1 preserves its `LLMError` hierarchy (including unavailable model and
-  connection failures); `ChatSession` removes the pending user message on
-  `LLMError`. Empty input is `ValueError` before history mutation. Feature
-  adapters use `PortError` for infrastructure failure and `PolicyDenied` for
-  an explicitly refused action, not fake assistant replies. Do not retry or
-  persist a failed turn silently.
-- `OperationCancelled` is distinct from backend failure. `CancellationToken`
-  and `B1SessionAdapter` check before dispatch and between chunks; closing the
-  adapter iterator or cancelling mid-stream drops the pending user turn from
-  *in-memory* history. B1 itself only rolls back `LLMError`, not a partially
-  consumed/closed stream. Neither interface preempts a blocked HTTP request or
-  retracts already printed chunks. Callers must close abandoned generators and
-  avoid persisting/interpreting partial output as a complete turn.
+- B1 preserves the `LLMError` hierarchy and empty-input validation. `ChatSession`
+  removes all incomplete turns on errors, cancellation, timeout or early close;
+  only successful exhaustion commits an assistant reply. Feature failures remain
+  `PortError`, with `PolicyDenied` for denied policy decisions.
+- `OperationCancelled` and `OperationTimedOut` are distinct. The same optional
+  token travels through adapters without resetting its monotonic deadline.
+  Token-bearing Ollama calls run in an interruptible process group, which is
+  stopped and reaped on abandonment. Previously displayed text is retained;
+  partial turns must not be persisted. See [cancellation.md](cancellation.md).
 - B1 Ollama defaults to a local URL, but host configuration can point elsewhere;
   *never assume every configured backend is local*. Treat prompts, transcripts,
   facts, profile fields, retrieved text, and tool args/results as private. Do

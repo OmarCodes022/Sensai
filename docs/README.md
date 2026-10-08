@@ -26,3 +26,5 @@
 Local editable diagrams live in `diagrams/`. Their generator is
 `scripts/docs/build_architecture.py` at the repository root. Do not regenerate
 an edited diagram without preserving any changes you want to keep.
+
+- [Cancellation and total deadlines](architecture/cancellation.md)
