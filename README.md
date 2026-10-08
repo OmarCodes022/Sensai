@@ -45,6 +45,51 @@ Runtime and development dependencies are defined in `pyproject.toml`.
 `requirements.txt` installs the editable project with its `dev` extra; it does
 not maintain another copy of the dependency list.
 
+## Startup personas
+
+Choose a profile when starting a chat; without one, the usual assistant is
+unchanged. The built-in profiles are `redaction` (Rédaction: post/caption drafts),
+`communaute` (Communauté: unsent reply suggestions) and `analyse` (Analyse:
+supplied aggregate metrics and weekly recommendations).
+
+```bash
+.venv/bin/sensai --list-personas
+.venv/bin/sensai gemma3:1b --persona redaction
+.venv/bin/sensai gemma3:1b --persona communaute
+.venv/bin/sensai gemma3:1b --persona analyse
+```
+
+Listing profiles needs neither a model nor a running Ollama server. Set
+`SENSAI_PERSONA` to choose a default; CLI arguments take precedence. The shared
+`--prompt` instructions remain first, followed by the selected persona.
+Selection happens at startup; switching within a conversation remains T24.
+
+To define profiles without editing Python, create a UTF-8 JSON file such as:
+
+```json
+[
+  {
+    "id": "editor",
+    "name": "Édition",
+    "tone": "Warm, clear and concise.",
+    "role": "Review supplied skincare caption drafts for the creator.",
+    "response_scope": "Suggest two revisions using only supplied approved claims; explain missing evidence. Other tasks are outside this profile."
+  }
+]
+```
+
+Run `sensai gemma3:1b --personas-file personas.local.json --persona editor`, or
+set `SENSAI_PERSONAS_FILE`. This file **replaces** the built-in catalogue. It
+must contain a nonempty array with exactly these five fields per profile,
+each a nonempty string, and unique IDs. Invalid files or unknown selections
+fail explicitly before contacting the model. Built-in profiles are packaged
+with Python; custom file paths are relative to the current working directory.
+
+These are model instructions, not an enforced privacy or fact-validation gate.
+Only provide fictional or already sanitized non-sensitive questions and
+approved claims; personas do not fetch analytics, send replies or save outputs.
+See [the persona stories and manual checks](docs/product/personas.md).
+
 ## Repository layout
 
 ```text

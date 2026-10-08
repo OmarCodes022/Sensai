@@ -13,6 +13,7 @@
 
 - [Creator scope and four-output acceptance](product/creator-product.md)
 - [Privacy and approved-claim policy](product/privacy-and-claims.md)
+- [Startup personas and acceptance stories](product/personas.md)
 
 ## Operations
 
