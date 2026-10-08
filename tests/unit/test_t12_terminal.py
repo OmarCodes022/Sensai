@@ -18,10 +18,17 @@ from sensai.core.cancellation import OperationCancelled, OperationTimedOut
 from fakes import FakeClient
 
 
+def stable_terminal_attrs(fd):
+    attrs = termios.tcgetattr(fd)
+    # macOS may set this transient input-reprint flag after restoration.
+    attrs[3] &= ~getattr(termios, "PENDIN", 0)
+    return attrs
+
+
 @contextmanager
 def terminal():
     master, slave = pty.openpty()
-    before = termios.tcgetattr(slave)
+    before = stable_terminal_attrs(slave)
     stdin = os.fdopen(os.dup(slave), "r", encoding="utf-8")
     stdout = os.fdopen(os.dup(slave), "w", encoding="utf-8")
     watchdog = threading.Timer(2, os.write, (master, b"\x04"))
@@ -29,7 +36,7 @@ def terminal():
         with TerminalInput(stdin=stdin, stdout=stdout) as reader:
             watchdog.start()
             yield reader, master
-        assert termios.tcgetattr(slave) == before
+        assert stable_terminal_attrs(slave) == before
     finally:
         watchdog.cancel()
         if watchdog.ident is not None:
@@ -95,13 +102,13 @@ def test_arrow_sequence_does_not_cancel_streaming():
 
 def test_terminal_restored_after_error():
     master, slave = pty.openpty()
-    before = termios.tcgetattr(slave)
+    before = stable_terminal_attrs(slave)
     stdin = os.fdopen(os.dup(slave), "r")
     try:
         with pytest.raises(RuntimeError, match="boom"):
             with TerminalInput(stdin=stdin, stdout=io.StringIO()):
                 raise RuntimeError("boom")
-        assert termios.tcgetattr(slave) == before
+        assert stable_terminal_attrs(slave) == before
     finally:
         stdin.close()
         os.close(master)

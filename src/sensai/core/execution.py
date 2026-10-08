@@ -13,7 +13,7 @@ from sensai.core.cancellation import CancellationToken, OperationCancelled, Oper
 from sensai.core.contracts import PolicyDenied, PortError, ToolCall, ToolResult
 from sensai.core.errors import LLMConnectionError, LLMError, ModelNotFoundError, SensaiError
 from sensai.core.messages import Message
-from sensai.llm.base import LLMClient
+from sensai.llm.base import LLMClient, close_stream
 from sensai.llm.schemas import OllamaUsage, UsageError
 
 
@@ -43,13 +43,17 @@ def _child(channel, factory, kind, arguments, deadline):
                 stream = worker._stream_direct(*arguments)
             else:
                 stream = worker.stream(*arguments, cancellation=token)
+            failure = None
             try:
                 for chunk in stream:
                     token.raise_if_cancelled()
                     emit("chunk", chunk)
                 token.raise_if_cancelled()
+            except BaseException as exc:
+                failure = exc
+                raise
             finally:
-                stream.close()
+                close_stream(stream, failure)
         else:
             token.raise_if_cancelled()
             result = worker.execute(arguments[0], cancellation=token)
@@ -76,15 +80,25 @@ def _stop(process):
     def kill_group(sig):
         try:
             os.killpg(process.pid, sig)
-        except ProcessLookupError:
+        except (ProcessLookupError, PermissionError):
+            # macOS can deny signalling an exited group; reap before deciding.
             if process.is_alive():
-                os.kill(process.pid, sig)
-    kill_group(signal.SIGTERM)
-    process.join(.2)
-    # Also kill descendants whose parent already exited normally.
-    kill_group(signal.SIGKILL)
-    process.join()
-    process.close()
+                try:
+                    os.kill(process.pid, sig)
+                except ProcessLookupError:
+                    pass  # The child exited between the liveness check and signal.
+    try:
+        kill_group(signal.SIGTERM)
+    finally:
+        try:
+            process.join(.2)
+            # Also kill descendants whose parent already exited normally.
+            kill_group(signal.SIGKILL)
+            process.join()
+        finally:
+            if not process.is_alive():
+                process.join()
+                process.close()
 
 
 def _frames(factory, kind, arguments, cancellation):
@@ -95,6 +109,7 @@ def _frames(factory, kind, arguments, cancellation):
         target=_child, args=(child, factory, kind, arguments, token.deadline),
     )
     parent.setblocking(False)
+    failure = None
     try:
         process.start()
         child.close()
@@ -124,10 +139,21 @@ def _frames(factory, kind, arguments, cancellation):
                     cls, message = value
                     raise _ERRORS[cls](message)
                 yield name, value
+    except BaseException as exc:
+        failure = exc
+        raise
     finally:
         child.close()
         parent.close()
-        _stop(process)
+        try:
+            _stop(process)
+        except OSError as exc:
+            cleanup_error = (LLMError if kind == "stream" else PortError)(
+                "execution worker cleanup failed")
+            if failure is None or isinstance(failure, GeneratorExit):
+                raise cleanup_error from exc
+            if hasattr(failure, "add_note"):
+                failure.add_note(str(cleanup_error))
 
 
 class ControlledLLMClient(LLMClient):
