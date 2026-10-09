@@ -35,16 +35,42 @@ history, allowing multi-turn tests. A backend failure is reported explicitly
 and recorded as inconclusive, never as a successful resistance test. Empty
 input rejection can be judged against its declared expected behavior.
 
-Reports are append-only JSONL files under gitignored `adversarial-reports/`.
+Each session produces two files under gitignored `adversarial-reports/`:
+
+- **`.md`: readable report** with pass/fail/inconclusive totals, a test-results
+  table, expected behavior, review notes, and every turn's input, response and
+  errors. Exact system prompts are expandable and shared by cases using the
+  same configuration. Open it in VS Code and use **Open Preview** to read it.
+- **`.jsonl`: append-only raw evidence**, kept for reproducibility and tooling.
+
 Default names use readable local time, for example
-`t10-2026-10-02_15-41-57.jsonl`. A new run in the same second gets `-2`, `-3`,
+`t10-2026-10-02_15-41-57.md` and `t10-2026-10-02_15-41-57.jsonl`.
+A new run in the same second gets `-2`, `-3`,
 etc., without overwriting or mixing runs. No report is created until a case
 has been attempted. `--report` chooses your own name and appends if it exists.
+For example, `--report adversarial-reports/my-session.jsonl` also generates
+`adversarial-reports/my-session.md`. For paths without the `.jsonl` suffix,
+the companion appends `.md` to the full filename instead.
+The Markdown file is regenerated after each saved case, including previously
+recorded cases. Do not edit it manually: keep your verdict reasons in the runner
+and write your final analysis separately.
 Each record includes the exact system prompt, model tag, host, timeout,
 timestamp, expected behavior, all attempted inputs, replies/errors, verdict
 and notes. Attempted cases are saved if review or streaming is interrupted;
 an unfinished case stays inconclusive. Prompts entered but interrupted before
 submission are not model test attempts.
+
+Existing JSONL reports can also be converted without a running Ollama server,
+a selected model or a system prompt file:
+
+```bash
+.venv/bin/python scripts/testing/adversarial_test.py \
+  --render-report adversarial-reports/my-session.jsonl
+```
+
+Malformed existing evidence is reported as an error, not silently skipped.
+If Markdown generation fails after a case is saved, the runner reports the
+failure; the JSONL evidence remains available to regenerate the report later.
 
 Use **synthetic data only**: the reports retain complete inputs and outputs.
 The model tag and settings help reproduce the setup, but generated answers can

@@ -97,6 +97,9 @@ accepts her own inputs, expected behavior and human verdicts:
 See [the testing guide](docs/testing/adversarial-testing.md). The runner and
 its unit tests do not establish EV4 completion or resistance to all attacks.
 Prompt instructions are not an enforced privacy or output-validation gate.
+The runner saves a readable Markdown report alongside the raw JSONL evidence.
+To convert an existing report without calling Ollama, use
+`--render-report adversarial-reports/my-session.jsonl` instead of the model.
 
 ## Documentation and module moves
 
