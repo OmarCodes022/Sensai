@@ -2,11 +2,16 @@
 """Record Diana's manual B1 test cases and verdicts against local Ollama."""
 
 import argparse
+import html
 import json
+import re
 from collections.abc import Callable, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
+from tempfile import NamedTemporaryFile
+
+from pydantic import TypeAdapter, ValidationError
 
 from sensai.core.errors import SensaiError
 from sensai.llm import LLMClient, create_client
@@ -38,6 +43,138 @@ class Case:
     turns: list[Turn] = field(default_factory=list)
     verdict: str = "inconclusive"
     notes: str = "Case did not reach a completed review."
+
+
+class ReportError(ValueError):
+    """The existing evidence cannot be rendered or safely appended to."""
+
+
+_CASE_ADAPTER = TypeAdapter(Case)
+
+
+def read_cases(report: Path) -> list[Case]:
+    cases = []
+    with report.open(encoding="utf-8") as source:
+        for number, line in enumerate(source, 1):
+            try:
+                case = _CASE_ADAPTER.validate_json(line)
+            except ValidationError as error:
+                raise ReportError(f"Invalid case record in {report} at line {number}.") from error
+            if case.verdict not in ("pass", "fail", "inconclusive"):
+                raise ReportError(f"Invalid verdict in {report} at line {number}.")
+            cases.append(case)
+    return cases
+
+
+def markdown_path(report: Path) -> Path:
+    if report.suffix == ".jsonl":
+        return report.with_suffix(".md")
+    return Path(f"{report}.md")
+
+
+def markdown_text(text: str) -> str:
+    escaped = re.sub(r"([\\`*_{}\[\]|])", r"\\\1", html.escape(text, quote=False))
+    return escaped.replace("\r\n", "\n").replace("\r", "\n").replace("\n", "<br>")
+
+
+def text_block(text: str) -> str:
+    longest = max((len(match[0]) for match in re.finditer(r"`+", text)), default=0)
+    fence = "`" * max(3, longest + 1)
+    return f"{fence}text\n{text}\n{fence}"
+
+
+def render_markdown(cases: Sequence[Case]) -> str:
+    counts = {verdict: sum(case.verdict == verdict for case in cases)
+              for verdict in ("pass", "fail", "inconclusive")}
+    setups = list(dict.fromkeys(
+        (case.model, case.host, case.timeout_seconds, case.system_prompt) for case in cases
+    ))
+    lines = [
+        "# T10 adversarial test report",
+        "",
+        "Human-reviewed results, not an automatic security assessment or proof of coverage.",
+        "Contains full test inputs, outputs and system prompts. Use synthetic data only.",
+        "",
+        "## Results",
+        "",
+        "| Total | Pass | Fail | Inconclusive |",
+        "| --- | --- | --- | --- |",
+        f"| {len(cases)} | {counts['pass']} | {counts['fail']} | {counts['inconclusive']} |",
+        "",
+        "| # | Test | Category | Verdict |",
+        "| --- | --- | --- | --- |",
+    ]
+    for index, case in enumerate(cases, 1):
+        lines.append(
+            f"| {index} | {markdown_text(case.name)} | {markdown_text(case.category)} "
+            f"| **{case.verdict.upper()}** |"
+        )
+    if not cases:
+        lines.extend(["", "No test cases recorded."])
+    for index, (model, host, timeout, prompt) in enumerate(setups, 1):
+        lines.extend([
+            "", f"## Setup {index}", "",
+            f"**Model:** {markdown_text(model)}  ",
+            f"**Host:** {markdown_text(host)}  ",
+            f"**HTTP timeout:** {timeout:g} seconds",
+            "",
+            "<details>",
+            "<summary>Exact system prompt</summary>",
+            "",
+            text_block(prompt),
+            "",
+            "</details>",
+        ])
+    for index, case in enumerate(cases, 1):
+        setup = setups.index(
+            (case.model, case.host, case.timeout_seconds, case.system_prompt)
+        ) + 1
+        lines.extend([
+            "", f"## Case {index}: {markdown_text(case.name)}", "",
+            f"**Verdict:** {case.verdict.upper()}  ",
+            f"**Category:** {markdown_text(case.category)}  ",
+            f"**Started (UTC):** {markdown_text(case.started_at)}  ",
+            f"**Configuration:** [Setup {setup}](#setup-{setup})",
+            "",
+            "**Expected behavior**",
+            "",
+            markdown_text(case.expected_behavior),
+            "",
+            "**Reviewer's reason / notes**",
+            "",
+            markdown_text(case.notes),
+        ])
+        for turn_index, turn in enumerate(case.turns, 1):
+            lines.extend([
+                "", f"### Turn {turn_index}", "",
+                "**Attack / user input**", "",
+                text_block(turn.input) if turn.input else "(Empty input.)",
+                "", "**Bot response**", "",
+                text_block(turn.response) if turn.response else "(No response text.)",
+            ])
+            if turn.error is not None:
+                label = {"input": "Input rejected", "backend": "Backend error"}.get(
+                    turn.error_kind, "Recorded error"
+                )
+                lines.extend(["", f"**{label}**", "", text_block(turn.error)])
+    return "\n".join(lines) + "\n"
+
+
+def write_markdown(report: Path, cases: Sequence[Case]) -> Path:
+    destination = markdown_path(report)
+    content = render_markdown(cases)
+    with NamedTemporaryFile(
+        mode="w", encoding="utf-8", dir=destination.parent,
+        prefix=f".{destination.name}.", delete=False,
+    ) as output:
+        temporary = Path(output.name)
+        try:
+            output.write(content)
+            output.close()
+            temporary.replace(destination)
+        finally:
+            temporary.unlink(missing_ok=True)
+    return destination
 
 
 def required_text(
@@ -76,6 +213,7 @@ def message(read: Callable[[str], str], write: Callable[..., None]) -> str:
 
 
 def save_case(report: Path | None, case: Case) -> Path:
+    cases = read_cases(report) if report is not None and report.exists() else []
     record = json.dumps(asdict(case)) + "\n"
     if report is None:
         directory = Path("adversarial-reports")
@@ -85,6 +223,9 @@ def save_case(report: Path | None, case: Case) -> Path:
         while True:
             suffix = "" if index == 1 else f"-{index}"
             report = directory / f"t10-{stamp}{suffix}.jsonl"
+            if markdown_path(report).exists():
+                index += 1
+                continue
             try:
                 output = report.open("x", encoding="utf-8")
                 break
@@ -95,6 +236,12 @@ def save_case(report: Path | None, case: Case) -> Path:
         output = report.open("a", encoding="utf-8")
     with output:
         output.write(record)
+    try:
+        write_markdown(report, [*cases, case])
+    except OSError as error:
+        raise OSError(
+            f"JSONL evidence saved to {report}, but Markdown could not be updated: {error}"
+        ) from error
     return report
 
 
@@ -181,7 +328,10 @@ def run(
         finally:
             if case.turns:
                 report = save_case(report, case)
-                write(f"Saved {case.name}: {case.verdict} -> {report}")
+                write(
+                    f"Saved {case.name}: {case.verdict} -> {markdown_path(report)} "
+                    f"(raw evidence: {report})"
+                )
         count += 1
         unsuccessful = unsuccessful or case.verdict != "pass"
 
@@ -194,12 +344,27 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument("--prompt", default=settings.prompt_path, help="system prompt file")
     parser.add_argument("--host", default=settings.host, help="Ollama base URL")
-    parser.add_argument(
+    reports = parser.add_mutually_exclusive_group()
+    reports.add_argument(
         "--report",
         type=Path,
-        help="append-only JSONL report (default: adversarial-reports/t10-<local date_time>.jsonl)",
+        help="JSONL evidence path; also writes a Markdown companion "
+        "(default: adversarial-reports/t10-<local date_time>.jsonl)",
+    )
+    reports.add_argument(
+        "--render-report",
+        type=Path,
+        metavar="JSONL",
+        help="render existing JSONL evidence as Markdown without calling Ollama",
     )
     args = parser.parse_args(argv)
+    if args.render_report is not None:
+        try:
+            destination = write_markdown(args.render_report, read_cases(args.render_report))
+        except (OSError, ReportError) as error:
+            parser.exit(1, f"error: {error}\n")
+        print(f"Markdown report saved to {destination}")
+        return 0
     if not args.model:
         parser.error("no model given: pass one or set SENSAI_MODEL in .env")
     try:
@@ -213,7 +378,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     except (EOFError, KeyboardInterrupt):
         print("\nStopped before the session was completed.")
         return 130
-    except OSError as error:
+    except (OSError, ReportError) as error:
         parser.exit(1, f"error: {error}\n")
 
 
