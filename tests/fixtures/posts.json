@@ -1,0 +1,26 @@
+{
+    "version": "1.0",
+    "posts": [{
+            "id": "POST01",
+            "caption": "Morning hydration ritual. Our Hydra Glow Serum keeps skin hydrated for up to 8 hours, lab tested, no promises we can't keep",
+            "channel": "Instagram",
+            "claim_refs": ["C01"],
+            "valid": true
+        },
+        {
+            "id": "POST02",
+            "caption": "Finally found something that cures eczema !",
+            "channel": "Instagram",
+            "claim_refs": ["C02"],
+            "valid": false,
+            "rejection_reason": "references unapproved claim C02"
+        },
+        {
+            "id": "POST03",
+            "caption": "Sensitive skin ? Our Calm Barrier Cream reduces redness in 4 weeks, backed by our own lab tests.",
+            "channel": "Instagram",
+            "claim_refs": ["C03"],
+            "valid": true
+        }
+    ]
+}

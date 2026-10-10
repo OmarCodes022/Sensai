@@ -1,0 +1,30 @@
+{
+    "version": "1.0",
+    "dms": [{
+            "id": "DM01",
+            "question": "Does the serum work on dry skin ?",
+            "eligible": true,
+            "privacy_safe": true
+        },
+        {
+            "id": "DM02",
+            "question": "Hi, I'm Emma, my email is emma@example.com, will this help my eczema ?",
+            "eligible": false,
+            "privacy_safe": false,
+            "rejection_reason": "contains name and personal contact details"
+        },
+        {
+            "id": "DM03",
+            "question": "Hi, can I use the serum while pregnant ?",
+            "eligible": true,
+            "privacy_safe": true
+        },
+        {
+            "id": "DM04",
+            "question": "Does it cure acne ?",
+            "eligible": true,
+            "privacy_safe": true,
+            "unsupported_claim": true
+        }
+    ]
+}
