@@ -27,19 +27,47 @@ def no_external_io(monkeypatch):
 
 def configure(monkeypatch, *, alias=None, host="http://127.0.0.1:11434"):
     settings = Settings(_env_file=None, SENSAI_MODEL="configured-model",
-                        SENSAI_SSH_HOST=alias, OLLAMA_HOST=host)
+                        SENSAI_SSH_HOST=alias, OLLAMA_HOST=host,
+                        SENSAI_PROMPT=str(SCRIPT.parent.parent / "prompts/system.txt"))
     monkeypatch.setattr(launcher, "Settings", lambda: settings)
     return settings
+
+
+@pytest.mark.parametrize("case,expected", [
+    ("unknown-persona", "unknown persona"),
+    ("missing-prompt", "cannot read system prompt"),
+    ("unreadable-prompt", "cannot read system prompt"),
+    ("invalid-catalogue", "cannot load personas"),
+])
+def test_local_input_errors_precede_remote_io(monkeypatch, tmp_path, case, expected):
+    configure(monkeypatch, alias="sensai-windows", host="http://127.0.0.1:11435")
+    probe = Mock(side_effect=AssertionError("network attempted before local validation"))
+    monkeypatch.setattr(launcher, "ollama_running", probe)
+    if case == "unknown-persona":
+        args = ["--persona", "does-not-exist"]
+    elif case == "missing-prompt":
+        args = ["--prompt", str(tmp_path / "missing.txt")]
+    elif case == "unreadable-prompt":
+        args = ["--prompt", str(tmp_path)]
+    else:
+        catalogue = tmp_path / "invalid.json"
+        catalogue.write_text("{}")
+        args = ["--personas-file", str(catalogue)]
+    with pytest.raises(SystemExit, match=expected):
+        launcher.main(args)
+    probe.assert_not_called()
 
 
 @pytest.mark.parametrize("alias", [None, ""])
 def test_local_launch_does_not_probe_or_start_ssh(monkeypatch, alias):
     configure(monkeypatch, alias=alias)
     run = Mock()
-    monkeypatch.setattr(launcher.cli, "main", run)
+    monkeypatch.setattr(launcher.cli, "run_chat", run)
     args = ["selected-model", "--persona", "redaction"]
     assert launcher.main(args) == 0
-    run.assert_called_once_with(args)
+    run.assert_called_once()
+    assert run.call_args.args[1].model == args[0]
+    assert run.call_args.args[2]
 
 
 def test_help_never_connects_even_with_bad_remote_configuration(monkeypatch, capsys):
@@ -71,11 +99,13 @@ def test_cli_host_override_controls_remote_connection(monkeypatch, host):
 
     monkeypatch.setattr(launcher, "ssh_tunnel", tunnel)
     run = Mock()
-    monkeypatch.setattr(launcher.cli, "main", run)
+    monkeypatch.setattr(launcher.cli, "run_chat", run)
     args = ["cli-model", "--host", host, "--persona", "analyse"]
     assert launcher.main(args) == 0
     assert seen == ["sensai-windows"]
-    run.assert_called_once_with(args)
+    run.assert_called_once()
+    assert run.call_args.args[1].model == args[0]
+    assert run.call_args.args[2]
 
 
 @pytest.mark.parametrize("host", [
@@ -84,7 +114,7 @@ def test_cli_host_override_controls_remote_connection(monkeypatch, host):
 ])
 def test_remote_host_must_be_exact_loopback_endpoint(monkeypatch, capsys, host):
     configure(monkeypatch, alias="sensai-windows", host="http://127.0.0.1:11435")
-    monkeypatch.setattr(launcher.cli, "main", lambda _: pytest.fail("CLI was run"))
+    monkeypatch.setattr(launcher.cli, "run_chat", lambda *args: pytest.fail("CLI was run"))
     assert launcher.main(["--host", host]) == 1
     assert "requires OLLAMA_HOST/--host" in capsys.readouterr().err
 
@@ -92,7 +122,7 @@ def test_remote_host_must_be_exact_loopback_endpoint(monkeypatch, capsys, host):
 @pytest.mark.parametrize("alias", ["-oProxyCommand=bad", "two words", "alias\nother", "alias\x00", "\t"])
 def test_invalid_ssh_alias_fails_before_network(monkeypatch, capsys, alias):
     configure(monkeypatch, alias=alias, host="http://127.0.0.1:11435")
-    monkeypatch.setattr(launcher.cli, "main", lambda _: pytest.fail("CLI was run"))
+    monkeypatch.setattr(launcher.cli, "run_chat", lambda *args: pytest.fail("CLI was run"))
     assert launcher.main([]) == 1
     assert "SENSAI_SSH_HOST" in capsys.readouterr().err
 
@@ -165,146 +195,130 @@ def test_probe_failure_cannot_trigger_an_ssh_fallback(monkeypatch, error):
 
 def test_preexisting_tunnel_is_never_closed(monkeypatch):
     monkeypatch.setattr(launcher, "ollama_running", lambda: True)
-    monkeypatch.setattr(launcher, "_stop_master", lambda *args: pytest.fail("Existing tunnel closed"))
+    monkeypatch.setattr(launcher, "_stop_tunnel", lambda *args: pytest.fail("Existing tunnel closed"))
     with launcher.ssh_tunnel("sensai-windows"):
         pass
 
 
-@pytest.mark.parametrize("failure", [None, RuntimeError("chat failed"), KeyboardInterrupt()])
-def test_owned_tunnel_uses_private_unique_socket_and_closes_on_every_exit(monkeypatch, failure):
-    probes = iter([False, True, False, True])
-    monkeypatch.setattr(launcher, "ollama_running", lambda: next(probes))
-    starts, stops = [], []
-
-    def start(alias, socket):
-        assert socket.parent.stat().st_mode & 0o777 == 0o700
-        assert len(str(socket).encode()) < 104
-        starts.append((alias, socket))
-
-    monkeypatch.setattr(launcher, "_start_master", start)
-    monkeypatch.setattr(launcher, "_stop_master", lambda *args: stops.append(args))
-    for _ in range(2):
-        if failure is None:
-            with launcher.ssh_tunnel("sensai-windows"):
-                pass
-        else:
-            with pytest.raises(type(failure)) as caught:
-                with launcher.ssh_tunnel("sensai-windows"):
-                    raise failure
-            assert caught.value is failure
-    assert starts == stops
-    assert starts[0][1] != starts[1][1]
-    assert not starts[0][1].parent.exists()
-
-
-@pytest.mark.parametrize("failure", [launcher.LauncherError("auth failed"), KeyboardInterrupt()])
-def test_failed_or_interrupted_start_cleans_only_owned_master(monkeypatch, failure):
+def owned_process(monkeypatch):
+    process = Mock()
+    process.poll.return_value = None
+    process.wait.return_value = 0
     monkeypatch.setattr(launcher, "ollama_running", lambda: False)
-    paths = []
+    monkeypatch.setattr(launcher, "_start_tunnel", lambda _: process)
+    monkeypatch.setattr(launcher, "_wait_for_ollama", lambda _: None)
+    return process
 
-    def start(alias, socket):
-        paths.append((alias, socket))
-        raise failure
 
-    stopped = Mock()
-    monkeypatch.setattr(launcher, "_start_master", start)
-    monkeypatch.setattr(launcher, "_stop_master", stopped)
-    with pytest.raises(type(failure)) as caught:
+@pytest.mark.parametrize("failure", [None, RuntimeError("chat failed"), KeyboardInterrupt()])
+def test_owned_tunnel_closes_on_every_exit(monkeypatch, failure):
+    process = owned_process(monkeypatch)
+    if failure is None:
         with launcher.ssh_tunnel("sensai-windows"):
-            pytest.fail("Failed tunnel was yielded")
-    assert caught.value is failure
-    stopped.assert_called_once_with(*paths[0])
+            pass
+    else:
+        with pytest.raises(type(failure)) as caught:
+            with launcher.ssh_tunnel("sensai-windows"):
+                raise failure
+        assert caught.value is failure
+    process.terminate.assert_called_once_with()
+    process.wait.assert_called_once_with(timeout=3)
+    process.kill.assert_not_called()
 
 
 def test_ollama_missing_after_ssh_connect_is_an_error_and_closes_tunnel(monkeypatch):
-    monkeypatch.setattr(launcher, "ollama_running", lambda: False)
-    monkeypatch.setattr(launcher, "_start_master", lambda *args: None)
-    stop = Mock()
-    monkeypatch.setattr(launcher, "_stop_master", stop)
-    with pytest.raises(launcher.LauncherError, match="Ollama.*Windows port 11434"):
+    process = owned_process(monkeypatch)
+    monkeypatch.setattr(launcher, "_wait_for_ollama",
+                        Mock(side_effect=launcher.LauncherError("Ollama unavailable")))
+    with pytest.raises(launcher.LauncherError, match="Ollama"):
         with launcher.ssh_tunnel("sensai-windows"):
             pytest.fail("CLI must not start")
-    stop.assert_called_once()
+    process.terminate.assert_called_once()
 
 
-def test_system_ssh_argv_preserves_security_and_interactive_stdio(monkeypatch, tmp_path):
+def test_system_ssh_argv_preserves_security_and_keeps_owned_foreground_process(monkeypatch):
     process = Mock()
-    process.wait.return_value = 0
     popen = Mock(return_value=process)
     monkeypatch.setattr(launcher.subprocess, "Popen", popen)
-    socket = tmp_path / "ssh"
-    launcher._start_master("sensai-windows", socket)
+    assert launcher._start_tunnel("sensai-windows") is process
     command = popen.call_args.args[0]
-    assert command[0:2] == ["ssh", "-fNT"]
+    assert command[0:2] == ["ssh", "-NT"]
     assert command[-2:] == ["--", "sensai-windows"]
-    assert command[command.index("-S") + 1] == str(socket)
     assert command[command.index("-L") + 1] == "127.0.0.1:11435:127.0.0.1:11434"
-    for option in ["ControlMaster=yes", "ControlPersist=no", "StrictHostKeyChecking=yes",
+    for option in ["ControlMaster=no", "ControlPath=none", "ControlPersist=no",
+                   "ForkAfterAuthentication=no", "BatchMode=yes", "StrictHostKeyChecking=yes",
                    "ExitOnForwardFailure=yes", "ConnectTimeout=10", "ServerAliveInterval=30",
                    "ServerAliveCountMax=3"]:
         assert option in command
     assert not popen.call_args.kwargs.get("shell", False)
-    for name in ("stdin", "stdout", "stderr"):
-        assert popen.call_args.kwargs.get(name) is None
+    assert popen.call_args.kwargs["start_new_session"] is True
+    assert popen.call_args.kwargs["stdin"] == subprocess.DEVNULL
 
 
 @pytest.mark.parametrize("failure", [FileNotFoundError("ssh"), PermissionError("ssh")])
-def test_missing_or_unusable_ssh_is_clear_error(monkeypatch, tmp_path, failure):
+def test_missing_or_unusable_ssh_is_clear_error(monkeypatch, failure):
     monkeypatch.setattr(launcher.subprocess, "Popen", Mock(side_effect=failure))
     with pytest.raises(launcher.LauncherError, match="cannot start OpenSSH"):
-        launcher._start_master("sensai-windows", tmp_path / "ssh")
+        launcher._start_tunnel("sensai-windows")
 
 
-def test_authentication_or_forwarding_failure_is_clear_error(monkeypatch, tmp_path):
+def test_authentication_or_forwarding_failure_is_clear_error(monkeypatch):
     process = Mock()
-    process.wait.return_value = 255
-    monkeypatch.setattr(launcher.subprocess, "Popen", Mock(return_value=process))
+    process.poll.return_value = 255
     with pytest.raises(launcher.LauncherError, match="SSH failed"):
-        launcher._start_master("sensai-windows", tmp_path / "ssh")
+        launcher._wait_for_ollama(process)
 
 
-def test_interrupted_start_terminates_child_and_bounds_cleanup(monkeypatch, tmp_path):
+def test_startup_wait_is_bounded_and_never_yields_unavailable_ollama(monkeypatch):
     process = Mock()
-    interrupted = KeyboardInterrupt()
-    process.wait.side_effect = [interrupted, subprocess.TimeoutExpired("ssh", 3), 0]
-    monkeypatch.setattr(launcher.subprocess, "Popen", Mock(return_value=process))
-    with pytest.raises(KeyboardInterrupt) as caught:
-        launcher._start_master("sensai-windows", tmp_path / "ssh")
-    assert caught.value is interrupted
+    process.poll.return_value = None
+    monkeypatch.setattr(launcher, "ollama_running", lambda: False)
+    ticks = iter([0, 1, 16, 17])
+    monkeypatch.setattr(launcher, "monotonic", lambda: next(ticks))
+    monkeypatch.setattr(launcher, "sleep", lambda _: None)
+    with pytest.raises(launcher.LauncherError, match="Ollama"):
+        launcher._wait_for_ollama(process)
+
+
+def test_cleanup_kills_only_owned_child_if_graceful_exit_times_out(monkeypatch):
+    process = Mock()
+    process.poll.return_value = None
+    process.wait.side_effect = [subprocess.TimeoutExpired("ssh", 3), -9]
+    launcher._stop_tunnel(process)
     process.terminate.assert_called_once()
     process.kill.assert_called_once()
-    assert all(call.kwargs == {"timeout": 3} for call in process.wait.call_args_list[1:])
+    assert [call.kwargs for call in process.wait.call_args_list] == [{"timeout": 3}, {"timeout": 3}]
 
 
-@pytest.mark.parametrize("error", [OSError("cleanup failed"), subprocess.TimeoutExpired("ssh", 3), KeyboardInterrupt()])
-def test_cleanup_failure_preserves_chat_error(monkeypatch, tmp_path, error, capsys):
-    monkeypatch.setattr(launcher, "ollama_running", Mock(side_effect=[False, True]))
-    monkeypatch.setattr(launcher, "_start_master", lambda alias, socket: socket.touch())
-    stop = Mock(side_effect=error)
-    monkeypatch.setattr(launcher.subprocess, "run", stop)
+@pytest.mark.parametrize("error", [OSError("cleanup failed"), subprocess.TimeoutExpired("ssh", 3)])
+def test_cleanup_failure_preserves_chat_error(monkeypatch, error, capsys):
+    process = owned_process(monkeypatch)
+    process.terminate.side_effect = error
+    process.kill.side_effect = error
+    process.wait.side_effect = error
     original = ValueError("chat failed")
     with pytest.raises(ValueError) as caught:
         with launcher.ssh_tunnel("sensai-windows"):
             raise original
     assert caught.value is original
-    assert stop.call_args.kwargs["timeout"] == 3
     assert "warning:" in capsys.readouterr().err
 
 
-def test_cleanup_never_uses_a_global_process_kill(monkeypatch, tmp_path):
-    socket = tmp_path / "ssh"
-    socket.touch()
-    run = Mock(return_value=Mock(returncode=0))
-    monkeypatch.setattr(launcher.subprocess, "run", run)
-    launcher._stop_master("sensai-windows", socket)
-    assert run.call_args.args[0] == ["ssh", "-S", str(socket), "-O", "exit", "--", "sensai-windows"]
-    assert run.call_args.kwargs["timeout"] == 3
+def test_cleanup_failure_cannot_return_success(monkeypatch, capsys):
+    configure(monkeypatch, alias="sensai-windows", host="http://127.0.0.1:11435")
+    process = owned_process(monkeypatch)
+    process.terminate.side_effect = OSError("cannot terminate")
+    process.kill.side_effect = OSError("cannot kill")
+    process.wait.side_effect = subprocess.TimeoutExpired("ssh", 3)
+    monkeypatch.setattr(launcher.cli, "run_chat", Mock())
+    assert launcher.main([]) == 1
+    assert "error:" in capsys.readouterr().err
 
 
 def test_launcher_errors_do_not_run_cli_or_fallback(monkeypatch, capsys):
     configure(monkeypatch, alias="sensai-windows", host="http://127.0.0.1:11435")
     monkeypatch.setattr(launcher, "ollama_running", Mock(side_effect=launcher.LauncherError("occupied")))
-    monkeypatch.setattr(launcher.cli, "main", lambda _: pytest.fail("CLI must not start"))
+    monkeypatch.setattr(launcher.cli, "run_chat", lambda *args: pytest.fail("CLI must not start"))
     assert launcher.main([]) == 1
     assert "error: occupied" in capsys.readouterr().err
 
@@ -313,15 +327,3 @@ def test_interrupted_ssh_becomes_exit_130(monkeypatch):
     configure(monkeypatch, alias="sensai-windows", host="http://127.0.0.1:11435")
     monkeypatch.setattr(launcher, "ollama_running", Mock(side_effect=KeyboardInterrupt()))
     assert launcher.main([]) == 130
-
-
-@pytest.mark.parametrize("cleanup_error", [PermissionError("cannot signal child"), KeyboardInterrupt()])
-def test_interrupted_start_preserves_original_exception_if_cleanup_fails(monkeypatch, tmp_path, cleanup_error):
-    process = Mock()
-    interrupted = KeyboardInterrupt()
-    process.wait.side_effect = [interrupted, 0]
-    process.terminate.side_effect = cleanup_error
-    monkeypatch.setattr(launcher.subprocess, "Popen", Mock(return_value=process))
-    with pytest.raises(KeyboardInterrupt) as caught:
-        launcher._start_master("sensai-windows", tmp_path / "ssh")
-    assert caught.value is interrupted

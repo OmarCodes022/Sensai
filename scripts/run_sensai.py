@@ -2,13 +2,13 @@
 """Run the existing CLI with an optional, session-owned SSH tunnel."""
 
 import json
+import signal
 import subprocess
 import sys
 from collections.abc import Sequence
 from contextlib import contextmanager
 from http.client import HTTPConnection, HTTPException
-from pathlib import Path
-from tempfile import TemporaryDirectory
+from time import monotonic, sleep
 
 from sensai.app import cli
 from sensai.app.settings import Settings
@@ -40,52 +40,64 @@ def ollama_running() -> bool:
     raise LauncherError("port 11435 is occupied or unresponsive, but is not a valid Ollama endpoint")
 
 
-def _start_master(alias: str, socket: Path) -> None:
+class LauncherSignal(BaseException):
+    def __init__(self, signum: int):
+        self.signum = signum
+
+
+def _start_tunnel(alias: str) -> subprocess.Popen:
     command = [
-        "ssh", "-fNT", "-S", str(socket),
-        "-o", "ControlMaster=yes", "-o", "ControlPersist=no",
+        "ssh", "-NT",
+        "-o", "ControlMaster=no", "-o", "ControlPath=none", "-o", "ControlPersist=no",
+        "-o", "ForkAfterAuthentication=no", "-o", "BatchMode=yes",
         "-o", "StrictHostKeyChecking=yes", "-o", "ExitOnForwardFailure=yes",
         "-o", "ConnectTimeout=10", "-o", "ServerAliveInterval=30",
         "-o", "ServerAliveCountMax=3",
         "-L", "127.0.0.1:11435:127.0.0.1:11434", "--", alias,
     ]
     try:
-        process = subprocess.Popen(command)
+        return subprocess.Popen(command, stdin=subprocess.DEVNULL, start_new_session=True)
     except OSError as error:
         raise LauncherError(f"cannot start OpenSSH: {error}") from error
-    try:
-        status = process.wait()
-    except BaseException:
-        for stop in (process.terminate, process.kill):
-            try:
-                stop()
-            except (OSError, KeyboardInterrupt):
-                pass
-            try:
-                process.wait(timeout=3)
-                break
-            except (OSError, subprocess.TimeoutExpired, KeyboardInterrupt):
-                pass
-        else:
-            print("warning: could not reap the interrupted SSH process", file=sys.stderr)
-        raise
-    if status:
-        raise LauncherError("SSH failed; check authentication, Tailscale access and availability of port 11435")
 
 
-def _stop_master(alias: str, socket: Path) -> None:
-    if not socket.exists():
+def _wait_for_ollama(process: subprocess.Popen) -> None:
+    deadline = monotonic() + 15
+    while monotonic() < deadline:
+        if process.poll() is not None:
+            raise LauncherError("SSH failed; unlock your key with ssh-add and check authentication, "
+                                "Tailscale access and availability of port 11435")
+        try:
+            if ollama_running():
+                if process.poll() is not None:
+                    raise LauncherError("SSH exited while opening the tunnel")
+                return
+        except LauncherError as error:
+            raise LauncherError("SSH started, but Ollama is unavailable on Windows port 11434 "
+                                "or port 11435 is occupied by an invalid endpoint") from error
+        sleep(.1)
+    raise LauncherError("SSH/Ollama startup timed out; check Windows Ollama on port 11434 "
+                        "and unlock your key with ssh-add")
+
+
+def _stop_tunnel(process: subprocess.Popen) -> None:
+    if process.poll() is not None:
+        process.wait(timeout=3)
         return
-    try:
-        result = subprocess.run(
-            ["ssh", "-S", str(socket), "-O", "exit", "--", alias],
-            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL, timeout=3, check=False,
-        )
-        if result.returncode:
-            print("warning: could not close the launcher SSH tunnel", file=sys.stderr)
-    except (OSError, subprocess.TimeoutExpired, KeyboardInterrupt):
-        print("warning: could not close the launcher SSH tunnel", file=sys.stderr)
+    for stop in (process.terminate, process.kill):
+        try:
+            stop()
+        except ProcessLookupError:
+            pass
+        except OSError:
+            # Still try to reap it, then escalate to kill if necessary.
+            pass
+        try:
+            process.wait(timeout=3)
+            return
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+    raise LauncherError(f"could not terminate/reap the launcher SSH process (PID {process.pid})")
 
 
 @contextmanager
@@ -93,20 +105,53 @@ def ssh_tunnel(alias: str):
     if ollama_running():
         yield
         return
-    # /tmp keeps the control socket below the Unix socket path limit on macOS.
-    with TemporaryDirectory(prefix="sensai-", dir="/tmp") as directory:
-        socket = Path(directory) / "ssh"
+    process = None
+    spawning = True
+    pending_signal = None
+    original = {sig: signal.getsignal(sig) for sig in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT)}
+
+    def interrupted(signum, frame):
+        nonlocal pending_signal
+        if spawning:
+            # Defer until the child handle is owned, so an interrupted Popen cannot orphan it.
+            pending_signal = signum
+        else:
+            raise LauncherSignal(signum)
+
+    try:
+        for sig in original:
+            signal.signal(sig, interrupted)
+        process = _start_tunnel(alias)
+        spawning = False
+        signal.signal(signal.SIGINT, original[signal.SIGINT])
+        if pending_signal is not None:
+            if pending_signal == signal.SIGINT:
+                raise KeyboardInterrupt
+            raise LauncherSignal(pending_signal)
+        _wait_for_ollama(process)
+        yield
+        if process.poll() is not None:
+            raise LauncherError("SSH tunnel exited during chat; launch again to reconnect")
+    finally:
+        active_error = sys.exc_info()[1]
         try:
-            _start_master(alias, socket)
+            # Cleanup is bounded and must survive a second interrupt or hangup.
+            previous_mask = signal.pthread_sigmask(signal.SIG_BLOCK, original)
             try:
-                available = ollama_running()
-            except LauncherError as error:
-                raise LauncherError("SSH connected, but Ollama is unavailable on Windows port 11434") from error
-            if not available:
-                raise LauncherError("SSH connected, but Ollama is unavailable on Windows port 11434")
-            yield
+                for sig in original:
+                    signal.signal(sig, signal.SIG_IGN)
+            finally:
+                signal.pthread_sigmask(signal.SIG_SETMASK, previous_mask)
+            if process is not None:
+                try:
+                    _stop_tunnel(process)
+                except (LauncherError, OSError, subprocess.TimeoutExpired) as error:
+                    if active_error is None:
+                        raise LauncherError(str(error)) from error
+                    print(f"warning: SSH cleanup failed: {error}", file=sys.stderr)
         finally:
-            _stop_master(alias, socket)
+            for sig, handler in original.items():
+                signal.signal(sig, handler)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -114,8 +159,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     settings = Settings()
     args = cli.parse_args(settings, argv)
     try:
-        if args.list_personas or not settings.ssh_host:
-            cli.main(argv)
+        prompt = cli.prepare_chat(args)
+        if prompt is None:
+            return 0
+        if not settings.ssh_host:
+            cli.run_chat(settings, args, prompt)
             return 0
         alias = settings.ssh_host
         if alias.startswith("-") or not alias.isprintable() or any(c.isspace() for c in alias):
@@ -123,11 +171,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.host not in ("http://127.0.0.1:11435", "http://127.0.0.1:11435/"):
             raise LauncherError("SENSAI_SSH_HOST requires OLLAMA_HOST/--host=http://127.0.0.1:11435")
         with ssh_tunnel(alias):
-            cli.main(argv)
+            cli.run_chat(settings, args, prompt)
         return 0
     except LauncherError as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
+    except LauncherSignal as error:
+        return 128 + error.signum
     except KeyboardInterrupt:
         return 130
 

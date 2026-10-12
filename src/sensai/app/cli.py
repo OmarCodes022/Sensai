@@ -72,9 +72,8 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
             stream.close()
 
 
-def main(argv: Sequence[str] | None = None) -> None:
-    settings = Settings()
-    args = parse_args(settings, argv)
+def prepare_chat(args: argparse.Namespace) -> str | None:
+    """Validate local inputs before any client or tunnel is created."""
     try:
         registry = PersonaRegistry.from_file(args.personas_file)
     except (OSError, ValueError) as e:
@@ -92,9 +91,21 @@ def main(argv: Sequence[str] | None = None) -> None:
         sys.exit(f"error: cannot read system prompt: {e}")
     if persona is not None:
         prompt = f"{prompt}\n\n{persona.system_prompt}"
+    return prompt
+
+
+def run_chat(settings: Settings, args: argparse.Namespace, prompt: str) -> None:
     client = create_client(settings.model_copy(update={"host": args.host}))
     print(f"Chatting with {args.model}. Type 'exit' to quit.")
     with TerminalInput() as terminal:
         repl(ChatSession(client, args.model, prompt), read=terminal.read,
              operation_timeout=args.operation_timeout,
              cancel_requested=terminal.cancel_requested)
+
+
+def main(argv: Sequence[str] | None = None) -> None:
+    settings = Settings()
+    args = parse_args(settings, argv)
+    prompt = prepare_chat(args)
+    if prompt is not None:
+        run_chat(settings, args, prompt)
