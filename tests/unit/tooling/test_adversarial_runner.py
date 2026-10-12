@@ -144,6 +144,10 @@ def test_interrupted_review_saves_attempt_with_no_pass_verdict(tmp_path, interru
     case = json.loads(report.read_text())
     assert case["verdict"] == "inconclusive"
     assert case["turns"][0]["response"] == "reply"
+    markdown = report.with_suffix(".md").read_text()
+    assert "**Verdict:** INCONCLUSIVE" in markdown
+    assert "Case did not reach a completed review." in markdown
+    assert "```text\nreply\n```" in markdown
 
 
 def test_interrupted_stream_keeps_partial_reply(tmp_path):
@@ -166,6 +170,9 @@ def test_interrupted_stream_keeps_partial_reply(tmp_path):
     case = json.loads(report.read_text())
     assert case["verdict"] == "inconclusive"
     assert case["turns"][0]["response"] == "partial"
+    markdown = report.with_suffix(".md").read_text()
+    assert "**Verdict:** INCONCLUSIVE" in markdown
+    assert "```text\npartial\n```" in markdown
 
 
 def test_nonempty_value_error_is_not_disguised_as_input_rejection(tmp_path):
@@ -200,6 +207,7 @@ def test_no_cases_does_not_look_like_a_passing_suite(tmp_path):
         lambda _: "/quit",
     ) == 2
     assert not report.exists()
+    assert not report.with_suffix(".md").exists()
 
 
 def test_default_report_names_are_readable_and_never_overwrite(tmp_path, monkeypatch):
@@ -296,3 +304,178 @@ def test_main_rejects_missing_or_empty_prompt(tmp_path, prompt_exists, content, 
     with pytest.raises(SystemExit) as error:
         runner.main(["test-model", "--prompt", str(prompt)])
     assert error.value.code == exit_code
+
+
+def test_markdown_report_summarizes_cases_and_preserves_conversations(tmp_path):
+    result, records = execute(
+        tmp_path,
+        FakeClient(["first reply"], ["follow-up reply"], ["partial", LLMError("offline")]),
+        [
+            "B1-JB-001", "jailbreak", "Keep the system prompt private.",
+            "first attack", "/end", "y", "follow-up attack", "/end",
+            "n", "fail", "Disclosed hidden instructions.",
+            "B1-JB-002", "jailbreak", "Resist the attack.",
+            "another attack", "/end", "/quit",
+        ],
+    )
+    assert result == 1
+    report = (tmp_path / "reports" / "results.md").read_text()
+    assert "| 2 | 0 | 1 | 1 |" in report
+    assert "| 1 | B1-JB-001 | jailbreak | **FAIL** |" in report
+    assert "| 2 | B1-JB-002 | jailbreak | **INCONCLUSIVE** |" in report
+    assert "## Case 1: B1-JB-001" in report
+    assert "## Case 2: B1-JB-002" in report
+    assert "### Turn 2" in report
+    assert "Keep the system prompt private." in report
+    assert "Disclosed hidden instructions." in report
+    for case in records:
+        assert case["started_at"] in report
+        for turn in case["turns"]:
+            assert turn["input"] in report
+            assert turn["response"] in report
+    assert "**Backend error**\n\n```text\noffline\n```" in report
+    assert "Backend error; attack was not fully evaluated." in report
+    assert report.count("<summary>Exact system prompt</summary>") == 1
+    assert "**Model:** test-model" in report
+    assert "**HTTP timeout:** 60 seconds" in report
+
+
+def test_markdown_report_keeps_different_configurations_and_verdict_counts():
+    first = runner.Case("first", "other", "expected", "model-a", "host-a", 60, "prompt-a")
+    second = runner.Case("second", "other", "expected", "model-b", "host-b", 30, "prompt-b")
+    first.verdict = second.verdict = "pass"
+    report = runner.render_markdown([first, second])
+    assert "| 2 | 2 | 0 | 0 |" in report
+    assert report.count("<summary>Exact system prompt</summary>") == 2
+    assert "[Setup 1](#setup-1)" in report
+    assert "[Setup 2](#setup-2)" in report
+    for value in ("model-a", "model-b", "host-a", "host-b", "prompt-a", "prompt-b"):
+        assert value in report
+
+
+def test_markdown_escapes_attack_content_without_changing_evidence(tmp_path):
+    attack = "```text\n## Forged result\n````\n<script>bad()</script>"
+    case = runner.Case(
+        "test | [link](url)\nnext", "other|category", "<img src=x>", "model", "host", 60,
+        attack,
+    )
+    case.turns = [runner.Turn(attack, attack)]
+    report = runner.save_case(tmp_path / "report.jsonl", case)
+    markdown = report.with_suffix(".md").read_text()
+    assert "test \\| \\[link\\](url)<br>next" in markdown
+    assert "other\\|category" in markdown
+    assert "&lt;img src=x&gt;" in markdown
+    assert f"`````text\n{attack}\n`````" in markdown
+    assert json.loads(report.read_text())["turns"][0]["input"] == attack
+
+
+def test_empty_input_is_readable(tmp_path):
+    execute(
+        tmp_path, FakeClient(),
+        ["empty", "malformed-input", "reject empty input", "/end", "n", "pass", "rejected", "/quit"],
+    )
+    report = (tmp_path / "reports" / "results.md").read_text()
+    assert "(Empty input.)" in report
+    assert "(No response text.)" in report
+    assert "**Input rejected**\n\n```text\nempty input\n```" in report
+
+
+def test_markdown_write_failure_preserves_raw_evidence_and_old_markdown(tmp_path, monkeypatch):
+    path = tmp_path / "report.jsonl"
+    case = runner.Case("case", "other", "expected", "model", "host", 60, "system")
+    runner.save_case(path, case)
+    previous = path.with_suffix(".md").read_text()
+
+    def fail_replace(self, destination):
+        raise PermissionError("cannot replace report")
+
+    monkeypatch.setattr(Path, "replace", fail_replace)
+    with pytest.raises(OSError, match="JSONL evidence saved.*Markdown could not be updated"):
+        runner.save_case(path, case)
+    assert len(runner.read_cases(path)) == 2
+    assert path.with_suffix(".md").read_text() == previous
+    assert not list(tmp_path.glob(".report.md.*"))
+
+
+@pytest.mark.parametrize("filename", ["evidence", "report.md", "report.jsonl"])
+def test_custom_evidence_names_never_get_overwritten_by_markdown(tmp_path, filename):
+    report = tmp_path / filename
+    case = runner.Case("case", "other", "expected", "model", "host", 60, "system")
+    runner.save_case(report, case)
+    assert json.loads(report.read_text())["name"] == "case"
+    assert runner.markdown_path(report) != report
+    assert "# T10 adversarial test report" in runner.markdown_path(report).read_text()
+
+
+def test_existing_markdown_name_is_not_overwritten_by_new_default_session(tmp_path, monkeypatch):
+    class Clock:
+        @staticmethod
+        def now(tz=None):
+            return datetime(2026, 10, 2, 15, 41, 57, tzinfo=tz)
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(runner, "datetime", Clock)
+    directory = tmp_path / "adversarial-reports"
+    directory.mkdir()
+    previous = directory / "t10-2026-10-02_15-41-57.md"
+    previous.write_text("previous report")
+    case = runner.Case("case", "other", "expected", "model", "host", 60, "system")
+    report = runner.save_case(None, case)
+    assert report.name == "t10-2026-10-02_15-41-57-2.jsonl"
+    assert previous.read_text() == "previous report"
+
+
+def test_main_renders_existing_evidence_without_model_or_prompt(tmp_path, monkeypatch, capsys):
+    report = tmp_path / "old.jsonl"
+    case = runner.Case("old case", "jailbreak", "expected", "old-model", "host", 60, "old prompt")
+    report.write_text(json.dumps(runner.asdict(case)) + "\n")
+    monkeypatch.delenv("SENSAI_MODEL", raising=False)
+    monkeypatch.setattr(runner, "Settings", lambda: Settings(_env_file=None))
+
+    def unexpected(*args):
+        pytest.fail("Rendering evidence must not load a prompt or call Ollama.")
+
+    monkeypatch.setattr(runner, "load_system_prompt", unexpected)
+    monkeypatch.setattr(runner, "create_client", unexpected)
+    original = report.read_text()
+    assert runner.main(["--render-report", str(report)]) == 0
+    assert report.read_text() == original
+    assert "old case" in report.with_suffix(".md").read_text()
+    assert "Markdown report saved" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("content", ["not JSON\n", "{}\n", '{"verdict": "wrong"}\n'])
+def test_invalid_existing_evidence_is_not_skipped_or_appended(tmp_path, content):
+    report = tmp_path / "report.jsonl"
+    report.write_text(content)
+    case = runner.Case("case", "other", "expected", "model", "host", 60, "system")
+    with pytest.raises(runner.ReportError, match="line 1"):
+        runner.save_case(report, case)
+    assert report.read_text() == content
+    with pytest.raises(SystemExit) as error:
+        runner.main(["--render-report", str(report)])
+    assert error.value.code == 1
+    assert not report.with_suffix(".md").exists()
+
+
+def test_invalid_verdict_in_existing_evidence_is_explicit(tmp_path):
+    case = runner.Case("case", "other", "expected", "model", "host", 60, "system")
+    case.verdict = "wrong"
+    report = tmp_path / "report.jsonl"
+    report.write_text(json.dumps(runner.asdict(case)) + "\n")
+    with pytest.raises(runner.ReportError, match="Invalid verdict.*line 1"):
+        runner.read_cases(report)
+
+
+def test_main_reports_missing_evidence_file(tmp_path, capsys):
+    with pytest.raises(SystemExit) as error:
+        runner.main(["--render-report", str(tmp_path / "missing.jsonl")])
+    assert error.value.code == 1
+    assert "error:" in capsys.readouterr().err
+
+
+def test_report_and_render_report_options_are_mutually_exclusive(tmp_path):
+    with pytest.raises(SystemExit) as error:
+        runner.main(["--report", str(tmp_path / "new.jsonl"),
+                     "--render-report", str(tmp_path / "old.jsonl")])
+    assert error.value.code == 2

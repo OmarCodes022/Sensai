@@ -20,7 +20,22 @@ python3 -m venv .venv
 .venv/bin/sensai gemma3:1b
 ```
 
-Replace `gemma3:1b` with your installed model. Type `exit` to quit.
+Replace `gemma3:1b` with your installed model. Type `exit` or `quit`, or press
+`Ctrl+D` on empty input, to quit. On Linux/macOS terminals, `Ctrl+C` or lone
+`Échap` clears input or interrupts the current response.
+Printed partial text stays visible, but the abandoned
+turn is removed from conversation history; the next prompt remains usable.
+
+Each complete turn has a 120-second budget. Set `SENSAI_OPERATION_TIMEOUT` or
+pass `--operation-timeout 30` to change it (positive finite seconds).
+`SENSAI_TIMEOUT` separately controls HTTP connection/read waits. A timed-out
+turn displays `Délai maximal dépassé` and returns to the prompt. Input pipes
+retain line-based reading and `Ctrl+C`; native Windows terminal handling is
+outside this implementation.
+
+Cancellation terminates the local HTTP worker and closes its connection; it
+cannot guarantee that an independently running Ollama server stops computing.
+See [the cancellation contract](docs/architecture/cancellation.md).
 Configuration comes from environment variables or a local `.env`; see
 [`.env.example`](.env.example) for the available settings. Copy that example
 only if you do not already have a `.env`. The default system prompt is
@@ -29,6 +44,51 @@ only if you do not already have a `.env`. The default system prompt is
 Runtime and development dependencies are defined in `pyproject.toml`.
 `requirements.txt` installs the editable project with its `dev` extra; it does
 not maintain another copy of the dependency list.
+
+## Startup personas
+
+Choose a profile when starting a chat; without one, the usual assistant is
+unchanged. The built-in profiles are `redaction` (Rédaction: post/caption drafts),
+`communaute` (Communauté: unsent reply suggestions) and `analyse` (Analyse:
+supplied aggregate metrics and weekly recommendations).
+
+```bash
+.venv/bin/sensai --list-personas
+.venv/bin/sensai gemma3:1b --persona redaction
+.venv/bin/sensai gemma3:1b --persona communaute
+.venv/bin/sensai gemma3:1b --persona analyse
+```
+
+Listing profiles needs neither a model nor a running Ollama server. Set
+`SENSAI_PERSONA` to choose a default; CLI arguments take precedence. The shared
+`--prompt` instructions remain first, followed by the selected persona.
+Selection happens at startup; switching within a conversation remains T24.
+
+To define profiles without editing Python, create a UTF-8 JSON file such as:
+
+```json
+[
+  {
+    "id": "editor",
+    "name": "Édition",
+    "tone": "Warm, clear and concise.",
+    "role": "Review supplied skincare caption drafts for the creator.",
+    "response_scope": "Suggest two revisions using only supplied approved claims; explain missing evidence. Other tasks are outside this profile."
+  }
+]
+```
+
+Run `sensai gemma3:1b --personas-file personas.local.json --persona editor`, or
+set `SENSAI_PERSONAS_FILE`. This file **replaces** the built-in catalogue. It
+must contain a nonempty array with exactly these five fields per profile,
+each a nonempty string, and unique IDs. Invalid files or unknown selections
+fail explicitly before contacting the model. Built-in profiles are packaged
+with Python; custom file paths are relative to the current working directory.
+
+These are model instructions, not an enforced privacy or fact-validation gate.
+Only provide fictional or already sanitized non-sensitive questions and
+approved claims; personas do not fetch analytics, send replies or save outputs.
+See [the persona stories and manual checks](docs/product/personas.md).
 
 ## Repository layout
 
@@ -82,6 +142,9 @@ accepts her own inputs, expected behavior and human verdicts:
 See [the testing guide](docs/testing/adversarial-testing.md). The runner and
 its unit tests do not establish EV4 completion or resistance to all attacks.
 Prompt instructions are not an enforced privacy or output-validation gate.
+The runner saves a readable Markdown report alongside the raw JSONL evidence.
+To convert an existing report without calling Ollama, use
+`--render-report adversarial-reports/my-session.jsonl` instead of the model.
 
 ## Documentation and module moves
 

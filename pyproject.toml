@@ -19,6 +19,9 @@ where = ["src"]
 include = ["sensai*"]
 namespaces = false
 
+[tool.setuptools.package-data]
+"sensai.app" = ["personas.json"]
+
 [tool.pytest.ini_options]
 pythonpath = ["src", "tests/helpers"]
 testpaths = ["tests"]

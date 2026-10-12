@@ -3,6 +3,7 @@
 from collections.abc import Iterator, Mapping, Sequence
 
 from sensai.core.contracts import (
+    CancellationToken,
     Event,
     Fact,
     Persona,
@@ -25,13 +26,17 @@ class FakeClient(LLMClient):
         self.calls: list[list[str]] = []
         self.requests: list[tuple[str, tuple[Message, ...]]] = []
 
-    def stream(self, model: str, messages: Sequence[Message]) -> Iterator[str]:
+    def stream(self, model: str, messages: Sequence[Message], cancellation: CancellationToken | None = None) -> Iterator[str]:
+        if cancellation is not None:
+            cancellation.raise_if_cancelled()
         self.calls.append([m.content for m in messages])
         self.requests.append((model, tuple(messages)))
         reply = self.replies.pop(0)
         if isinstance(reply, Exception):
             raise reply
         for chunk in reply:
+            if cancellation is not None:
+                cancellation.raise_if_cancelled()
             if isinstance(chunk, Exception):
                 raise chunk
             yield chunk
@@ -120,7 +125,9 @@ class FakeTool:
         self.results = dict(results)
         self.calls: list[ToolCall] = []
 
-    def execute(self, call: ToolCall) -> ToolResult:
+    def execute(self, call: ToolCall, cancellation: CancellationToken | None = None) -> ToolResult:
+        if cancellation is not None:
+            cancellation.raise_if_cancelled()
         self.calls.append(call)
         try:
             return self.results[call.name]
