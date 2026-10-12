@@ -2,7 +2,7 @@
     "version": "1.0",
     "posts": [{
             "id": "POST01",
-            "caption": "Morning hydration ritual. Our Hydra Glow Serum keeps skin hydrated for up to 8 hours, lab tested, no promises we can't keep",
+            "caption": "Hydrates skin for up to 8 hours",
             "channel": "Instagram",
             "claim_refs": ["C01"],
             "valid": true
@@ -17,7 +17,7 @@
         },
         {
             "id": "POST03",
-            "caption": "Sensitive skin ? Our Calm Barrier Cream reduces redness in 4 weeks, backed by our own lab tests.",
+            "caption": "Reduces redness in 4 weeks",
             "channel": "Instagram",
             "claim_refs": ["C03"],
             "valid": true
