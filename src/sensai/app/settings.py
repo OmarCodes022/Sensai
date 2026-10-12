@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore", frozen=True)
 
     host: str = Field("http://localhost:11434", validation_alias="OLLAMA_HOST")
+    ssh_host: str | None = Field(None, validation_alias="SENSAI_SSH_HOST")
     model: str | None = Field(None, validation_alias="SENSAI_MODEL")
     prompt_path: str = Field("prompts/system.txt", validation_alias="SENSAI_PROMPT")
     persona: str | None = Field(None, validation_alias="SENSAI_PERSONA")

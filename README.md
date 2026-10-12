@@ -45,6 +45,21 @@ Runtime and development dependencies are defined in `pyproject.toml`.
 `requirements.txt` installs the editable project with its `dev` extra; it does
 not maintain another copy of the dependency list.
 
+## Local or remote Ollama
+
+The optional launcher uses the same `.env` and CLI arguments. Leave
+`SENSAI_SSH_HOST` unset or empty for a local model. Set it to an SSH alias,
+with `OLLAMA_HOST=http://127.0.0.1:11435`, to open a tunnel automatically:
+
+```bash
+.venv/bin/python scripts/run_sensai.py --persona redaction
+```
+
+The launcher closes only the tunnel it created when the chat ends. An existing
+Ollama endpoint on port `11435` is reused and left running. The usual `sensai`
+command continues to connect directly without managing SSH. See
+[the SSH setup and local/remote configurations](docs/operations/remote-ollama.md).
+
 ## Startup personas
 
 Choose a profile when starting a chat; without one, the usual assistant is
