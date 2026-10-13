@@ -12,6 +12,11 @@ class ChatSession:
         self.model = model
         self.messages: list[Message] = [Message(role="system", content=system_prompt)]
 
+    def set_system_prompt(self, prompt: str) -> None:
+        if not isinstance(prompt, str) or not prompt.strip():
+            raise ValueError("system prompt must be a nonempty string")
+        self.messages[0] = Message(role="system", content=prompt)
+
     def send(self, text: str, cancellation: CancellationToken | None = None) -> Iterator[str]:
         if not text.strip():
             raise ValueError("empty input")

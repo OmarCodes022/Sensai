@@ -29,7 +29,8 @@ def test_builtins_load_without_repository_cwd(tmp_path, monkeypatch):
         persona = registry.get(persona_id)
         assert persona.id == persona_id
         assert name in persona.system_prompt
-        assert "prochain lancement" in persona.system_prompt
+        assert "/persona <id>" in persona.system_prompt
+        assert "ne prétends pas la changer toi-même" in persona.system_prompt
 
 
 @pytest.mark.parametrize("persona_id", ["redaction", "communaute", "analyse", "editor"])

@@ -45,7 +45,7 @@ Runtime and development dependencies are defined in `pyproject.toml`.
 `requirements.txt` installs the editable project with its `dev` extra; it does
 not maintain another copy of the dependency list.
 
-## Startup personas
+## Personas
 
 Choose a profile when starting a chat; without one, the usual assistant is
 unchanged. The built-in profiles are `redaction` (Rédaction: post/caption drafts),
@@ -62,7 +62,11 @@ supplied aggregate metrics and weekly recommendations).
 Listing profiles needs neither a model nor a running Ollama server. Set
 `SENSAI_PERSONA` to choose a default; CLI arguments take precedence. The shared
 `--prompt` instructions remain first, followed by the selected persona.
-Selection happens at startup; switching within a conversation remains T24.
+During a conversation, type `/persona` to list available profiles and
+`/persona analyse` (or another ID) to switch before the next request. The new
+profile replaces the previous persona instructions while keeping the shared
+prompt and all completed exchanges. Unknown IDs leave the conversation intact.
+These commands do not contact the model or enter conversation history.
 
 To define profiles without editing Python, create a UTF-8 JSON file such as:
 
@@ -84,6 +88,8 @@ must contain a nonempty array with exactly these five fields per profile,
 each a nonempty string, and unique IDs. Invalid files or unknown selections
 fail explicitly before contacting the model. Built-in profiles are packaged
 with Python; custom file paths are relative to the current working directory.
+The catalogue and shared prompt are loaded once at startup; runtime switches
+use those same instructions, including custom profile IDs.
 
 These are model instructions, not an enforced privacy or fact-validation gate.
 Only provide fictional or already sanitized non-sensitive questions and
