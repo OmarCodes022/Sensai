@@ -312,7 +312,7 @@ def test_bounded_delivery_snapshots_fields_and_rejects_private_metadata():
 
 def test_event_backpressure_propagates_and_response_still_closes():
     sink = BoundedEventSink(lambda _: None, max_events=1)
-    resp = response({"done": True})
+    resp = response({"done": True, "message": {"role": "assistant", "content": "reply"}})
     with patch("sensai.llm.ollama.requests.post", return_value=resp):
         with pytest.raises(EventDeliveryError, match="queue is full"):
             list(OllamaClient(event_sink=sink).stream("m", []))

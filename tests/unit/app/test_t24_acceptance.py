@@ -69,11 +69,11 @@ def test_main_switches_cached_custom_profiles_without_losing_history(
     editor = base + "\n\n" + registry.get("editor").system_prompt
     assert client.calls == [
         [initial, "Draft"],
-        [reviewer, "Draft", "first reply", "Revise"],
-        [editor, "Draft", "first reply", "Revise", "revision", "Finish"],
+        [reviewer, "Draft", "first reply", reviewer, "Revise"],
+        [editor, "Draft", "first reply", "Revise", "revision", editor, "Finish"],
     ]
     assert [message.role for message in client.requests[2][1]] == [
-        "system", "user", "assistant", "user", "assistant", "user",
+        "system", "user", "assistant", "user", "assistant", "system", "user",
     ]
     output = capsys.readouterr().out
     assert "editor: Édition\nReview Team: Review" in output
@@ -108,9 +108,11 @@ def test_switched_persona_survives_interrupted_stream_and_next_switch(failure, n
         "/persona analyse", "Interrupted", "/persona communaute", "Next", "exit",
     ])
     cli.repl(session, read=lambda _: next(inputs), persona_registry=registry, base_prompt="Shared")
+    analyse = "Shared\n\n" + registry.get("analyse").system_prompt
+    communaute = "Shared\n\n" + registry.get("communaute").system_prompt
     assert client.calls == [
-        ["Shared\n\n" + registry.get("analyse").system_prompt, "Interrupted"],
-        ["Shared\n\n" + registry.get("communaute").system_prompt, "Next"],
+        [analyse, analyse, "Interrupted"],
+        [communaute, communaute, "Next"],
     ]
     assert [message.content for message in session.messages[1:]] == ["Next", "complete"]
     output = capsys.readouterr().out

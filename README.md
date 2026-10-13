@@ -26,6 +26,18 @@ Replace `gemma3:1b` with your installed model. Type `exit` or `quit`, or press
 Printed partial text stays visible, but the abandoned
 turn is removed from conversation history; the next prompt remains usable.
 
+The chat keeps the model/server's default thinking mode and streams visible
+answer content when it arrives. Separate thinking text is never displayed or
+stored. If a completed stream contains no nonblank answer, the CLI reports an
+error and discards that turn from history so you can retry or continue.
+
+For long histories or thinking models, set `SENSAI_CONTEXT_LENGTH=8192` in the
+environment or `.env` to request a larger context budget for the prompt and
+generation. Leave it unset to use the server default. The value must be a
+positive integer; larger contexts consume more VRAM and must fit the server.
+If Ollama stops because its token limit was reached, the CLI reports an error
+and discards the incomplete turn, even when partial text was printed.
+
 Each complete turn has a 120-second budget. Set `SENSAI_OPERATION_TIMEOUT` or
 pass `--operation-timeout 30` to change it (positive finite seconds).
 `SENSAI_TIMEOUT` separately controls HTTP connection/read waits. A timed-out
@@ -44,6 +56,21 @@ only if you do not already have a `.env`. The default system prompt is
 Runtime and development dependencies are defined in `pyproject.toml`.
 `requirements.txt` installs the editable project with its `dev` extra; it does
 not maintain another copy of the dependency list.
+
+## Local or remote Ollama
+
+The optional launcher uses the same `.env` and CLI arguments. Leave
+`SENSAI_SSH_HOST` unset or empty for a local model. Set it to an SSH alias,
+with `OLLAMA_HOST=http://127.0.0.1:11435`, to open a tunnel automatically:
+
+```bash
+.venv/bin/python scripts/run_sensai.py --persona redaction
+```
+
+The launcher closes only the tunnel it created when the chat ends. An existing
+Ollama endpoint on port `11435` is reused and left running. The usual `sensai`
+command continues to connect directly without managing SSH. See
+[the SSH setup and local/remote configurations](docs/operations/remote-ollama.md).
 
 ## Personas
 
@@ -67,6 +94,10 @@ During a conversation, type `/persona` to list available profiles and
 profile replaces the previous persona instructions while keeping the shared
 prompt and all completed exchanges. Unknown IDs leave the conversation intact.
 These commands do not contact the model or enter conversation history.
+After a switch, each model request also repeats the current system instructions
+immediately before the latest user message to clarify the active role despite
+earlier assistant introductions. This reminder exists only in the request;
+stored conversation history keeps one system message and the original turns.
 
 To define profiles without editing Python, create a UTF-8 JSON file such as:
 

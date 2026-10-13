@@ -26,6 +26,10 @@ class PersonaRegistry:
                 raise ValueError(f"duplicate persona id: {persona_id}")
             prompt = (
                 f"Persona: {profile['name']} ({persona_id})\n"
+                f"Persona active sélectionnée par l'application : {profile['name']} ({persona_id}). "
+                "Les anciennes présentations de l'assistant dans l'historique décrivent les "
+                "rôles précédents et ne changent pas ce rôle actif. Réponds à la demande "
+                "actuelle dans ce rôle sans demander de répéter la commande /persona.\n"
                 f"Rôle : {profile['role']}\nTon : {profile['tone']}\n"
                 f"Périmètre de réponse : {profile['response_scope']}\n"
                 "Ces consignes complètent les consignes communes : leurs limites sur les "

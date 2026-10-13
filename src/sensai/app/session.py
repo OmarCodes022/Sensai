@@ -2,6 +2,7 @@
 from collections.abc import Iterator
 
 from sensai.core.cancellation import CancellationToken
+from sensai.core.errors import LLMError
 from sensai.llm.base import LLMClient, close_stream
 from sensai.core.messages import Message
 
@@ -11,11 +12,13 @@ class ChatSession:
         self.client = client
         self.model = model
         self.messages: list[Message] = [Message(role="system", content=system_prompt)]
+        self._system_prompt_changed = False
 
     def set_system_prompt(self, prompt: str) -> None:
         if not isinstance(prompt, str) or not prompt.strip():
             raise ValueError("system prompt must be a nonempty string")
         self.messages[0] = Message(role="system", content=prompt)
+        self._system_prompt_changed = True
 
     def send(self, text: str, cancellation: CancellationToken | None = None) -> Iterator[str]:
         if not text.strip():
@@ -29,10 +32,14 @@ class ChatSession:
         completed = False
         failure = None
         try:
+            messages = list(self.messages)
+            if self._system_prompt_changed:
+                # Older assistant introductions must not undo the active role.
+                messages.insert(-1, self.messages[0])
             if cancellation is None:
-                stream = self.client.stream(self.model, list(self.messages))
+                stream = self.client.stream(self.model, messages)
             else:
-                stream = self.client.stream(self.model, list(self.messages), cancellation=cancellation)
+                stream = self.client.stream(self.model, messages, cancellation=cancellation)
             for chunk in stream:
                 if cancellation is not None:
                     cancellation.raise_if_cancelled()
@@ -43,7 +50,10 @@ class ChatSession:
             close_stream(finished_stream)
             if cancellation is not None:
                 cancellation.raise_if_cancelled()
-            self.messages.append(Message(role="assistant", content="".join(reply)))
+            answer = "".join(reply)
+            if not answer.strip():
+                raise LLMError("model returned no visible answer")
+            self.messages.append(Message(role="assistant", content=answer))
             completed = True
         except BaseException as exc:
             failure = exc

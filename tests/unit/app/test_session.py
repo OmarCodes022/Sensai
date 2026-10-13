@@ -50,7 +50,7 @@ def test_system_prompt_replacement_preserves_completed_history_and_prior_request
     assert all(current is prior for current, prior in zip(session.messages[1:], history))
     assert client.requests[0][1][0].content == "original"
     list(session.send("Q2"))
-    assert client.calls[1] == [" replacement ", "Q1", "A1", "Q2"]
+    assert client.calls[1] == [" replacement ", "Q1", "A1", " replacement ", "Q2"]
 
 
 @pytest.mark.parametrize("prompt", [None, 42, "", " \t\n"])

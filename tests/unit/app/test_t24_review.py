@@ -44,12 +44,12 @@ def test_interrupted_switch_preserves_earlier_turn_and_streaming(monkeypatch, in
     cli.repl(session, read=read, write=write, cancel_requested=lambda: cancelled,
              persona_registry=registry, base_prompt="Shared")
 
+    analyse = "Shared\n\n" + registry.get("analyse").system_prompt
+    communaute = "Shared\n\n" + registry.get("communaute").system_prompt
     assert client.calls == [
         ["Shared", "Earlier"],
-        ["Shared\n\n" + registry.get("analyse").system_prompt,
-         "Earlier", "old reply", "Interrupted"],
-        ["Shared\n\n" + registry.get("communaute").system_prompt,
-         "Earlier", "old reply", "Continue"],
+        [analyse, "Earlier", "old reply", analyse, "Interrupted"],
+        [communaute, "Earlier", "old reply", communaute, "Continue"],
     ]
     assert [message.content for message in session.messages[1:]] == [
         "Earlier", "old reply", "Continue", "new reply",

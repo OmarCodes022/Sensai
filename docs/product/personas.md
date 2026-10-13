@@ -66,6 +66,16 @@ Acceptance criteria:
 
 Switches happen at the input prompt between turns. They preserve text already
 exchanged with previous personas; they do not rewrite those replies.
+The active system instructions identify the profile selected by the application;
+earlier assistant introductions describe previous roles and do not undo a switch.
+After a switch, every request repeats the current system instructions immediately
+before the newest user message. This request-only reminder is never added to
+stored history, which retains one current system message and the original turns.
+Requests before any runtime switch keep their original message structure.
+Chat requests keep the model/server's default thinking mode and wait for visible
+answer content, without displaying or storing separate thinking text. A completed
+stream without a nonblank answer reports an error and removes the incomplete
+turn, preserving earlier exchanges and the selected profile.
 
 ## Manual checks and feature boundary
 
@@ -110,6 +120,33 @@ This is a partial language improvement, not passing behavior acceptance.
 The same five-turn Rédaction comparison with `mistral:latest` reached the
 test harness's overall 210-second limit before producing complete output;
 that attempt establishes no conclusion about language compliance.
+
+On 2026-10-13, seven scripted CLI turns through the SSH launcher with
+`qwen3.5:9b-q4_K_M` produced visible answers after the empty-reply and active-role
+fixes, with thinking explicitly disabled for that check. This does not establish
+the result with the model's default thinking mode. Role queries matched Analyse,
+then Communauté, then Analyse after the
+corresponding switches. Before the request-only role reminder, the same scenario
+still answered Analyse after selecting Communauté. This checks that scenario,
+not general persona obedience or claim, privacy and metric acceptance.
+
+A subsequent check with default thinking reproduced a completed empty answer:
+the 4096-token context was exhausted by 2987 prompt tokens plus 1109 generated
+tokens, with `done_reason: length`. With `SENSAI_CONTEXT_LENGTH=8192`, the same
+seven-turn launcher scenario produced seven nonempty answers, all ending with
+`stop`; raw stream counters confirmed thinking was active, and Ollama reported
+an 8192-token context. Analyse, Communauté and Analyse were correctly identified
+after their switches. The client now reports token-limit termination explicitly
+and never records an incomplete answer as a completed turn.
+
+Final T24 verification executed all 474 tests, including the four live Ollama
+integration checks, without skips. Two consecutive isolated CLI scenarios each
+completed five turns across Analyse, Communauté and Rédaction switches, retained
+the literal fictional campaign code `AZUR729`, rejected an invalid selection
+without changing state, and checked every outgoing request and streamed reply.
+An earlier live attempt at 8192 still returned no visible answer and was reported
+as an error with history preserved. These successful scenarios establish the
+tested T24 behavior; they do not guarantee that Ollama always produces an answer.
 
 Unit tests establish catalogue validation, selection and prompt assembly, not
 the quality or safety of every model response. These persona instructions

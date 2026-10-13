@@ -37,6 +37,9 @@ def test_builtins_load_without_repository_cwd(tmp_path, monkeypatch):
 def test_prompt_language_rule_handles_explicit_requests_and_changing_history(persona_id):
     registry = PersonaRegistry([PROFILE]) if persona_id == "editor" else PersonaRegistry.from_file()
     prompt = registry.get(persona_id).system_prompt
+    assert "Persona active sélectionnée par l'application" in prompt
+    assert "rôles précédents et ne changent pas ce rôle actif" in prompt
+    assert "sans demander de répéter la commande /persona" in prompt
     assert "d'abord la langue explicitement demandée" in prompt
     assert "langue du message utilisateur le plus récent" in prompt
     assert "même si l'historique est dans une autre langue" in prompt

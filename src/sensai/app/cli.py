@@ -91,9 +91,8 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
             stream.close()
 
 
-def main(argv: Sequence[str] | None = None) -> None:
-    settings = Settings()
-    args = parse_args(settings, argv)
+def prepare_chat(args: argparse.Namespace) -> tuple[str, PersonaRegistry, str] | None:
+    """Load validated prompt and persona context before any client or tunnel."""
     try:
         registry = PersonaRegistry.from_file(args.personas_file)
     except (OSError, ValueError) as e:
@@ -112,6 +111,12 @@ def main(argv: Sequence[str] | None = None) -> None:
     prompt = base_prompt
     if persona is not None:
         prompt = f"{prompt}\n\n{persona.system_prompt}"
+    return prompt, registry, base_prompt
+
+
+def run_chat(settings: Settings, args: argparse.Namespace,
+             prepared: tuple[str, PersonaRegistry, str]) -> None:
+    prompt, registry, base_prompt = prepared
     client = create_client(settings.model_copy(update={"host": args.host}))
     print(f"Chatting with {args.model}. Type '/persona' to list profiles or 'exit' to quit.")
     with TerminalInput() as terminal:
@@ -119,3 +124,11 @@ def main(argv: Sequence[str] | None = None) -> None:
              operation_timeout=args.operation_timeout,
              cancel_requested=terminal.cancel_requested,
              persona_registry=registry, base_prompt=base_prompt)
+
+
+def main(argv: Sequence[str] | None = None) -> None:
+    settings = Settings()
+    args = parse_args(settings, argv)
+    prepared = prepare_chat(args)
+    if prepared is not None:
+        run_chat(settings, args, prepared)
