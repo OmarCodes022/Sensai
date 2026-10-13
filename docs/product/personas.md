@@ -1,4 +1,4 @@
-# Personas (T23 and T24)
+# Personas (T23, T24 and T25)
 
 The fictional skincare creator Nadia can start the same chat in three distinct
 working roles. **Rédaction** prepares posts and captions in the supplied brand
@@ -154,7 +154,25 @@ are not privacy sanitization, evidence verification or an output-validation
 gate. They do not fetch analytics, send replies, save artifacts or deliver the
 four-output workflow in [the product scope](creator-product.md).
 
+## Automated regression coverage (T25)
+
+All tests below run offline with scripted clients under `tests/unit/app/`.
+
+| T25 criterion | Tests |
+|---|---|
+| Persona creation | `test_personas.py`, `test_t23_acceptance.py`, `test_t25_persona_regressions.py` (stripped fields, built-in routing IDs, real shared prompt first) |
+| Runtime switching with preserved history | `test_t24_acceptance.py`, `test_t24_review.py`, `test_t24_empty_reply.py`, `test_t24_merge.py`, `test_session.py`, `test_t25_persona_regressions.py` (three switches through `cli.main`, unchanged turn objects) |
+| Invalid-profile errors | `test_personas.py`, `test_t23_acceptance.py`, `test_t24_acceptance.py`, `test_t25_persona_regressions.py` (blank ID, unknown `SENSAI_PERSONA`, JSON object catalogue) |
+| Unchanged B1 streaming | `test_personas.py`, `test_t23_acceptance.py`, `test_t24_review.py`, `test_t25_persona_regressions.py` (each chunk written and flushed before the next is pulled; no reminder without a switch) |
+
+`tests/integration/test_persona_live.py` optionally repeats one switch against a
+local Ollama model (skipped when unavailable) and checks only streaming, retained
+context and history shape. Model-quality behavior (response language, unsupported
+claims, invented metrics) remains a manual check and is not established by these
+automated tests.
+
 T23 implements definitions and startup selection; T24 adds switching without
-losing history. T25 owns broader persona behavior regressions. These stories
+losing history. T25 adds the regression suite mapped in
+"Automated regression coverage (T25)" above. These stories
 still need the independent review coordinated by T08 before claiming the
 complete A5 feature.
