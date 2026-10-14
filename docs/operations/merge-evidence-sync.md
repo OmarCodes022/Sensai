@@ -2,11 +2,10 @@
 
 `.github/workflows/sync-merge-evidence.yml` runs on **every push to personal
 `main`**, including a merged PR. It does not run on PR close separately, so
-one merge triggers at most one code review. The personal repo's other workflow
-(`personal-main-mirror.yml`) runs PR/push tests and invokes the AWS mirror
-on personal `main` pushes; **the two workflows are independent**. Evidence
-sync does not wait for Epitech mirroring, and the mirrored Epitech copy
-skips its job.
+one merge triggers at most one code review. The separate `mirror.yml`
+workflow mirrors branch pushes to Epitech. **The two workflows are
+independent**: evidence sync does not wait for Epitech mirroring, and the
+mirrored Epitech copy skips its job.
 
 When enabled, this workflow checks out trusted personal `main` with full
 history, checks that the event's before/after commits form a fast-forward
@@ -48,8 +47,8 @@ on **OmarCodes022/Sensai**, not on the Epitech repo:
    for the private organization issue access; a fine-grained credential
    needs the equivalent Project and Issues permissions. Use a dedicated
    minimally privileged credential.
-   The AWS mirror's SSH credential is separate and is **not** a substitute
-   for Project and issue write access.
+   The mirror's `EPITECH_PAT` secret is configured separately from this
+   workflow's Project and issue credential.
    The workflow's built-in `GITHUB_TOKEN` cannot be relied on for editing an
    organization Project. GitHub's [Project API guide][project-api] requires
    `project` scope for classic-PAT Project mutations or an authorized GitHub
@@ -84,7 +83,7 @@ on **OmarCodes022/Sensai**, not on the Epitech repo:
 
 5. Only after the credentials and personal issue links are ready, set the
    nonsecret repository Actions variable `SENSAI_EVIDENCE_SYNC_ENABLED` to
-   `true`. This is independent of the AWS Epitech mirror. A manual replay
+   `true`. This is independent of the Epitech mirror. A manual replay
    with an unset variable skips the job and does not write; enabling
    without working secrets fails rather than reporting a successful sync.
 
