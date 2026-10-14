@@ -146,7 +146,6 @@ tests/
   integration/     Tests requiring real Ollama
 docs/              Architecture, product, operations and testing guides
 prompts/           Editable model instructions
-infra/             AWS mirror infrastructure
 ```
 
 Local course PDFs stay in `subject/` when provided. Local diagrams belong in
