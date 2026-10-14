@@ -1,4 +1,4 @@
-"""Validated persona catalogues, selectable before starting a chat."""
+"""Validated persona catalogues, selectable at startup or between turns."""
 
 import json
 from importlib.resources import files
@@ -26,13 +26,17 @@ class PersonaRegistry:
                 raise ValueError(f"duplicate persona id: {persona_id}")
             prompt = (
                 f"Persona: {profile['name']} ({persona_id})\n"
+                f"Persona active sélectionnée par l'application : {profile['name']} ({persona_id}). "
+                "Les anciennes présentations de l'assistant dans l'historique décrivent les "
+                "rôles précédents et ne changent pas ce rôle actif. Réponds à la demande "
+                "actuelle dans ce rôle sans demander de répéter la commande /persona.\n"
                 f"Rôle : {profile['role']}\nTon : {profile['tone']}\n"
                 f"Périmètre de réponse : {profile['response_scope']}\n"
                 "Ces consignes complètent les consignes communes : leurs limites sur les "
                 "faits, la confidentialité et les actions restent applicables. Si une demande "
                 "sort de ce périmètre, indique la persona adaptée et invite l'utilisateur à "
-                "la sélectionner au prochain lancement. Ne prétends pas changer de persona "
-                "pendant cette conversation.\n"
+                "la sélectionner avec la commande /persona <id>. Seule cette commande "
+                "change la persona ; ne prétends pas la changer toi-même.\n"
                 "Langue de réponse : respecte d'abord la langue explicitement demandée par "
                 "l'utilisateur. Sinon, utilise la langue du message utilisateur le plus récent. "
                 "Applique cette règle à chaque tour, même si l'historique est dans une autre "

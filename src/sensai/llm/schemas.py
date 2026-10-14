@@ -16,6 +16,7 @@ class ChatRequest(BaseModel):
 class ChatChunk(BaseModel):
     message: Message | None = None
     done: bool = False
+    done_reason: str | None = None
     error: str | None = None
     prompt_eval_count: StrictInt | None = Field(default=None, ge=0)
     eval_count: StrictInt | None = Field(default=None, ge=0)

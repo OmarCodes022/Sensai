@@ -41,7 +41,11 @@ def parse_args(settings: Settings, argv: Sequence[str] | None = None) -> argpars
 
 
 def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
-         operation_timeout: float = 120.0, cancel_requested=None) -> None:
+         operation_timeout: float = 120.0, cancel_requested=None,
+         persona_registry: PersonaRegistry | None = None,
+         base_prompt: str | None = None) -> None:
+    if base_prompt is None:
+        base_prompt = session.messages[0].content
     while True:
         try:
             text = read("\n> ")
@@ -53,6 +57,21 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
             continue
         if text.strip().lower() in ("exit", "quit"):
             return
+        command = text.strip().split(maxsplit=1)
+        if command and command[0] == "/persona":
+            if persona_registry is None:
+                write("error: persona selection is unavailable")
+            elif len(command) == 1:
+                for persona_id, name in persona_registry.options:
+                    write(f"{persona_id}: {name}")
+            else:
+                persona = persona_registry.get(command[1])
+                if persona is None:
+                    write(f"error: unknown persona: {command[1]}")
+                else:
+                    session.set_system_prompt(f"{base_prompt}\n\n{persona.system_prompt}")
+                    write(f"Persona sélectionnée : {persona.id}")
+            continue
         token = CancellationToken(monotonic() + operation_timeout, cancel_requested)
         stream = session.send(text, token)
         try:
@@ -72,8 +91,8 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
             stream.close()
 
 
-def prepare_chat(args: argparse.Namespace) -> str | None:
-    """Validate local inputs before any client or tunnel is created."""
+def prepare_chat(args: argparse.Namespace) -> tuple[str, PersonaRegistry, str] | None:
+    """Load validated prompt and persona context before any client or tunnel."""
     try:
         registry = PersonaRegistry.from_file(args.personas_file)
     except (OSError, ValueError) as e:
@@ -86,26 +105,30 @@ def prepare_chat(args: argparse.Namespace) -> str | None:
     if args.persona is not None and persona is None:
         sys.exit(f"error: unknown persona: {args.persona}")
     try:
-        prompt = load_system_prompt(args.prompt)
+        base_prompt = load_system_prompt(args.prompt)
     except OSError as e:
         sys.exit(f"error: cannot read system prompt: {e}")
+    prompt = base_prompt
     if persona is not None:
         prompt = f"{prompt}\n\n{persona.system_prompt}"
-    return prompt
+    return prompt, registry, base_prompt
 
 
-def run_chat(settings: Settings, args: argparse.Namespace, prompt: str) -> None:
+def run_chat(settings: Settings, args: argparse.Namespace,
+             prepared: tuple[str, PersonaRegistry, str]) -> None:
+    prompt, registry, base_prompt = prepared
     client = create_client(settings.model_copy(update={"host": args.host}))
-    print(f"Chatting with {args.model}. Type 'exit' to quit.")
+    print(f"Chatting with {args.model}. Type '/persona' to list profiles or 'exit' to quit.")
     with TerminalInput() as terminal:
         repl(ChatSession(client, args.model, prompt), read=terminal.read,
              operation_timeout=args.operation_timeout,
-             cancel_requested=terminal.cancel_requested)
+             cancel_requested=terminal.cancel_requested,
+             persona_registry=registry, base_prompt=base_prompt)
 
 
 def main(argv: Sequence[str] | None = None) -> None:
     settings = Settings()
     args = parse_args(settings, argv)
-    prompt = prepare_chat(args)
-    if prompt is not None:
-        run_chat(settings, args, prompt)
+    prepared = prepare_chat(args)
+    if prepared is not None:
+        run_chat(settings, args, prepared)

@@ -159,11 +159,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     settings = Settings()
     args = cli.parse_args(settings, argv)
     try:
-        prompt = cli.prepare_chat(args)
-        if prompt is None:
+        prepared = cli.prepare_chat(args)
+        if prepared is None:
             return 0
         if not settings.ssh_host:
-            cli.run_chat(settings, args, prompt)
+            cli.run_chat(settings, args, prepared)
             return 0
         alias = settings.ssh_host
         if alias.startswith("-") or not alias.isprintable() or any(c.isspace() for c in alias):
@@ -171,7 +171,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.host not in ("http://127.0.0.1:11435", "http://127.0.0.1:11435/"):
             raise LauncherError("SENSAI_SSH_HOST requires OLLAMA_HOST/--host=http://127.0.0.1:11435")
         with ssh_tunnel(alias):
-            cli.run_chat(settings, args, prompt)
+            cli.run_chat(settings, args, prepared)
         return 0
     except LauncherError as error:
         print(f"error: {error}", file=sys.stderr)

@@ -37,3 +37,26 @@ def test_failed_turn_is_rolled_back():
     with pytest.raises(LLMError):
         list(s.send("hi"))
     assert len(s.messages) == 1
+
+
+def test_system_prompt_replacement_preserves_completed_history_and_prior_request():
+    client = FakeClient(["A1"], ["A2"])
+    session = ChatSession(client, "m", "original")
+    list(session.send("Q1"))
+    history = session.messages[1:]
+    session.set_system_prompt(" replacement ")
+    assert session.messages[0] == Message(role="system", content=" replacement ")
+    assert session.messages[1:] == history
+    assert all(current is prior for current, prior in zip(session.messages[1:], history))
+    assert client.requests[0][1][0].content == "original"
+    list(session.send("Q2"))
+    assert client.calls[1] == [" replacement ", "Q1", "A1", " replacement ", "Q2"]
+
+
+@pytest.mark.parametrize("prompt", [None, 42, "", " \t\n"])
+def test_invalid_system_prompt_does_not_mutate_history(prompt):
+    session = ChatSession(FakeClient(), "m", "original")
+    before = list(session.messages)
+    with pytest.raises(ValueError, match="nonempty string"):
+        session.set_system_prompt(prompt)
+    assert session.messages == before

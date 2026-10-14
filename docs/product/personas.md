@@ -1,4 +1,4 @@
-# Startup personas (T23)
+# Personas (T23 and T24)
 
 The fictional skincare creator Nadia can start the same chat in three distinct
 working roles. **Rédaction** prepares posts and captions in the supplied brand
@@ -26,8 +26,8 @@ Acceptance criteria:
    role, tone and scope. With suitable fictional inputs, a human checks two
    draft/reply variants or an analysis separating facts from interpretation.
 3. An unknown ID fails before any model call. An out-of-scope request instructs
-   the model to explain the appropriate role and suggest a new launch; no
-   runtime switch or external action is performed.
+   the model to explain the appropriate role and suggest `/persona <id>`;
+   the user runs that command to change profiles.
 
 ## Story 2: customize a role without changing code
 
@@ -46,6 +46,37 @@ Acceptance criteria:
    model request. Without a selected persona the original assistant prompt,
    streaming and conversation history remain unchanged.
 
+## Story 3: change roles within the conversation
+
+As Nadia, I want to change personas between turns while retaining the prior
+exchanges so I can continue the same work in another role.
+
+Acceptance criteria:
+
+1. `/persona` lists the startup-loaded profiles, including a custom catalogue;
+   `/persona <id>` confirms a valid selection without contacting the model or
+   recording the command in chat history.
+2. The next request contains the original shared prompt followed by only the
+   newly selected persona, plus every completed user and assistant turn.
+   Repeated switches do not accumulate earlier persona instructions.
+3. An unknown ID reports an error and leaves the prompt and history intact.
+   Switching does not reload the catalogue or prompt files.
+4. Replies still stream; cancellation and model errors discard the incomplete
+   turn. Subsequent switches and requests remain usable.
+
+Switches happen at the input prompt between turns. They preserve text already
+exchanged with previous personas; they do not rewrite those replies.
+The active system instructions identify the profile selected by the application;
+earlier assistant introductions describe previous roles and do not undo a switch.
+After a switch, every request repeats the current system instructions immediately
+before the newest user message. This request-only reminder is never added to
+stored history, which retains one current system message and the original turns.
+Requests before any runtime switch keep their original message structure.
+Chat requests keep the model/server's default thinking mode and wait for visible
+answer content, without displaying or storing separate thinking text. A completed
+stream without a nonblank answer reports an error and removes the incomplete
+turn, preserving earlier exchanges and the selected profile.
+
 ## Manual checks and feature boundary
 
 Use a locally installed model and the commands in the root README. For each
@@ -59,6 +90,10 @@ sourced aggregate counts, then repeat with missing figures or zero reach;
 check that the model distinguishes unavailable data from zero and avoids
 fabricated metrics. Try an out-of-scope request and check the suggested role.
 Interrupt a reply and verify that the next turn still works.
+Then run `/persona`, select a different listed ID with `/persona <id>` and
+ask a follow-up referring to an earlier completed exchange. Check that the
+new reply follows the selected role and can use that earlier context. Try an
+unknown ID, then continue; the last valid role and history should remain.
 
 Observed local CLI checks on fictional data (2026-10-08): `gemma3:1b`
 completed all three persona streams and exited normally, but answered in
@@ -86,13 +121,40 @@ The same five-turn Rédaction comparison with `mistral:latest` reached the
 test harness's overall 210-second limit before producing complete output;
 that attempt establishes no conclusion about language compliance.
 
+On 2026-10-13, seven scripted CLI turns through the SSH launcher with
+`qwen3.5:9b-q4_K_M` produced visible answers after the empty-reply and active-role
+fixes, with thinking explicitly disabled for that check. This does not establish
+the result with the model's default thinking mode. Role queries matched Analyse,
+then Communauté, then Analyse after the
+corresponding switches. Before the request-only role reminder, the same scenario
+still answered Analyse after selecting Communauté. This checks that scenario,
+not general persona obedience or claim, privacy and metric acceptance.
+
+A subsequent check with default thinking reproduced a completed empty answer:
+the 4096-token context was exhausted by 2987 prompt tokens plus 1109 generated
+tokens, with `done_reason: length`. With `SENSAI_CONTEXT_LENGTH=8192`, the same
+seven-turn launcher scenario produced seven nonempty answers, all ending with
+`stop`; raw stream counters confirmed thinking was active, and Ollama reported
+an 8192-token context. Analyse, Communauté and Analyse were correctly identified
+after their switches. The client now reports token-limit termination explicitly
+and never records an incomplete answer as a completed turn.
+
+Final T24 verification executed all 474 tests, including the four live Ollama
+integration checks, without skips. Two consecutive isolated CLI scenarios each
+completed five turns across Analyse, Communauté and Rédaction switches, retained
+the literal fictional campaign code `AZUR729`, rejected an invalid selection
+without changing state, and checked every outgoing request and streamed reply.
+An earlier live attempt at 8192 still returned no visible answer and was reported
+as an error with history preserved. These successful scenarios establish the
+tested T24 behavior; they do not guarantee that Ollama always produces an answer.
+
 Unit tests establish catalogue validation, selection and prompt assembly, not
 the quality or safety of every model response. These persona instructions
 are not privacy sanitization, evidence verification or an output-validation
 gate. They do not fetch analytics, send replies, save artifacts or deliver the
 four-output workflow in [the product scope](creator-product.md).
 
-T23 implements definitions and startup selection. T24 owns switching without
-losing history; T25 owns broader persona behavior regressions. These stories
+T23 implements definitions and startup selection; T24 adds switching without
+losing history. T25 owns broader persona behavior regressions. These stories
 still need the independent review coordinated by T08 before claiming the
 complete A5 feature.

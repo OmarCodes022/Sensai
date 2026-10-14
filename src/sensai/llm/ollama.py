@@ -32,9 +32,16 @@ class OllamaClient(LLMClient):
         timeout: float = 60.0,
         event_sink: EventPort | None = None,
         usage_sink: Callable[[OllamaUsage], None] | None = None,
+        context_length: int | None = None,
     ):
+        if context_length is not None and (
+            isinstance(context_length, bool) or not isinstance(context_length, int)
+            or context_length <= 0
+        ):
+            raise ValueError("context_length must be a positive integer")
         self.host = host if "://" in host else f"http://{host}"
         self.timeout = timeout
+        self.context_length = context_length
         self._telemetry = None
         if event_sink is not None:
             from sensai.observability.telemetry import Telemetry
@@ -49,7 +56,7 @@ class OllamaClient(LLMClient):
             from sensai.core.execution import ControlledLLMClient
             sink = self._telemetry._sink if self._telemetry is not None else None
             controlled = ControlledLLMClient(
-                partial(OllamaClient, self.host, self.timeout),
+                partial(OllamaClient, self.host, self.timeout, context_length=self.context_length),
                 event_sink=sink, usage_sink=self._usage_sink,
             )
             yield from controlled.stream(model, messages, cancellation)
@@ -58,6 +65,8 @@ class OllamaClient(LLMClient):
 
     def _stream_direct(self, model: str, messages: Sequence[Message]) -> Iterator[str]:
         body = ChatRequest(model=model, messages=list(messages)).model_dump(mode="json")
+        if self.context_length is not None:
+            body["options"] = {"num_ctx": self.context_length}
         started = perf_counter()
         operation_id = None
         if self._telemetry is not None:
@@ -67,6 +76,7 @@ class OllamaClient(LLMClient):
             self._telemetry.request_started(operation_id)
         resp = None
         reported = False
+        has_answer = False
 
         def close_response() -> None:
             nonlocal resp
@@ -113,8 +123,18 @@ class OllamaClient(LLMClient):
                     continue
                 chunk = self._parse(line)
                 if chunk.message and chunk.message.content:
+                    has_answer = has_answer or bool(chunk.message.content.strip())
                     yield chunk.message.content
                 if chunk.done:
+                    if chunk.done_reason == "length":
+                        raise _ResponseError(
+                            "Ollama stopped before finishing the answer (token limit reached)",
+                            UsageError.INCOMPLETE_STREAM,
+                        )
+                    if not has_answer:
+                        raise _ResponseError(
+                            "Ollama returned no visible answer", UsageError.INVALID_RESPONSE
+                        )
                     close_response()
                     report(final=chunk)
                     return
@@ -125,9 +145,9 @@ class OllamaClient(LLMClient):
             if not reported:
                 try:
                     close_response()
-                except _ResponseError:
+                except _ResponseError as exc:
                     report(error=UsageError.TRANSPORT)
-                    raise
+                    raise LLMError(str(exc)) from None
                 report(error=UsageError.CANCELLED)
             raise
         except requests.ConnectionError:
@@ -151,7 +171,7 @@ class OllamaClient(LLMClient):
         except _ResponseError as exc:
             if not reported:
                 report(error=exc.code)
-            raise
+            raise LLMError(str(exc)) from None
         except Exception:
             if reported:
                 raise
@@ -162,9 +182,9 @@ class OllamaClient(LLMClient):
                 primary = exc_info()[1]
                 try:
                     close_response()
-                except _ResponseError:
+                except _ResponseError as exc:
                     if primary is None:
-                        raise
+                        raise LLMError(str(exc)) from None
                     if hasattr(primary, "add_note"):
                         primary.add_note("Ollama response close failed")
 
