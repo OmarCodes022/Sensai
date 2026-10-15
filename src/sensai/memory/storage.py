@@ -4,6 +4,7 @@ import json
 import sqlite3
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, TypeVar
 
@@ -13,10 +14,11 @@ from sensai.core.contracts import (
     PortError,
     Profile,
     SessionSnapshot,
+    SessionSummary,
 )
 from sensai.core.messages import Message
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 _T = TypeVar("_T")
 
 
@@ -41,6 +43,10 @@ def _id(value: str, name: str) -> str:
     ):
         raise InvalidStorageId(f"invalid {name} id")
     return value
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="microseconds")
 
 
 def _json(value: object) -> str:
@@ -107,7 +113,7 @@ class StorageRepository:
                     "PRIMARY KEY (creator_id, profile_id))"
                 )
                 version = 1
-            if version not in (1, SCHEMA_VERSION):
+            if version not in (1, 2, SCHEMA_VERSION):
                 raise UnsupportedStorageSchema(f"unsupported storage version {version}")
             _validate_table(
                 connection, "sessions",
@@ -131,10 +137,28 @@ class StorageRepository:
                 ("creator_id", "profile_id", "fact_id", "text", "source"),
                 ("creator_id", "profile_id", "fact_id"),
             )
+            if version < 3:
+                connection.execute(
+                    "CREATE TABLE session_meta ("
+                    "creator_id TEXT NOT NULL, session_id TEXT NOT NULL, title TEXT, "
+                    "created_at TEXT NOT NULL, updated_at TEXT NOT NULL, "
+                    "PRIMARY KEY (creator_id, session_id))"
+                )
+                now = _now()
+                connection.execute(
+                    "INSERT INTO session_meta (creator_id, session_id, title, created_at, updated_at) "
+                    "SELECT creator_id, session_id, NULL, ?, ? FROM sessions",
+                    (now, now),
+                )
+            _validate_table(
+                connection, "session_meta",
+                ("creator_id", "session_id", "title", "created_at", "updated_at"),
+                ("creator_id", "session_id"),
+            )
             connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
             connection.execute("COMMIT")
         except BaseException:
-            if started:
+            if started and connection.in_transaction:
                 connection.execute("ROLLBACK")
             raise
 
@@ -153,18 +177,22 @@ class StorageRepository:
             raise StorageError("nested storage transactions are not supported")
         if cancellation is not None:
             cancellation.raise_if_cancelled()
-        self._connection.execute("BEGIN IMMEDIATE")
-        self._active = True
-        self._cancellation = cancellation
-        self._rollback_only = False
+        if self._connection.in_transaction:
+            # An interrupt (e.g. Ctrl+C) left an earlier BEGIN without its bookkeeping.
+            self._connection.execute("ROLLBACK")
         try:
+            self._connection.execute("BEGIN IMMEDIATE")
+            self._active = True
+            self._cancellation = cancellation
+            self._rollback_only = False
             yield
             self._check_cancelled()
             if self._rollback_only:
                 raise StorageError("storage transaction rolled back after a failed operation")
             self._connection.execute("COMMIT")
         except BaseException:
-            self._connection.execute("ROLLBACK")
+            if self._connection.in_transaction:
+                self._connection.execute("ROLLBACK")
             raise
         finally:
             self._active = False
@@ -259,18 +287,52 @@ class _SessionStore:
                 "DO UPDATE SET messages = excluded.messages, persona_id = excluded.persona_id",
                 (self._creator_id, session_id, messages, session.persona_id),
             )
+            now = _now()
+            self._repository._connection.execute(
+                "INSERT INTO session_meta (creator_id, session_id, title, created_at, updated_at) "
+                "VALUES (?, ?, NULL, ?, ?) ON CONFLICT (creator_id, session_id) "
+                "DO UPDATE SET updated_at = excluded.updated_at",
+                (self._creator_id, session_id, now, now),
+            )
 
         self._repository._run(write, write=True)
 
     def delete(self, session_id: str) -> None:
         def remove() -> None:
             _id(session_id, "session")
-            self._repository._connection.execute(
-                "DELETE FROM sessions WHERE creator_id = ? AND session_id = ?",
-                (self._creator_id, session_id),
-            )
+            for table in ("sessions", "session_meta"):
+                self._repository._connection.execute(
+                    f"DELETE FROM {table} WHERE creator_id = ? AND session_id = ?",
+                    (self._creator_id, session_id),
+                )
 
         self._repository._run(remove, write=True)
+
+    def list(self) -> tuple[SessionSummary, ...]:
+        """This creator's sessions, most recently updated first."""
+        def read() -> tuple[SessionSummary, ...]:
+            rows = self._repository._connection.execute(
+                "SELECT session_id, title, created_at, updated_at FROM session_meta "
+                "WHERE creator_id = ? ORDER BY updated_at DESC, session_id",
+                (self._creator_id,),
+            )
+            return tuple(SessionSummary(*row) for row in rows)
+
+        return self._repository._run(read)
+
+    def set_title(self, session_id: str, title: str) -> None:
+        def write() -> None:
+            _id(session_id, "session")
+            if not isinstance(title, str) or not title.strip():
+                raise StorageError("expected a nonempty session title")
+            cursor = self._repository._connection.execute(
+                "UPDATE session_meta SET title = ? WHERE creator_id = ? AND session_id = ?",
+                (title, self._creator_id, session_id),
+            )
+            if cursor.rowcount == 0:
+                raise StorageError("unknown session")
+
+        self._repository._run(write, write=True)
 
 
 class _ProfileStore:

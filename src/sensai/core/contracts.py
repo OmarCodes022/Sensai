@@ -67,6 +67,14 @@ class SessionSnapshot:
     persona_id: str | None = None
 
 
+@dataclass(frozen=True)
+class SessionSummary:
+    id: str
+    title: str | None
+    created_at: str
+    updated_at: str
+
+
 @runtime_checkable
 class SessionStorePort(Protocol):
     def load(self, session_id: str) -> SessionSnapshot | None: ...

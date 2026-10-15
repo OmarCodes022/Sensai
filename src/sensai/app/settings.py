@@ -16,4 +16,7 @@ class Settings(BaseSettings):
     context_length: int | None = Field(None, gt=0, validation_alias="SENSAI_CONTEXT_LENGTH")
     operation_timeout: float = Field(120.0, gt=0, allow_inf_nan=False,
                                      validation_alias="SENSAI_OPERATION_TIMEOUT")
+    db_path: str | None = Field(None, validation_alias="SENSAI_DB")
+    creator: str = Field("default", validation_alias="SENSAI_CREATOR")
+    profile_file: str | None = Field(None, validation_alias="SENSAI_PROFILE_FILE")
     test_model: str = Field("gemma3:1b", validation_alias="SENSAI_TEST_MODEL")
