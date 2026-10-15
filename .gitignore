@@ -13,3 +13,5 @@ dist/
 *.tfstate
 *.tfstate.backup
 *.tfplan
+sensai.sqlite3*
+*.local.json
