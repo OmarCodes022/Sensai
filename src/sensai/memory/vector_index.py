@@ -4,7 +4,7 @@ import math
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from sensai.core.contracts import EmbeddingPort, PortError, RetrievedChunk
+from sensai.core.ports import EmbeddingPort, PortError, RetrievedChunk
 
 
 class VectorIndexError(PortError):

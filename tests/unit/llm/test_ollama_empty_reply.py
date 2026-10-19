@@ -1,21 +1,15 @@
 """Reasoning alone is not a visible answer from Ollama."""
 
-import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
+from fakes import ollama_response as response
 from sensai.core.errors import LLMError
 from sensai.core.messages import Message
 from sensai.llm.ollama import OllamaClient
-from sensai.llm.schemas import UsageError
-from sensai.observability.telemetry import BoundedEventSink
-
-
-def response(*chunks):
-    resp = MagicMock(status_code=200)
-    resp.iter_lines.return_value = [json.dumps(chunk).encode() for chunk in chunks]
-    return resp
+from sensai.llm.ollama_api import UsageError
+from sensai.telemetry import BoundedEventSink
 
 
 @pytest.mark.parametrize("chunks", [

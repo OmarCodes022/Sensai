@@ -1,8 +1,10 @@
-"""Deterministic local substitutes for B1 and feature ports."""
+"""Deterministic local substitutes for the chat client, terminal, HTTP and feature ports."""
 
-from collections.abc import Iterator, Mapping, Sequence
+import json
+from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
+from unittest.mock import MagicMock
 
-from sensai.core.contracts import (
+from sensai.core.ports import (
     CancellationToken,
     Event,
     Fact,
@@ -14,7 +16,7 @@ from sensai.core.contracts import (
     ToolCall,
     ToolResult,
 )
-from sensai.llm.base import LLMClient
+from sensai.llm.client import LLMClient
 from sensai.core.messages import Message
 
 
@@ -44,6 +46,60 @@ class FakeClient(LLMClient):
 
 class FakeOllama(FakeClient):
     """Scripted Ollama-shaped stream, without HTTP or a local model."""
+
+
+def scripted_terminal(inputs: Iterable[str | BaseException] | None,
+                      on_read: Callable[[], None] = lambda: None) -> type:
+    """A TerminalInput replacement replaying `inputs`; exception items are raised.
+
+    With `inputs=None` any read fails the test. Cancellation is never requested.
+    """
+
+    class ScriptedTerminal:
+        def __enter__(self):
+            self.inputs = None if inputs is None else iter(inputs)
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+        def read(self, prompt):
+            if self.inputs is None:
+                raise AssertionError("unexpected terminal read")
+            on_read()
+            value = next(self.inputs)
+            if isinstance(value, BaseException):
+                raise value
+            return value
+
+        def cancel_requested(self):
+            return False
+
+    return ScriptedTerminal
+
+
+class InterruptingConnection:
+    """sqlite3 connection proxy raising KeyboardInterrupt right after given statements succeed."""
+
+    def __init__(self, connection, *after):
+        self._connection, self.after = connection, list(after)
+
+    def execute(self, sql, *args):
+        result = self._connection.execute(sql, *args)
+        if self.after and sql == self.after[0]:
+            self.after.pop(0)
+            raise KeyboardInterrupt
+        return result
+
+    def __getattr__(self, name):
+        return getattr(self._connection, name)
+
+
+def ollama_response(*chunks: Mapping) -> MagicMock:
+    """A successful streaming /api/chat response yielding the given JSON chunks."""
+    resp = MagicMock(status_code=200)
+    resp.iter_lines.return_value = [json.dumps(chunk).encode() for chunk in chunks]
+    return resp
 
 
 class FakePersonaStore:

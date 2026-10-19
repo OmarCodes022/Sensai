@@ -2,7 +2,7 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
-from sensai.core.contracts import RetrievalPort
+from sensai.core.ports import RetrievalPort
 from sensai.core.errors import SensaiError
 from sensai.memory.vector_index import IndexChunk, LocalVectorIndex, VectorIndexError
 

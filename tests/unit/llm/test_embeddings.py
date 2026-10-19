@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 import pytest
 import requests
 
-from sensai.core.contracts import EmbeddingPort
+from sensai.core.ports import EmbeddingPort
 from sensai.core.errors import LLMConnectionError, LLMError, ModelNotFoundError, SensaiError
 from sensai.llm.embeddings import (
     EmbeddingDimensionError,

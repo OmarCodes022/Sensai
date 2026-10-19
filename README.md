@@ -1,257 +1,174 @@
 # Sensai
 
-A Python 3.10+ assistant foundation using local Ollama through direct HTTP.
-The current CLI streams replies and keeps conversation history. Storage,
-embeddings, structured output, vector indexing and telemetry are separate
-capabilities; the CLI does not automatically connect them into a product flow.
-The intended creator workflow is described in
-[the product scope](docs/product/creator-product.md).
+Sensai is a command-line AI assistant for a skincare creator who runs her own
+brand. It talks to a local [Ollama](https://ollama.com) model directly over
+its HTTP API (no LLM framework), streams replies, keeps the conversation
+history, lets the creator switch between drafting, community and analysis
+personas mid-conversation, and saves sessions and a creator profile in a local
+SQLite file. Python 3.10 or newer. The longer-term product goal (four
+reviewable weekly outputs) is described in
+[the product scope](docs/product/scope.md); it is not built yet.
 
-## Setup and run
+## Features
 
-Have Ollama running locally. Use `ollama list` to choose an installed model;
-start `ollama serve` in another terminal if the server is not already running.
+Features from the subject catalogue that are implemented in the code:
 
+| ID | Feature | What works today | Docs |
+| --- | --- | --- | --- |
+| B1 | Functional CLI chatbot (base chat) | Streamed replies, in-session history, clean errors (empty input, missing model, connection failure, timeout), model chosen by argument or `.env`, Ctrl+C/Esc interrupts a reply | [Overview](docs/architecture/overview.md), [cancellation](docs/architecture/cancellation.md) |
+| A5 | Persona | Built-in and JSON-file personas, chosen at startup or switched with `/persona <id>` without losing history | [Persona guide](docs/product/personas.md) |
+| M1 | Session Persistence & Profiles | Sessions saved after each completed turn, listed and resumed after restart; a creator profile file injected into the system prompt | [Storage](docs/architecture/storage.md) |
+
+User stories: see [docs/stories/](docs/stories/README.md). A5 has draft
+stories; B1 and M1 still need theirs.
+
+Foundations that exist in code but are **not** complete features and are not
+used by the CLI: an Ollama embedding adapter and in-memory vector index
+([retrieval foundation](docs/architecture/retrieval.md)), a JSON-schema
+reply adapter ([structured output](docs/architecture/structured-output.md)),
+usage/event hooks ([telemetry](docs/architecture/telemetry.md)), typed policy
+records ([privacy and claims](docs/product/privacy-and-claims.md)) and a manual
+adversarial-test runner ([evals/adversarial](evals/adversarial/README.md)).
+
+## Setup
+
+Have Ollama running (`ollama serve`) and a model installed (`ollama list`).
+The CLI needs a POSIX system (macOS or Linux): its terminal input uses
+`termios`, which native Windows Python does not provide.
 From the repository root:
 
 ```bash
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
-.venv/bin/sensai gemma3:1b
+cp .env.example .env   # optional; skip if you already have a .env
 ```
 
-Replace `gemma3:1b` with your installed model. Type `exit` or `quit`, or press
-`Ctrl+D` on empty input, to quit. On Linux/macOS terminals, `Ctrl+C` or lone
-`Échap` clears input or interrupts the current response.
-Printed partial text stays visible, but the abandoned
-turn is removed from conversation history; the next prompt remains usable.
+`requirements.txt` installs this project in editable mode with its test extra;
+the dependencies themselves are listed in `pyproject.toml`. Configuration comes
+from environment variables or `.env` (see [`.env.example`](.env.example));
+real environment variables win over `.env`, and CLI options win over both. The
+default system prompt is packaged with Sensai
+([`src/sensai/chat/system_prompt.txt`](src/sensai/chat/system_prompt.txt)), so
+`sensai` works from any directory; `--prompt` or `SENSAI_PROMPT` selects
+another prompt file (an empty value means the packaged default). **Upgrading:**
+if your `.env` still has `SENSAI_PROMPT=prompts/system.txt`, delete that line;
+that file no longer exists.
 
-The chat keeps the model/server's default thinking mode and streams visible
-answer content when it arrives. Separate thinking text is never displayed or
-stored. If a completed stream contains no nonblank answer, the CLI reports an
-error and discards that turn from history so you can retry or continue.
+## Usage
 
-For long histories or thinking models, set `SENSAI_CONTEXT_LENGTH=8192` in the
-environment or `.env` to request a larger context budget for the prompt and
-generation. Leave it unset to use the server default. The value must be a
-positive integer; larger contexts consume more VRAM and must fit the server.
-If Ollama stops because its token limit was reached, the CLI reports an error
-and discards the incomplete turn, even when partial text was printed.
-
-Each complete turn has a 120-second budget. Set `SENSAI_OPERATION_TIMEOUT` or
-pass `--operation-timeout 30` to change it (positive finite seconds).
-`SENSAI_TIMEOUT` separately controls HTTP connection/read waits. A timed-out
-turn displays `Délai maximal dépassé` and returns to the prompt. Input pipes
-retain line-based reading and `Ctrl+C`; native Windows terminal handling is
-outside this implementation.
-
-Cancellation terminates the local HTTP worker and closes its connection; it
-cannot guarantee that an independently running Ollama server stops computing.
-See [the cancellation contract](docs/architecture/cancellation.md).
-Configuration comes from environment variables or a local `.env`; see
-[`.env.example`](.env.example) for the available settings. Copy that example
-only if you do not already have a `.env`. The default system prompt is
-[`prompts/system.txt`](prompts/system.txt).
-
-Runtime and development dependencies are defined in `pyproject.toml`.
-`requirements.txt` installs the editable project with its `dev` extra; it does
-not maintain another copy of the dependency list.
-
-## Local or remote Ollama
-
-The optional launcher uses the same `.env` and CLI arguments. Leave
-`SENSAI_SSH_HOST` unset or empty for a local model. Set it to an SSH alias,
-with `OLLAMA_HOST=http://127.0.0.1:11435`, to open a tunnel automatically:
+### Chat with a local model
 
 ```bash
-.venv/bin/python scripts/run_sensai.py --persona redaction
+.venv/bin/sensai gemma3:1b          # or set SENSAI_MODEL and run .venv/bin/sensai
+.venv/bin/python -m sensai gemma3:1b
 ```
 
-The launcher closes only the tunnel it created when the chat ends. An existing
-Ollama endpoint on port `11435` is reused and left running. The usual `sensai`
-command continues to connect directly without managing SSH. See
-[the SSH setup and local/remote configurations](docs/operations/remote-ollama.md).
+Type `exit` or `quit` (or Ctrl+D on empty input) to leave. Ctrl+C or a lone
+Esc interrupts the current reply: the printed text stays on screen but the turn
+is dropped from history. Each turn has a 120-second budget
+(`--operation-timeout` or `SENSAI_OPERATION_TIMEOUT`). For long histories or
+thinking models, set `SENSAI_CONTEXT_LENGTH=8192`. A reply that ends without
+visible text, or stops at the token limit, is reported as an error and not
+kept in history.
 
-## Personas
+### Chat with a remote model over SSH
 
-Choose a profile when starting a chat; without one, the usual assistant is
-unchanged. The built-in profiles are `redaction` (Rédaction: post/caption drafts),
-`communaute` (Communauté: unsent reply suggestions) and `analyse` (Analyse:
-supplied aggregate metrics and weekly recommendations).
+`sensai-remote` accepts the same options and opens an SSH tunnel when
+`SENSAI_SSH_HOST` is set (with `OLLAMA_HOST=http://127.0.0.1:11435`); with it
+unset it behaves like `sensai`:
 
 ```bash
-.venv/bin/sensai --list-personas
-.venv/bin/sensai gemma3:1b --persona redaction
-.venv/bin/sensai gemma3:1b --persona communaute
+.venv/bin/sensai-remote --persona redaction
+```
+
+See [the SSH setup guide](docs/operations/remote-ollama.md).
+
+### Personas
+
+```bash
+.venv/bin/sensai --list-personas                 # no model or Ollama needed
 .venv/bin/sensai gemma3:1b --persona analyse
+.venv/bin/sensai gemma3:1b --personas-file personas.local.json --persona editor
 ```
 
-Listing profiles needs neither a model nor a running Ollama server. Set
-`SENSAI_PERSONA` to choose a default; CLI arguments take precedence. The shared
-`--prompt` instructions remain first, followed by the selected persona.
-During a conversation, type `/persona` to list available profiles and
-`/persona analyse` (or another ID) to switch before the next request. The new
-profile replaces the previous persona instructions while keeping the shared
-prompt and all completed exchanges. Unknown IDs leave the conversation intact.
-These commands do not contact the model or enter conversation history.
-After a switch, each model request also repeats the current system instructions
-immediately before the latest user message to clarify the active role despite
-earlier assistant introductions. This reminder exists only in the request;
-stored conversation history keeps one system message and the original turns.
-
-To define profiles without editing Python, create a UTF-8 JSON file such as:
+Built-in personas: `redaction` (post and caption drafts), `communaute` (unsent
+reply suggestions) and `analyse` (supplied metrics and weekly
+recommendations). In a chat, `/persona` lists them and `/persona analyse`
+switches before the next message, keeping all completed exchanges. A custom
+JSON file replaces the built-in list; each entry needs exactly `id`, `name`,
+`tone`, `role` and `response_scope`, for example:
 
 ```json
-[
-  {
-    "id": "editor",
-    "name": "Édition",
-    "tone": "Warm, clear and concise.",
-    "role": "Review supplied skincare caption drafts for the creator.",
-    "response_scope": "Suggest two revisions using only supplied approved claims; explain missing evidence. Other tasks are outside this profile."
-  }
-]
+[{"id": "editor", "name": "Édition", "tone": "Warm and concise.",
+  "role": "Review supplied caption drafts.",
+  "response_scope": "Suggest two revisions using only supplied approved claims."}]
 ```
 
-Run `sensai gemma3:1b --personas-file personas.local.json --persona editor`, or
-set `SENSAI_PERSONAS_FILE`. This file **replaces** the built-in catalogue. It
-must contain a nonempty array with exactly these five fields per profile,
-each a nonempty string, and unique IDs. Invalid files or unknown selections
-fail explicitly before contacting the model. Built-in profiles are packaged
-with Python; custom file paths are relative to the current working directory.
-The catalogue and shared prompt are loaded once at startup; runtime switches
-use those same instructions, including custom profile IDs.
+Invalid files or unknown IDs fail before the model is contacted. Personas are
+model instructions, not an enforced privacy or fact-checking gate. Details and
+manual checks: [persona guide](docs/product/personas.md).
 
-These are model instructions, not an enforced privacy or fact-validation gate.
-Only provide fictional or already sanitized non-sensitive questions and
-approved claims; personas do not fetch analytics, send replies or save outputs.
-See [the persona stories and manual checks](docs/product/personas.md).
-
-## Sessions and creator profile
-
-Conversations are always saved to a local SQLite file, `./sensai.sqlite3` by
-default (gitignored; choose another with `--db` or `SENSAI_DB`). Each launch
-starts a new session and prints its ID (`Session k7f2qa`); the session is
-written only after its first complete exchange, then after every completed
-turn. Cancelled, timed-out, failed or empty turns are never saved. After the
-first exchange a separate, short model request names the session (it never
-enters the conversation history); if it fails or returns an unusable title,
-the start of the first message is used instead. While `Titre de la session…`
-is shown (at most 15 seconds, or `--operation-timeout` if shorter), input typed
-is ignored; Ctrl+C or Esc skips to that fallback title.
+### Sessions and creator profile
 
 ```bash
-.venv/bin/sensai --list-sessions
-.venv/bin/sensai gemma3:1b --session k7f2qa
-.venv/bin/sensai gemma3:1b --profile-file profil.local.json --persona redaction
+.venv/bin/sensai --list-sessions                 # ID, last update (UTC), title
+.venv/bin/sensai gemma3:1b --session k7f2qa      # resume a saved session
+.venv/bin/sensai gemma3:1b --profile-file profil.local.json
 ```
 
-`--list-sessions` needs neither a model nor Ollama and prints
-`ID  YYYY-MM-DD HH:MM  title` lines (last update, UTC), most recent first; it
-ignores `--profile-file` and prints nothing (creating no file) if the database
-does not exist yet.
-`--session ID` restores the saved exchanges and persona; `--persona` on the
-command line takes precedence over the saved persona (`SENSAI_PERSONA` only
-applies to new sessions, and an invalid value does not block a resume). Only
-user/assistant turns are resumed: the system message is rebuilt from the
-current configuration (shared prompt, then creator profile, then persona), and
-any system message stored through the storage API is dropped on resume and on
-the next save.
-A `/persona <id>` switch is saved with the session.
+Every chat is saved to `./sensai.sqlite3` (gitignored; change with `--db` or
+`SENSAI_DB`) after its first completed exchange; interrupted, failed or empty
+turns are never saved. A short separate model request names the session; if it
+fails, the start of the first message is used. Resuming restores the exchanges
+and the persona (`--persona` overrides it). The profile file is a JSON object of
+strings, such as `{"ton": "direct", "public": "créatrices beauté"}`; it
+replaces the stored profile, which is then added to the system prompt of every
+chat. `--creator` (or `SENSAI_CREATOR`) keeps sessions and profiles of different
+creators apart; it is a key, not authentication. The database is plaintext.
+Storage details: [storage.md](docs/architecture/storage.md).
 
-The creator profile is a UTF-8 JSON object of nonempty strings, for example
-`{"ton": "direct et chaleureux", "public": "créatrices beauté"}` saved as
-`profil.local.json` (`*.local.json` is gitignored).
-`--profile-file` (or `SENSAI_PROFILE_FILE`) **replaces** the stored profile;
-without it, the stored profile is injected as
-`Profil de la créatrice (instructions personnalisées) :` followed by
-`- clé : texte` lines (blank stored entries are skipped). `{}` clears it; with
-no profile the prompt is unchanged.
-`--creator` / `SENSAI_CREATOR` (default `default`) scopes sessions and profile;
-it is a key, not authentication. Unknown sessions, unusable databases, invalid
-profiles and saved personas missing from the catalogue fail before contacting
-the model. If saving fails mid-chat (or is interrupted with Ctrl+C),
-`error: session not saved: …` is shown, the chat continues and the next save
-writes the full history. The database
-stores messages and profiles in plaintext; protect the file.
+## Tests
+
+Offline unit tests (no Ollama, no network; scripted fakes in
+`tests/helpers/`):
+
+```bash
+.venv/bin/python -m pytest -q tests/unit
+```
+
+GitHub Actions runs the same command on every push and pull request to `main`
+(`.github/workflows/tests.yml`, job **Unit tests**).
+
+Optional live tests against a running Ollama and installed model (they skip
+otherwise, and a skip is not a pass):
+
+```bash
+SENSAI_TEST_MODEL=gemma3:1b .venv/bin/python -m pytest tests/integration -v -rs
+```
+
+Manual adversarial testing: see [evals/adversarial](evals/adversarial/README.md).
 
 ## Repository layout
 
 ```text
 src/sensai/
-  app/             CLI, settings, prompt loading and chat sessions
-  core/            Messages, errors, typed contracts and policy definitions
-  llm/             Ollama HTTP clients, embeddings and structured responses
-  memory/          SQLite storage and local vector indexing
-  observability/   Optional telemetry
-scripts/
-  delivery/        GitHub/Notion evidence automation
-  testing/         Manual adversarial-test runner
-  docs/            Local diagram-generation tooling
+  cli/            Entry points: sensai (main.py), sensai-remote (remote.py), terminal input
+  chat/           Chat session, personas, default system prompt, saved-session recording
+  core/           Messages, errors, cancellation, typed ports, process isolation, policy types
+  llm/            Ollama HTTP clients (chat, embeddings, structured replies)
+  memory/         SQLite storage and in-memory vector index
+  settings.py     Configuration from the environment and .env
+  telemetry.py    Optional usage and event hooks
 tests/
-  helpers/         Deterministic test doubles
-  unit/            Tests grouped by the responsibility they exercise
-  integration/     Tests requiring real Ollama
-docs/              Architecture, product, operations and testing guides
-prompts/           Editable model instructions
+  unit/           Offline tests mirroring src/sensai/ (plus evals/)
+  integration/    Live Ollama tests (skipped without a model)
+  helpers/        Shared fakes and port assertions
+  fixtures/       Synthetic brand, DM, post and engagement data (not yet used by tests)
+evals/adversarial/ Manual adversarial runner, attack catalogue and report
+docs/             Architecture, product, operations, user stories, task briefs
+.github/workflows/ Unit tests and Epitech mirror
 ```
 
-Local course PDFs stay in `subject/` when provided. Local diagrams belong in
-`docs/diagrams/`; the builder writes there, not beside its Python script.
-Generated manual-test reports stay in gitignored `adversarial-reports/`.
-Environment files, reports and course PDFs are not test fixtures.
+## Documentation
 
-## Tests
-
-Run the deterministic suite without Ollama:
-
-```bash
-.venv/bin/python -m pytest tests/unit -q
-```
-
-Run the existing live B1 checks with a running server and installed model:
-
-```bash
-SENSAI_TEST_MODEL=gemma3:1b \
-  .venv/bin/python -m pytest tests/integration -v -rs
-```
-
-Skipped live tests are not passing model evaluations. Diana's manual runner
-accepts her own inputs, expected behavior and human verdicts:
-
-```bash
-.venv/bin/python scripts/testing/adversarial_test.py gemma3:1b
-```
-
-See [the testing guide](docs/testing/adversarial-testing.md). The runner and
-its unit tests do not establish EV4 completion or resistance to all attacks.
-Prompt instructions are not an enforced privacy or output-validation gate.
-The runner saves a readable Markdown report alongside the raw JSONL evidence.
-To convert an existing report without calling Ollama, use
-`--render-report adversarial-reports/my-session.jsonl` instead of the model.
-
-## Documentation and module moves
-
-[Browse the guides](docs/README.md) for architecture, product boundaries and
-delivery operations. GitHub workflows retain their existing jobs and
-activation rules; only script locations changed.
-
-Update feature branches to the new imports rather than adding compatibility
-wrappers:
-
-| Previous module | Current module |
-| --- | --- |
-| `sensai.cli` | `sensai.app.cli` |
-| `sensai.settings` | `sensai.app.settings` |
-| `sensai.prompts` | `sensai.app.prompts` |
-| `sensai.session` | `sensai.app.session` |
-| `sensai.contracts` | `sensai.core.contracts` |
-| `sensai.errors` | `sensai.core.errors` |
-| `sensai.messages` | `sensai.core.messages` |
-| `sensai.policy` | `sensai.core.policy` |
-| `sensai.storage` | `sensai.memory.storage` |
-| `sensai.vector_index` | `sensai.memory.vector_index` |
-| `sensai.telemetry` | `sensai.observability.telemetry` |
-
-`sensai.llm` paths are unchanged. The `sensai` console command and
-`python -m sensai` still start the CLI.
+Start at the [documentation index](docs/README.md).

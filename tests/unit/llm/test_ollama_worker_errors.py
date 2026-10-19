@@ -6,14 +6,14 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from sensai.app.session import ChatSession
+from sensai.chat.session import ChatSession
 from sensai.core.cancellation import CancellationToken
 from sensai.core.errors import LLMError
-from sensai.core.execution import ControlledLLMClient
+from sensai.core.isolation import ControlledLLMClient
 from sensai.core.messages import Message
 from sensai.llm import ollama
-from sensai.llm.schemas import UsageError
-from sensai.observability.telemetry import BoundedEventSink
+from sensai.llm.ollama_api import UsageError
+from sensai.telemetry import BoundedEventSink
 
 
 class LocalOllama(ollama.OllamaClient):

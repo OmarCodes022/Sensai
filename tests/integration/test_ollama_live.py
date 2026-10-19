@@ -8,8 +8,8 @@ import requests
 from sensai.core.errors import LLMConnectionError, ModelNotFoundError
 from sensai.llm.ollama import OllamaClient
 from sensai.core.messages import Message
-from sensai.app.session import ChatSession
-from sensai.app.settings import Settings
+from sensai.chat.session import ChatSession
+from sensai.settings import Settings
 
 S = Settings()
 HI = [Message(role="user", content="hi")]

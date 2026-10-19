@@ -1,4 +1,8 @@
-# Personas (T23, T24 and T25)
+# Personas (A5)
+
+This guide covers the Persona feature (A5 in the subject catalogue): its user
+stories, manual checks and automated test coverage. Command usage is in the
+root [README](../../README.md#personas).
 
 The fictional skincare creator Nadia can start the same chat in three distinct
 working roles. **Rédaction** prepares posts and captions in the supplied brand
@@ -135,35 +139,35 @@ the 4096-token context was exhausted by 2987 prompt tokens plus 1109 generated
 tokens, with `done_reason: length`. With `SENSAI_CONTEXT_LENGTH=8192`, the same
 seven-turn launcher scenario produced seven nonempty answers, all ending with
 `stop`; raw stream counters confirmed thinking was active, and Ollama reported
-an 8192-token context. Analyse, Communauté and Analyse were correctly identified
-after their switches. The client now reports token-limit termination explicitly
+an 8192-token context. After the switches the model correctly identified
+Analyse, then Communauté, then Analyse again. The client now reports token-limit termination explicitly
 and never records an incomplete answer as a completed turn.
 
-Final T24 verification executed all 474 tests, including the four live Ollama
-integration checks, without skips. Two consecutive isolated CLI scenarios each
-completed five turns across Analyse, Communauté and Rédaction switches, retained
-the literal fictional campaign code `AZUR729`, rejected an invalid selection
+Final verification of runtime switching ran the full test suite as it stood
+then, including the four live Ollama integration checks, without skips. Two
+consecutive isolated CLI scenarios each completed five turns across Analyse,
+Communauté and Rédaction switches, retained the literal fictional campaign code `AZUR729`, rejected an invalid selection
 without changing state, and checked every outgoing request and streamed reply.
 An earlier live attempt at 8192 still returned no visible answer and was reported
 as an error with history preserved. These successful scenarios establish the
-tested T24 behavior; they do not guarantee that Ollama always produces an answer.
+tested switching behavior; they do not guarantee that Ollama always produces an answer.
 
 Unit tests establish catalogue validation, selection and prompt assembly, not
 the quality or safety of every model response. These persona instructions
 are not privacy sanitization, evidence verification or an output-validation
 gate. They do not fetch analytics, send replies, save artifacts or deliver the
-four-output workflow in [the product scope](creator-product.md).
+four-output workflow in [the product scope](scope.md).
 
-## Automated regression coverage (T25)
+## Automated regression coverage
 
-All tests below run offline with scripted clients under `tests/unit/app/`.
+All tests below run offline with scripted clients under `tests/unit/cli/` and `tests/unit/chat/`.
 
-| T25 criterion | Tests |
+| Criterion | Tests |
 |---|---|
-| Persona creation | `test_personas.py`, `test_t23_acceptance.py`, `test_t25_persona_regressions.py` (stripped fields, built-in routing IDs, real shared prompt first) |
-| Runtime switching with preserved history | `test_t24_acceptance.py`, `test_t24_review.py`, `test_t24_empty_reply.py`, `test_t24_merge.py`, `test_session.py`, `test_t25_persona_regressions.py` (three switches through `cli.main`, unchanged turn objects) |
-| Invalid-profile errors | `test_personas.py`, `test_t23_acceptance.py`, `test_t24_acceptance.py`, `test_t25_persona_regressions.py` (blank ID, unknown `SENSAI_PERSONA`, JSON object catalogue) |
-| Unchanged B1 streaming | `test_personas.py`, `test_t23_acceptance.py`, `test_t24_review.py`, `test_t25_persona_regressions.py` (each chunk written and flushed before the next is pulled; no reminder without a switch) |
+| Persona creation | `chat/test_personas.py` (catalogue validation, stripped fields, built-in routing IDs), `cli/test_personas.py` (startup selection, real shared prompt first) |
+| Runtime switching with preserved history | `cli/test_personas.py` (three switches through `cli.main`, unchanged turn objects, interrupted and empty replies), `chat/test_session.py`, `cli/test_remote.py` (switching through `sensai-remote`) |
+| Invalid-profile errors | `chat/test_personas.py` (blank ID, invalid fields), `cli/test_personas.py` (bad catalogue files, unknown `SENSAI_PERSONA`, JSON object catalogue) |
+| Unchanged base-chat streaming | `cli/test_personas.py` (each chunk written and flushed before the next is pulled; no reminder without a switch; cancellation keeps the persona) |
 
 `tests/integration/test_persona_live.py` optionally repeats one switch against a
 local Ollama model (skipped when unavailable) and checks only streaming, retained
@@ -171,8 +175,6 @@ context and history shape. Model-quality behavior (response language, unsupporte
 claims, invented metrics) remains a manual check and is not established by these
 automated tests.
 
-T23 implements definitions and startup selection; T24 adds switching without
-losing history. T25 adds the regression suite mapped in
-"Automated regression coverage (T25)" above. These stories
-still need the independent review coordinated by T08 before claiming the
-complete A5 feature.
+The stories above were written by the feature's implementers and have not yet
+been independently reviewed by another team member; model-quality failures
+recorded above remain open.
