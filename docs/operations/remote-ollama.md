@@ -128,10 +128,12 @@ SENSAI_MODEL=qwen3.5:9b-q4_K_M
 SENSAI_SSH_HOST=sensai-windows
 ```
 
-Run the same command from the repository root in either mode:
+Run the same command from the repository root in either mode (the
+`sensai-remote` command is installed by `pip install -r requirements.txt`; rerun
+it in an existing virtualenv if the command is missing):
 
 ```bash
-.venv/bin/python scripts/run_sensai.py --persona redaction
+.venv/bin/sensai-remote --persona redaction
 ```
 
 All usual CLI arguments are supported, including a positional model override.
@@ -141,7 +143,7 @@ For a one-off local run with a remote `.env`:
 
 ```bash
 SENSAI_SSH_HOST= OLLAMA_HOST=http://127.0.0.1:11434 \
-  .venv/bin/python scripts/run_sensai.py gemma3:1b
+  .venv/bin/sensai-remote gemma3:1b
 ```
 
 The usual `.venv/bin/sensai` command still connects directly; only this launcher

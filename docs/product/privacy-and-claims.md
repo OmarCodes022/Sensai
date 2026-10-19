@@ -1,15 +1,16 @@
-# Phase 1 privacy and product-claim policy handoff (T07)
+# Privacy and product-claim policy (specification)
 
 This is a **configurable policy specification**, not an active classifier,
 redactor, validation gate, four-output workflow or optional product feature.
-Enforcement belongs to T38. Brand-specific facts and actual evidence may be
+Enforcement belongs to a future input/output guardrail (Content & Privacy
+Guardrails, EV2), which does not exist yet. Brand-specific facts and actual evidence may be
 refined independently; every example below is fictional and is not an
 approval of a real skincare claim.
 
-`prompts/system.txt` now expresses these boundaries as model instructions.
+The default system prompt (`src/sensai/chat/system_prompt.txt`) now expresses these boundaries as model instructions.
 This does not enforce the policy or sanitize inputs before generation.
-[The T10 manual runner](../testing/adversarial-testing.md) lets Diana test and record
-the current model's behavior without claiming that a validation gate exists.
+[The manual adversarial runner](../../evals/adversarial/README.md) lets a tester
+record the current model's behavior without claiming that a validation gate exists.
 
 ## Decisions for inputs and outputs
 
@@ -44,7 +45,7 @@ unknown classes, uncertain redaction, unsupported or expired claims, and
 unverified provenance default to refusal. Where rules overlap, refusal wins
 over redaction, which wins over allow. A redacted DM that still carries a
 medical detail is refused; a supported claim containing an identifier is
-still redacted or refused. T38 must implement these rules and test that
+still redacted or refused. The future guardrail must implement these rules and test that
 unknown content cannot fall through as allowed.
 
 The same checks apply on the **input** side (before any model call) and the
@@ -60,7 +61,7 @@ new approval. Scheduled runs prepare drafts only, not remote schedules or
 publications. These are requirements for a later gate, not guarantees of
 the present runtime.
 
-Example typed handoff for T38, with **simulated** evidence rather than real
+Example typed handoff for the future guardrail, with **simulated** evidence rather than real
 brand material:
 
 ```python
@@ -96,5 +97,5 @@ fictional_policy = PolicySpec(
 That record declares policy only: constructing it does not inspect text,
 verify the evidence reference, redact, refuse, export, send or publish
 anything. The sample claim must not be treated as approved outside this
-fictional scenario. T38 should consume the typed spec and return sanitized
+fictional scenario. The guardrail should consume the typed spec and return sanitized
 `PolicyDecision` reason codes without storing raw personal content.

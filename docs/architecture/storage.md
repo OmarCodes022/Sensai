@@ -1,12 +1,12 @@
-# Creator-bound SQLite storage (T14 / #27, T15 / #28, T29 / #42)
+# Creator-bound SQLite storage
 
-`sensai.memory.storage.StorageRepository` implements the existing `SessionStorePort`,
+`sensai.memory.sqlite_store.StorageRepository` implements the existing `SessionStorePort`,
 `ProfileStorePort`, and `FactStorePort` without changing their method signatures.
 Bind the creator **once** to obtain all three ports:
 
 ```python
-from sensai.core.contracts import CancellationToken, Profile, SessionSnapshot
-from sensai.memory.storage import StorageRepository
+from sensai.core.ports import CancellationToken, Profile, SessionSnapshot
+from sensai.memory.sqlite_store import StorageRepository
 
 with StorageRepository("sensai.sqlite3") as repository:
     creator = repository.for_creator("creator-123")
@@ -14,7 +14,7 @@ with StorageRepository("sensai.sqlite3") as repository:
     profiles = creator.profiles
     facts = creator.facts
 
-    # Persist only a fully completed turn; B1 does not save automatically.
+    # Persist only a fully completed turn; ChatSession itself never saves.
     sessions.save(SessionSnapshot("chat-1", completed_messages, "tutor"))
     profiles.save(Profile("default", {"tone": "brief"}))
 
@@ -26,10 +26,10 @@ with StorageRepository("sensai.sqlite3") as repository:
 ```
 
 `completed_messages` above is a `tuple[Message, ...]` supplied by the caller
-(for example a completed `B1SessionAdapter.history`). The repository never
+(for example a completed `ChatSessionAdapter.history`). The repository never
 starts/resumes a `ChatSession`, injects preferences, or enables persistence
-implicitly; the CLI does that in `sensai.app.conversations` (T29, see the
-README "Sessions and creator profile" section).
+implicitly; the CLI does that through `sensai.chat.saved_sessions.SessionRecorder`
+(see the README "Sessions and creator profile" usage).
 
 Beyond the port, the session store offers `sessions.list()` →
 `tuple[SessionSummary, ...]` (`id`, `title`, `created_at`, `updated_at`),
@@ -91,7 +91,9 @@ retention policy, or filesystem permissions are supplied by this API. A
 creator ID is a scoping key, **not authentication**: callers must authorize
 which creator context they bind.
 
-`tests/unit/memory/test_storage.py` and `test_storage_v3.py` run disk/restart
-and migration scenarios under `tmp_path`, alongside reusable port-contract assertions from
-`tests/unit/core/test_contracts.py`. For an in-memory fake, use
+`tests/unit/memory/test_sqlite_store.py` runs disk/restart, migration (v1, v2 → v3)
+and interrupted-transaction scenarios under `tmp_path`, alongside reusable
+port-contract assertions from `tests/helpers/port_assertions.py`. CLI-level
+session behaviour is covered by `tests/unit/cli/test_sessions.py` and
+`tests/unit/chat/test_saved_sessions.py`. For an in-memory fake, use
 `tests/helpers/fakes.py::FakeStorage`; its ports do not require SQLite or Ollama.

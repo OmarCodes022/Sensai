@@ -1,10 +1,10 @@
-# Schema-constrained Ollama replies (T22 / #35)
+# Schema-constrained Ollama replies
 
 `OllamaStructuredClient.complete(model, messages, schema)` makes a separate,
 non-streaming `/api/chat` call. Pass a Pydantic `BaseModel` class as `schema`.
 The adapter sends its JSON Schema in Ollama's `format` field and returns a
 validated instance of that class. The caller chooses the model **per call**,
-just as with B1's `OllamaClient.stream`. It does not modify B1 conversations or
+just as with `OllamaClient.stream`. It does not modify chat conversations or
 append a reply to `ChatSession`.
 
 ```python
@@ -12,7 +12,7 @@ from pydantic import BaseModel
 
 from sensai.llm.structured import OllamaStructuredClient
 from sensai.core.messages import Message
-from sensai.app.settings import Settings
+from sensai.settings import Settings
 
 class Label(BaseModel):
     name: str
@@ -40,14 +40,15 @@ success or failure, and does not log prompts or responses. It raises
 `StructuredOutputError` (a subclass of `LLMError`) for malformed response
 JSON, missing/empty content, invalid content JSON, or schema mismatch.
 Transport/HTTP failures raise `LLMConnectionError` or `LLMError`, with a 404
-raising `ModelNotFoundError`, consistent with B1.
+raising `ModelNotFoundError`, consistent with the streaming client.
 If closing the response fails, the client raises a sanitized `LLMError`
 instead of returning a successful result; an earlier response error remains
 primary.
 
 JSON-schema prompting cannot guarantee a valid model response: callers must
 handle errors, and any retries, policy decisions, persistence, and session
-history are their responsibility. This is only the reusable T5 enabler; it
-does **not** implement report or calendar generation or T5 acceptance (T40).
+history are their responsibility. This is only a reusable foundation for the
+Structured Output (T5) feature: nothing in the CLI calls it yet, and it does
+**not** implement report or calendar generation.
 Tests mock `requests.post` and do not require Ollama:
 `.venv/bin/python -m pytest -q tests/unit/llm/test_structured.py`.

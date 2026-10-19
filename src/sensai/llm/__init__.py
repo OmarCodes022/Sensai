@@ -1,9 +1,13 @@
-from sensai.llm.base import LLMClient
+from typing import TYPE_CHECKING
+
+from sensai.llm.client import LLMClient
 from sensai.llm.ollama import OllamaClient
-from sensai.app.settings import Settings
+
+if TYPE_CHECKING:
+    from sensai.settings import Settings
 
 
-def create_client(settings: Settings) -> LLMClient:
+def create_client(settings: "Settings") -> LLMClient:
     """Single place to pick a backend as more are added."""
     return OllamaClient(settings.host, settings.timeout, context_length=settings.context_length)
 

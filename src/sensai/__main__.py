@@ -1,4 +1,4 @@
-from sensai.app.cli import main
+from sensai.cli.main import main
 
 if __name__ == "__main__":
     main()

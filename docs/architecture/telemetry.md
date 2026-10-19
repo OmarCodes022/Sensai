@@ -1,11 +1,11 @@
-# Ollama usage and privacy-safe event hooks (T11 / #24, T13 / #26)
+# Ollama usage and privacy-safe event hooks
 
-`OllamaClient` still implements the B1 streaming port and sends the same
+`OllamaClient` still implements the streaming chat port and sends the same
 `/api/chat` request. Both hooks are optional:
 
 ```python
 from sensai.llm.ollama import OllamaClient
-from sensai.observability.telemetry import BoundedEventSink
+from sensai.telemetry import BoundedEventSink
 
 events = []
 sink = BoundedEventSink(events.append, max_events=128)
@@ -58,7 +58,8 @@ and usage callback failures propagate rather than being silently ignored.
 Avoid collecting raw usage callback data or events in an unbounded list in
 production.
 
-These are opt-in hooks, **not** an EV3 dashboard, an EV2 guardrail, automatic
+These are opt-in hooks that the CLI does not enable. They are **not** a
+logging/monitoring dashboard (EV3), a content guardrail (EV2), automatic
 tool instrumentation, persistence, aggregation, or a guarantee of redaction
 outside this event boundary. Consumers own retention, access control,
 backpressure handling, and any privacy policy enforcement.

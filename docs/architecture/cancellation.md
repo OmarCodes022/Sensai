@@ -1,4 +1,4 @@
-# T12: cancellation and total deadlines
+# Cancellation and total deadlines
 
 `CancellationToken(deadline=None, cancel_requested=None)` carries one absolute
 `time.monotonic()` deadline through all operation stages. Its optional polling
@@ -13,7 +13,7 @@ caller close, exceptions and interruption. Persistence adapters save only after
 successful exhaustion; text already printed cannot be retracted.
 
 Ollama calls with a token run through `ControlledLLMClient(factory,
-event_sink=None, usage_sink=None)` in `sensai.core.execution`. The factory must
+event_sink=None, usage_sink=None)` in `sensai.core.isolation`. The factory must
 be pickleable/importable and return a client in a fresh spawned process. Calls
 without a token preserve the direct synchronous API. A POSIX process group owns
 the worker and its descendants. The parent polls a socketpair at most every
@@ -48,5 +48,5 @@ streams responses without a cancellation hint or screen redraws.
 Run offline acceptance checks with:
 
 ```bash
-python -m pytest tests/unit/test_t12_acceptance.py tests/unit/test_t12_terminal.py -q
+python -m pytest tests/unit/core/test_isolation.py tests/unit/cli/test_terminal.py -q
 ```

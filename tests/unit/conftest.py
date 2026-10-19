@@ -1,10 +1,18 @@
-"""Keep CLI session storage out of the repository and title requests off scripted clients."""
+"""Shared unit-test fixtures.
+
+Every test keeps CLI session storage out of the repository and title requests off
+scripted clients; tests opt into the other fixtures explicitly.
+"""
+
+import os
 
 import pytest
 
-from sensai.app import cli, conversations
+from sensai.cli import main as cli
+from sensai.chat import saved_sessions
+from sensai.settings import Settings
 
-REAL_GENERATE_TITLE = conversations.generate_title
+REAL_GENERATE_TITLE = saved_sessions.generate_title
 REAL_DEFAULT_DB_PATH = cli.DEFAULT_DB_PATH
 
 
@@ -16,13 +24,22 @@ def isolated_session_storage(monkeypatch, tmp_path_factory):
     monkeypatch.setattr(cli, "DEFAULT_DB_PATH", path)
     # Child interpreters (launcher signal tests) inherit the environment, not patches.
     monkeypatch.setenv("SENSAI_DB", path)
-    monkeypatch.setattr(conversations, "generate_title", lambda *args, **kwargs: None)
+    monkeypatch.setattr(saved_sessions, "generate_title", lambda *args, **kwargs: None)
+
+
+@pytest.fixture
+def isolated_settings(monkeypatch):
+    """Ignore the developer's SENSAI_*/OLLAMA_HOST environment and .env file in cli.main."""
+    for name in list(os.environ):
+        if name.startswith("SENSAI_") or name == "OLLAMA_HOST":
+            monkeypatch.delenv(name, raising=False)
+    monkeypatch.setattr(cli, "Settings", lambda: Settings(_env_file=None))
 
 
 @pytest.fixture
 def real_titles(monkeypatch):
-    """Opt back into the separate title request (T29 tests)."""
-    monkeypatch.setattr(conversations, "generate_title", REAL_GENERATE_TITLE)
+    """Opt back into the separate title request."""
+    monkeypatch.setattr(saved_sessions, "generate_title", REAL_GENERATE_TITLE)
 
 
 @pytest.fixture

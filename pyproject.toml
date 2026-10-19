@@ -12,7 +12,8 @@ dependencies = ["pydantic>=2.6", "pydantic-settings>=2.2", "requests>=2.31"]
 dev = ["pytest>=8.0"]
 
 [project.scripts]
-sensai = "sensai.app.cli:main"
+sensai = "sensai.cli.main:main"
+sensai-remote = "sensai.cli.remote:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -20,7 +21,7 @@ include = ["sensai*"]
 namespaces = false
 
 [tool.setuptools.package-data]
-"sensai.app" = ["personas.json"]
+"sensai.chat" = ["personas.json", "system_prompt.txt"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src", "tests/helpers"]

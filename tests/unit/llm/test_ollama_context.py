@@ -1,26 +1,20 @@
 """Context limits must be explicit and truncation must not commit a turn."""
 
-import json as json_module
 from time import monotonic
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
-from sensai.app.session import ChatSession
-from sensai.app.settings import Settings
+from fakes import ollama_response as response
+from sensai.chat.session import ChatSession
+from sensai.settings import Settings
 from sensai.core.cancellation import CancellationToken
 from sensai.core.errors import LLMError
 from sensai.core.messages import Message
 from sensai.llm import create_client, ollama
 from sensai.llm.ollama import OllamaClient
-from sensai.llm.schemas import UsageError
-from sensai.observability.telemetry import BoundedEventSink
-
-
-def response(*chunks):
-    resp = MagicMock(status_code=200)
-    resp.iter_lines.return_value = [json_module.dumps(chunk).encode() for chunk in chunks]
-    return resp
+from sensai.llm.ollama_api import UsageError
+from sensai.telemetry import BoundedEventSink
 
 
 @pytest.mark.parametrize("source", ["direct", "factory"])

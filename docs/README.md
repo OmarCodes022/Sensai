@@ -1,31 +1,44 @@
-# Guides
+# Documentation index
 
 ## Architecture
 
-- [B1 data flow and boundaries](architecture/overview.md)
-- [Typed service contracts and test doubles](architecture/port-contracts.md)
-- [Storage](architecture/storage.md)
-- [Embeddings and vector indexing](architecture/retrieval-foundation.md)
-- [Structured output](architecture/structured-output.md)
-- [Telemetry](architecture/telemetry.md)
+- [Overview: base chat, modules and extension points](architecture/overview.md)
+- [Typed ports and test doubles](architecture/ports.md)
+- [Cancellation and total deadlines](architecture/cancellation.md)
+- [SQLite session, profile and fact storage](architecture/storage.md)
+- [Embeddings and local vector index (foundation)](architecture/retrieval.md)
+- [Schema-constrained Ollama replies (foundation)](architecture/structured-output.md)
+- [Usage and privacy-safe event hooks (foundation)](architecture/telemetry.md)
+- Diagram: [`diagrams/sensai-strategy-flow.drawio`](diagrams/sensai-strategy-flow.drawio),
+  an editable draw.io diagram of the target blueprint, not the current
+  implementation.
 
 ## Product
 
-- [Creator scope and four-output acceptance](product/creator-product.md)
-- [Privacy and approved-claim policy](product/privacy-and-claims.md)
-- [Startup personas and acceptance stories](product/personas.md)
+- [Product scope: one creator, four reviewable outputs](product/scope.md) (planned, not built)
+- [Privacy and product-claim policy](product/privacy-and-claims.md) (specification, not enforced)
+- [Personas: stories, manual checks and test coverage](product/personas.md)
+
+## User stories
+
+- [User stories: format, template and index per feature](stories/README.md)
 
 ## Operations
 
-- [Personal main and Epitech mirroring](operations/personal-mirror.md)
-- [GitHub/Notion evidence synchronization](operations/merge-evidence-sync.md)
+- [Local or remote Ollama over SSH (`sensai-remote`)](operations/remote-ollama.md)
+- [Epitech mirror](operations/epitech-mirror.md)
 
-## Testing
+## Task briefs (not implemented)
 
-- [Diana's manual adversarial-test runner](testing/adversarial-testing.md)
+- [Creator-scoped filesystem permissions](tasks/filesystem-permissions.md)
 
-Local editable diagrams live in `diagrams/`. Their generator is
-`scripts/docs/build_architecture.py` at the repository root. Do not regenerate
-an edited diagram without preserving any changes you want to keep.
+## Evaluation
 
-- [Cancellation and total deadlines](architecture/cancellation.md)
+- [Adversarial testing: manual runner and attack catalogue](../evals/adversarial/README.md)
+- [Adversarial harness report (2026-10-10)](../evals/adversarial/report.md)
+
+## Test data
+
+- [`tests/fixtures/`](../tests/fixtures/): synthetic brand facts and claims, DMs,
+  posts and engagement figures for the fictional Serein Studio; no test uses
+  them yet.

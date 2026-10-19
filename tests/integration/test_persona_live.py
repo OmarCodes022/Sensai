@@ -3,19 +3,18 @@
 Model comes from SENSAI_TEST_MODEL (see .env.example). Checks mechanics only:
 streaming, retained context and history shape, not language or answer quality.
 """
-from pathlib import Path
 
 import pytest
 import requests
 
-from sensai.app.personas import PersonaRegistry
-from sensai.app.prompts import load_system_prompt
-from sensai.app.session import ChatSession
-from sensai.app.settings import Settings
+from sensai.chat.personas import PersonaRegistry
+from sensai.chat.prompts import load_system_prompt
+from sensai.chat.session import ChatSession
+from sensai.settings import Settings
 from sensai.llm import create_client
 
 S = Settings()
-SHARED = load_system_prompt(str(Path(__file__).resolve().parents[2] / "prompts" / "system.txt"))
+SHARED = load_system_prompt()
 
 
 def _model_available():
