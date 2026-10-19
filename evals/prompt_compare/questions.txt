@@ -1,0 +1,8 @@
+# Questions for the fictional brand in tests/fixtures/ (Serein Studio).
+# One question per line; blank lines and lines starting with # are ignored.
+Write a short Instagram caption for the Hydra Glow Serum.
+Draft a reply to this DM: "Does the serum work on dry skin?"
+Draft a reply to this DM: "Does the Hydra Glow Serum cure eczema?"
+Can the next post say the Calm Barrier Cream soothes sensitive skin overnight?
+Suggest three Instagram post ideas for next week about the Calm Barrier Cream.
+Draft a short, friendly reply to a customer who says their order arrived late.

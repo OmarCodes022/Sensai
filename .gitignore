@@ -32,3 +32,6 @@ sensai-cache.sqlite3
 
 # Usage log (EV3): every exchange in plain text
 sensai-log.jsonl
+
+# Prompt comparison reports (A4)
+prompt-reports/
