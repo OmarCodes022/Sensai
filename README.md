@@ -127,6 +127,54 @@ Only provide fictional or already sanitized non-sensitive questions and
 approved claims; personas do not fetch analytics, send replies or save outputs.
 See [the persona stories and manual checks](docs/product/personas.md).
 
+## Sessions and creator profile
+
+Conversations are always saved to a local SQLite file, `./sensai.sqlite3` by
+default (gitignored; choose another with `--db` or `SENSAI_DB`). Each launch
+starts a new session and prints its ID (`Session k7f2qa`); the session is
+written only after its first complete exchange, then after every completed
+turn. Cancelled, timed-out, failed or empty turns are never saved. After the
+first exchange a separate, short model request names the session (it never
+enters the conversation history); if it fails or returns an unusable title,
+the start of the first message is used instead. While `Titre de la session…`
+is shown (at most 15 seconds, or `--operation-timeout` if shorter), input typed
+is ignored; Ctrl+C or Esc skips to that fallback title.
+
+```bash
+.venv/bin/sensai --list-sessions
+.venv/bin/sensai gemma3:1b --session k7f2qa
+.venv/bin/sensai gemma3:1b --profile-file profil.local.json --persona redaction
+```
+
+`--list-sessions` needs neither a model nor Ollama and prints
+`ID  YYYY-MM-DD HH:MM  title` lines (last update, UTC), most recent first; it
+ignores `--profile-file` and prints nothing (creating no file) if the database
+does not exist yet.
+`--session ID` restores the saved exchanges and persona; `--persona` on the
+command line takes precedence over the saved persona (`SENSAI_PERSONA` only
+applies to new sessions, and an invalid value does not block a resume). Only
+user/assistant turns are resumed: the system message is rebuilt from the
+current configuration (shared prompt, then creator profile, then persona), and
+any system message stored through the storage API is dropped on resume and on
+the next save.
+A `/persona <id>` switch is saved with the session.
+
+The creator profile is a UTF-8 JSON object of nonempty strings, for example
+`{"ton": "direct et chaleureux", "public": "créatrices beauté"}` saved as
+`profil.local.json` (`*.local.json` is gitignored).
+`--profile-file` (or `SENSAI_PROFILE_FILE`) **replaces** the stored profile;
+without it, the stored profile is injected as
+`Profil de la créatrice (instructions personnalisées) :` followed by
+`- clé : texte` lines (blank stored entries are skipped). `{}` clears it; with
+no profile the prompt is unchanged.
+`--creator` / `SENSAI_CREATOR` (default `default`) scopes sessions and profile;
+it is a key, not authentication. Unknown sessions, unusable databases, invalid
+profiles and saved personas missing from the catalogue fail before contacting
+the model. If saving fails mid-chat (or is interrupted with Ctrl+C),
+`error: session not saved: …` is shown, the chat continues and the next save
+writes the full history. The database
+stores messages and profiles in plaintext; protect the file.
+
 ## Repository layout
 
 ```text

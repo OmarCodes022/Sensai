@@ -1,4 +1,4 @@
-# Creator-bound SQLite storage (T14 / #27, T15 / #28)
+# Creator-bound SQLite storage (T14 / #27, T15 / #28, T29 / #42)
 
 `sensai.memory.storage.StorageRepository` implements the existing `SessionStorePort`,
 `ProfileStorePort`, and `FactStorePort` without changing their method signatures.
@@ -28,8 +28,21 @@ with StorageRepository("sensai.sqlite3") as repository:
 `completed_messages` above is a `tuple[Message, ...]` supplied by the caller
 (for example a completed `B1SessionAdapter.history`). The repository never
 starts/resumes a `ChatSession`, injects preferences, or enables persistence
-implicitly; those runtime/UX choices belong to T29. All port operations scope
-their SQL to the immutable creator ID, including deletes and fact lookups. A
+implicitly; the CLI does that in `sensai.app.conversations` (T29, see the
+README "Sessions and creator profile" section).
+
+Beyond the port, the session store offers `sessions.list()` →
+`tuple[SessionSummary, ...]` (`id`, `title`, `created_at`, `updated_at`),
+scoped to the creator and sorted by `updated_at` descending, then ID, and
+`sessions.set_title(session_id, title)` (nonempty string; `StorageError` for an
+unknown session). `save()` writes the session and its metadata in one atomic
+operation: `created_at` and `updated_at` on insert, only `updated_at` on
+replace, keeping the title. `delete()` also removes the metadata. Timestamps
+are ISO-8601 UTC strings from the module-level `_now()` (patched in tests).
+The CLI resumes only user/assistant turns: system messages present in a
+snapshot written through this API are dropped on resume and on the next save.
+
+All port operations scope their SQL to the immutable creator ID, including deletes and fact lookups. A
 missing entry loads as `None` (facts return `()`); delete of a missing entry is
 harmless. Saving a session or profile with an existing ID replaces that
 creator's entry. Profile deletion also removes its creator's facts atomically.
@@ -40,22 +53,29 @@ Transactions use SQLite `BEGIN IMMEDIATE` / `COMMIT` / `ROLLBACK`. Each port
 call outside a transaction is its own atomic operation. An exception, a
 cooperative `CancellationToken` checked before/after an operation or at
 transaction exit, or an operation error (even if caught inside the block) rolls
-back the whole transaction. Nested transactions are not supported. Close the
+back the whole transaction, including a Ctrl+C right after `BEGIN` (a
+still-open transaction is also rolled back before the next one); a Ctrl+C
+right after `COMMIT` propagates as `KeyboardInterrupt` with the write kept.
+Nested transactions are not supported. Close the
 repository after use (or use `with`); do not share one connection across
 threads. Separate repository instances can open the same file. SQLite
 recovers incomplete transactions on reopening; a failure *after commit*
 cannot be undone by cancellation.
 
 The schema is versioned via SQLite `PRAGMA user_version`. New databases are
-created at version **2** in one transaction. Existing version **1** databases
+created at version **3** in one transaction. Existing version **1** databases
 with `sessions(creator_id, session_id, messages, persona_id)` keyed by
 `(creator_id, session_id)` and
 `profiles(creator_id, profile_id, preferences)` keyed by
 `(creator_id, profile_id)` migrate atomically to version 2 by adding
 `facts(creator_id, profile_id, fact_id, text, source)` keyed by
 `(creator_id, profile_id, fact_id)`. Session messages and profile preferences
-are JSON text. Version 1 rows survive the upgrade; reopening a version 2
-database does not repeat it. Unknown/future versions, unversioned databases
+are JSON text. Version 1 rows survive the upgrade. Version 1 and 2 databases
+migrate to version 3 in the same transaction by adding
+`session_meta(creator_id, session_id, title, created_at, updated_at)` keyed by
+`(creator_id, session_id)`; every existing session gets a row (title `NULL`,
+both dates set to the migration time) so it stays listable. Reopening a
+version 3 database does not repeat any step. Unknown/future versions, unversioned databases
 with existing tables, and incompatible known tables are rejected rather than
 overwritten. An interrupted or failed migration leaves the original version
 and data intact.
@@ -66,12 +86,12 @@ raise `InvalidStorageId`; unsupported databases raise
 `StorageError`. These extend `PortError`. SQL values are parameterized, and
 the adapter does not log prompts or profile data. **SQLite stores message
 content, preferences, and facts in plaintext**; callers must protect database
-files and backups. No encryption, multi-user authentication, session listing,
+files and backups. No encryption, multi-user authentication,
 retention policy, or filesystem permissions are supplied by this API. A
 creator ID is a scoping key, **not authentication**: callers must authorize
 which creator context they bind.
 
-`tests/unit/memory/test_storage.py` runs disk/restart and migration scenarios under
-`tmp_path`, alongside reusable port-contract assertions from
+`tests/unit/memory/test_storage.py` and `test_storage_v3.py` run disk/restart
+and migration scenarios under `tmp_path`, alongside reusable port-contract assertions from
 `tests/unit/core/test_contracts.py`. For an in-memory fake, use
 `tests/helpers/fakes.py::FakeStorage`; its ports do not require SQLite or Ollama.
