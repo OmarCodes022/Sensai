@@ -36,6 +36,7 @@
 
 - [Adversarial testing: manual runner and attack catalogue](../evals/adversarial/README.md)
 - [Adversarial harness report (2026-10-10)](../evals/adversarial/report.md)
+- [Prompt comparison: dated prompt versions and comparison script](../evals/prompt_compare/README.md)
 
 ## Test data
 
