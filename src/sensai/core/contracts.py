@@ -158,6 +158,40 @@ class PermissionPort(Protocol):
     def check(self, request: PermissionRequest) -> PermissionDecision: ...
 
 
+FileAction = Literal["read", "write", "create"]
+
+
+@dataclass(frozen=True)
+class FileAccessRule:
+    """Typed policy input, not validation; policy constructors validate and copy."""
+
+    path: str
+    actions: frozenset[FileAction]
+    recursive: bool = False
+
+
+@runtime_checkable
+class FileSystemPort(Protocol):
+    """Creator-bound UTF-8 regular-file access, not a security implementation.
+
+    Adapters must enforce per-operation permissions, absolute paths and no
+    symlinks (including ancestors). Read/write require an existing file;
+    create is exclusive in an existing parent. Denials raise PolicyDenied
+    before mutation; other I/O failures raise PortError without file contents.
+    See docs/architecture/filesystem-permissions.md for the full contract.
+    Runtime protocol checks establish member presence only, not security.
+    """
+
+    @property
+    def creator_id(self) -> str: ...
+
+    def read_text(self, path: str) -> str: ...
+
+    def write_text(self, path: str, content: str) -> None: ...
+
+    def create_text(self, path: str, content: str) -> None: ...
+
+
 @dataclass(frozen=True)
 class ApprovalRequest:
     action: str
