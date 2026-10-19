@@ -148,27 +148,6 @@ SENSAI_TEST_MODEL=gemma3:1b .venv/bin/python -m pytest tests/integration -v -rs
 
 Manual adversarial testing: see [evals/adversarial](evals/adversarial/README.md).
 
-## Repository layout
-
-```text
-src/sensai/
-  cli/            Entry points: sensai (main.py), sensai-remote (remote.py), terminal input
-  chat/           Chat session, personas, default system prompt, saved-session recording
-  core/           Messages, errors, cancellation, typed ports, process isolation, policy types
-  llm/            Ollama HTTP clients (chat, embeddings, structured replies)
-  memory/         SQLite storage and in-memory vector index
-  settings.py     Configuration from the environment and .env
-  telemetry.py    Optional usage and event hooks
-tests/
-  unit/           Offline tests mirroring src/sensai/ (plus evals/)
-  integration/    Live Ollama tests (skipped without a model)
-  helpers/        Shared fakes and port assertions
-  fixtures/       Synthetic brand, DM, post and engagement data (not yet used by tests)
-evals/adversarial/ Manual adversarial runner, attack catalogue and report
-docs/             Architecture, product, operations, user stories, task briefs
-.github/workflows/ Unit tests and Epitech mirror
-```
-
 ## Documentation
 
 Start at the [documentation index](docs/README.md).
