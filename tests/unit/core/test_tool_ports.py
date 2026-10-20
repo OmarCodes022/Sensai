@@ -59,6 +59,15 @@ def test_register_settings_are_keyword_only_with_defaults():
     assert TOOL_TIMEOUT_SECONDS == 30.0
 
 
+def test_run_with_tools_takes_keyword_only_round_limit_and_observer():
+    parameters = inspect.signature(run_with_tools).parameters
+    assert {name: (p.kind, p.default) for name, p in parameters.items()
+            if name in ("max_rounds", "on_tool")} == {
+        "max_rounds": (inspect.Parameter.KEYWORD_ONLY, MAX_TOOL_CALLS),
+        "on_tool": (inspect.Parameter.KEYWORD_ONLY, None),
+    }
+
+
 def test_registry_takes_optional_approval_port():
     parameter = inspect.signature(ToolRegistry).parameters["approval"]
     assert parameter.default is None
@@ -75,6 +84,8 @@ def test_registry_takes_optional_approval_port():
     lambda: tool_instructions([]),
     lambda: parse_tool_call({"tool": "x"}),
     lambda: next(run_with_tools(None, ToolRegistry(), "hi")),
+    lambda: next(run_with_tools(None, ToolRegistry(), "hi", max_rounds=2,
+                                on_tool=lambda call, result: None)),
     lambda: BlockReader().feed("hi"),
     lambda: BlockReader().finish(),
     lambda: split_block("hi"),
