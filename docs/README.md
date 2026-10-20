@@ -31,6 +31,7 @@
 ## Task briefs (not implemented)
 
 - [Creator-scoped filesystem permissions](tasks/filesystem-permissions.md)
+- [Tool loop: calling tools and using their results (T18)](tasks/tool-loop.md)
 
 ## Evaluation
 

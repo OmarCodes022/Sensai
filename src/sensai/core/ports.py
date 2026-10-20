@@ -1,7 +1,7 @@
 """Small, backend-independent boundaries for features built around the base chat (B1)."""
 
 from collections.abc import Iterator, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Literal, Protocol, runtime_checkable
 
 from sensai.core.errors import SensaiError
@@ -136,14 +136,33 @@ class RetrievalPort(Protocol):
 
 
 @dataclass(frozen=True)
-class ToolCall:
+class ToolDefinition:
+    """Contract only: a tool as described to the model (see docs/tasks/tool-loop.md).
+
+    `parameters` is a JSON-schema subset:
+    ``{"type": "object", "properties": {...}, "required": [...]}``.
+    Not hashable when `parameters` is a dict.
+    """
+
     name: str
-    arguments: Mapping[str, str]
+    description: str
+    parameters: Mapping[str, object] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class ToolCall:
+    """One requested call; `arguments` holds decoded JSON values."""
+
+    name: str
+    arguments: Mapping[str, object]
 
 
 @dataclass(frozen=True)
 class ToolResult:
+    """Text sent back to the model; `error` is set when the call failed."""
+
     output: str
+    error: str | None = None
 
 
 @runtime_checkable
