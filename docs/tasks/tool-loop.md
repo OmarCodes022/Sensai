@@ -64,10 +64,14 @@ block-based features):
 - `tool_instructions(definitions) -> str`: text appended to the system prompt
   listing each tool (name, description, parameters) and the block format.
 - `parse_tool_call(block) -> ToolCall`: raises `ValueError` on a malformed block.
-- `run_with_tools(session, registry, text, cancellation=None)
-  -> Generator[str, None, tuple[str, dict | None]]`: the loop; yields visible
-  text and returns the last reply's visible text and its non-tool block (or
-  `None`). Trims history whenever the turn does not complete.
+- `run_with_tools(session, registry, text, cancellation=None, *,
+  max_rounds=MAX_TOOL_CALLS, on_tool=None)
+  -> Generator[str, None, tuple[str, dict | None]]`: the loop; yields the
+  model's visible text and returns the last reply's visible text and its
+  non-tool block (or `None`). Trims history whenever the turn does not
+  complete.
+- `ToolObserver = Callable[[ToolCall, ToolResult], None]`: the type of
+  `on_tool`, called after each round (see "Showing tool use").
 
 ## Behaviour to build
 
@@ -78,12 +82,27 @@ block-based features):
    call (`parse_tool_call` fails) or unknown tool gives an error result. Send
    the result back to the model, clearly marked as a tool result, and read
    the next reply.
-4. **Every round counts toward `MAX_TOOL_CALLS`**, including malformed blocks
-   and unknown tools, so the model cannot loop forever.
-5. After `MAX_TOOL_CALLS` rounds, send a last message asking for a final
+4. **Every round counts toward `max_rounds`** (default `MAX_TOOL_CALLS`),
+   including malformed blocks and unknown tools, so the model cannot loop
+   forever.
+5. After `max_rounds` rounds, send a last message asking for a final
    answer without tools. If that reply ends with a tool block, the block is
    hidden, not executed, and the return value is `(visible, None)`; a
-   non-tool block is returned unchanged.
+   non-tool block is returned unchanged. A turn makes at most
+   `max_rounds + 1` model replies.
+
+## Showing tool use
+
+After each round, before the result goes back to the model,
+`run_with_tools` calls `on_tool(call, result)` if one was given. A malformed
+block gives `ToolCall("<invalid>", {})` and its error result. The generator
+itself yields only the model's text, so callers decide how tool use looks:
+
+- The CLI passes an `on_tool` that prints `Using tool: <name>(<arguments>)`.
+- T20 passes one that prints its "Act" and "Observe" lines.
+
+`max_rounds` lets a caller lower the limit for one call (T20 uses it to fit
+its step budget); a value below 1 raises `ValueError`.
 
 `ToolRegistry.execute` returns a `ToolResult`:
 
@@ -177,15 +196,18 @@ Each registers a `ToolDefinition` and a handler; none of them changes the loop.
   ([filesystem brief](filesystem-permissions.md)); permission checks stay in
   the handler.
 - T42: MCP tools, each mapped to a `ToolDefinition`.
+- T32: `save_fact` / `delete_fact` (brand fact sheet in SQLite).
 - T21 (self-fixing code) and T20 (reasoning loop with tools) call
-  `run_with_tools`.
+  `run_with_tools`; T20 passes `on_tool` and `max_rounds`.
 
 ## Tests
 
 Use fake sessions and handlers; no live model or network. Cover streamed
 blocks split across chunks, invalid, non-final and non-tool blocks, unknown
 tools, bad arguments, per-tool timeouts, handler errors, the round limit
-(including malformed rounds), `confirm` refusal, per-tool `max_calls` and
+(including malformed rounds), a lower `max_rounds` and `ValueError` below 1,
+`on_tool` called once per round (including malformed and unknown calls)
+with the call and its result, `confirm` refusal, per-tool `max_calls` and
 its reset per question, approval through `ApprovalPort` and the y/N
 fallback, `timeout=None` running in-process with no deadline and the
 extended deadline afterwards, the final reply after the limit (tool block

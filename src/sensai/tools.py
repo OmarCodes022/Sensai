@@ -24,6 +24,7 @@ MAX_TOOL_CALLS = 5
 TOOL_TIMEOUT_SECONDS = 30.0
 
 ToolHandler = Callable[[Mapping[str, object], CancellationToken | None], ToolResult]
+ToolObserver = Callable[[ToolCall, ToolResult], None]
 
 
 class ToolRegistry:
@@ -116,6 +117,9 @@ def run_with_tools(
     registry: ToolRegistry,
     text: str,
     cancellation: CancellationToken | None = None,
+    *,
+    max_rounds: int = MAX_TOOL_CALLS,
+    on_tool: ToolObserver | None = None,
 ) -> Generator[str, None, tuple[str, dict | None]]:
     """Answer ``text``, calling tools as the model asks; yield visible text.
 
@@ -123,8 +127,16 @@ def run_with_tools(
     block with a ``"tool"`` key starts a round: parse and execute it (a
     malformed call or unknown tool gives an error result), send the result
     back to the model and read the next reply. Every round counts toward
-    ``MAX_TOOL_CALLS``, whatever its outcome. After the limit, ask for a final
-    answer without tools.
+    ``max_rounds`` (default ``MAX_TOOL_CALLS``; a caller may pass a smaller
+    limit; below 1 raises ValueError), whatever its outcome. After the limit,
+    ask for a final answer without tools. A turn therefore makes at most
+    ``max_rounds + 1`` model replies.
+
+    After each round, call ``on_tool(call, result)`` if given, before the
+    result is sent back. For a malformed block, ``call`` is
+    ``ToolCall("<invalid>", {})`` and ``result`` is the error result.
+    Callers display tool use through it (the CLI's ``Using tool: …`` line,
+    T20's Act/Observe); the generator itself yields only the model's text.
 
     After a ``timeout=None`` (interactive) tool returns, the rest of the turn
     uses the deadline extended by the time the tool took, keeping the same
