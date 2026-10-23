@@ -125,6 +125,8 @@ strings, such as `{"ton": "direct", "public": "créatrices beauté"}`; it
 replaces the stored profile, which is then added to the system prompt of every
 chat. `--creator` (or `SENSAI_CREATOR`) keeps sessions and profiles of different
 creators apart; it is a key, not authentication. The database is plaintext.
+Type `/history` in a chat to reread the saved or current conversation on
+demand; startup does not print it.
 Storage details: [storage.md](docs/architecture/storage.md).
 
 ## Tests

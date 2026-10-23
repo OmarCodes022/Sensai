@@ -70,6 +70,15 @@ def parse_args(settings: Settings, argv: Sequence[str] | None = None) -> argpars
     return args
 
 
+HISTORY_LABELS = {"user": "Vous", "assistant": "Sensai"}
+
+
+def _history(messages) -> str:
+    blocks = [f"{HISTORY_LABELS[m.role]} : {m.content}"
+              for m in messages if m.role in HISTORY_LABELS]
+    return "\n\n".join(blocks) or "Aucun message dans cette session."
+
+
 def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
          operation_timeout: float = 120.0, cancel_requested=None,
          persona_registry: PersonaRegistry | None = None,
@@ -103,6 +112,9 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
                     write(f"Persona sélectionnée : {persona.id}")
                     if recorder is not None:
                         recorder.persona_changed(persona.id)
+            continue
+        if command and command[0] == "/history":
+            write(_history(session.messages) if len(command) == 1 else "usage: /history")
             continue
         token = CancellationToken(monotonic() + operation_timeout, cancel_requested)
         stream = session.send(text, token)
