@@ -402,6 +402,7 @@ def test_tool_definition_and_pickleable_handler():
     assert RUN_PYTHON.name == "run_python"
     assert RUN_PYTHON.parameters == {"type": "object", "properties": {"code": {"type": "string"}},
                                      "required": ["code"]}
+    assert "standard library" in RUN_PYTHON.description and "no pandas" in RUN_PYTHON.description
     handler = pickle.loads(pickle.dumps(partial(python_tool, data_dir="data")))
     assert handler.keywords == {"data_dir": "data"}
 

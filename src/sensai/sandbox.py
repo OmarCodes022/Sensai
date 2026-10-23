@@ -57,7 +57,8 @@ class SandboxRun:
 RUN_PYTHON = ToolDefinition(
     "run_python",
     "Run Python 3 code in a throw-away folder and return what it prints; "
-    "data files are in the current folder.",
+    "data files are in the current folder. Only the standard library is available "
+    "(csv, statistics, json...; no pandas or numpy).",
     {"type": "object", "properties": {"code": {"type": "string"}}, "required": ["code"]},
 )
 
