@@ -1,223 +1,145 @@
-# Task brief: tool loop (not implemented)
+# Tool loop (T18)
 
-This is a work brief for T18, "Let Sensai call tools and use their results".
-**None of it is implemented yet**: the files below hold typed contracts and
-placeholders whose bodies raise `NotImplementedError("T18: …")`.
+Sensai can execute the `calculate` arithmetic tool and use its result in an
+answer without native model tool calling. `/tools` lists the registered
+names and descriptions without contacting the model. Additional tools can
+register the existing `ToolDefinition` and handler contract; file access,
+Python execution, web search, MCP and other later tasks are not implemented
+by this loop.
 
-Goal: let the model ask for a tool, run it safely, give it the result and let
-it answer, without native tool calling (the default model, `gemma3:1b`, has
-none).
+## Reply protocol
 
-## Block format
+A model requests a tool by ending its reply with a strict JSON object that
+starts at column zero on its own line, with optional trailing whitespace:
 
-The model ends its reply with one JSON object on its own lines:
-
-````text
-I'll check the file first.
-{"tool": "read_file", "arguments": {"path": "/work/notes.md"}}
-````
-
-- Only a block at the very end of the reply counts; whitespace after it is
-  allowed. Any other text after it makes it normal text.
-- A block that is not a valid JSON object is shown as normal text; no tool
-  runs.
-- A tool block has a `"tool"` key. `arguments` is an object of JSON values;
-  missing means `{}`.
-- A valid block without a `"tool"` key is not a tool call; see "Other
-  blocks".
-
-The CLI streams replies, so the reader holds back output from a line starting
-with `{` until it knows whether that line starts the final block. The user
-never sees the raw block.
-
-## Contracts
-
-`src/sensai/core/ports.py` (existing callers keep working):
-
-- `ToolDefinition(name, description, parameters={})`: a tool as shown to the
-  model. `parameters` is a JSON-schema subset,
-  `{"type": "object", "properties": {"path": {"type": "string"}}, "required": ["path"]}`,
-  used both for argument checks and by `tool_instructions`. Not hashable when
-  `parameters` is a dict.
-- `ToolCall(name, arguments: Mapping[str, object])`: arguments are JSON values.
-- `ToolResult(output, error=None)`: `error` is set when the call failed.
-- `ToolPort.execute(call, cancellation=None) -> ToolResult`: unchanged.
-
-`src/sensai/chat/blocks.py` (implemented by T18; reusable by other
-block-based features):
-
-- `BlockReader.feed(chunk) -> str`: text safe to print now.
-- `BlockReader.finish() -> tuple[str, dict | None]`: the full visible text
-  (not just the remainder) and the parsed block, or `None`. The caller prints
-  only the part not yet returned by `feed`.
-- `split_block(reply)`: the same, for a complete reply.
-
-`src/sensai/tools.py`:
-
-- `MAX_TOOL_CALLS = 5`, `TOOL_TIMEOUT_SECONDS = 30.0`.
-- `ToolHandler = Callable[[Mapping[str, object], CancellationToken | None], ToolResult]`.
-- `ToolRegistry(approval: ApprovalPort | None = None)`:
-  `register(definition, handler, *, timeout=TOOL_TIMEOUT_SECONDS,
-  confirm=False, max_calls=None)` (duplicate name raises `ValueError`; see
-  "Registering tools"), `definitions()`, `execute(call, cancellation=None)`;
-  it satisfies `ToolPort`. `ToolRegistry()` must keep working.
-- `tool_instructions(definitions) -> str`: text appended to the system prompt
-  listing each tool (name, description, parameters) and the block format.
-- `parse_tool_call(block) -> ToolCall`: raises `ValueError` on a malformed block.
-- `run_with_tools(session, registry, text, cancellation=None, *,
-  max_rounds=MAX_TOOL_CALLS, on_tool=None)
-  -> Generator[str, None, tuple[str, dict | None]]`: the loop; yields the
-  model's visible text and returns the last reply's visible text and its
-  non-tool block (or `None`). Trims history whenever the turn does not
-  complete.
-- `ToolObserver = Callable[[ToolCall, ToolResult], None]`: the type of
-  `on_tool`, called after each round (see "Showing tool use").
-
-## Behaviour to build
-
-1. Send the user's message; stream the reply through `BlockReader`, yielding
-   visible text.
-2. No block, or a block without `"tool"`: the loop ends (see below).
-3. Tool block: one round. Parse it and `registry.execute(call)`; a malformed
-   call (`parse_tool_call` fails) or unknown tool gives an error result. Send
-   the result back to the model, clearly marked as a tool result, and read
-   the next reply.
-4. **Every round counts toward `max_rounds`** (default `MAX_TOOL_CALLS`),
-   including malformed blocks and unknown tools, so the model cannot loop
-   forever.
-5. After `max_rounds` rounds, send a last message asking for a final
-   answer without tools. If that reply ends with a tool block, the block is
-   hidden, not executed, and the return value is `(visible, None)`; a
-   non-tool block is returned unchanged. A turn makes at most
-   `max_rounds + 1` model replies.
-
-## Showing tool use
-
-After each round, before the result goes back to the model,
-`run_with_tools` calls `on_tool(call, result)` if one was given. A malformed
-block gives `ToolCall("<invalid>", {})` and its error result. The generator
-itself yields only the model's text, so callers decide how tool use looks:
-
-- The CLI passes an `on_tool` that prints `Using tool: <name>(<arguments>)`.
-- T20 passes one that prints its "Act" and "Observe" lines.
-
-`max_rounds` lets a caller lower the limit for one call (T20 uses it to fit
-its step budget); a value below 1 raises `ValueError`.
-
-`ToolRegistry.execute` returns a `ToolResult`:
-
-- Unknown tool → error result, not an exception.
-- Arguments checked against `parameters` (`required` names present,
-  `properties` basic JSON types) → error result when invalid.
-- Exceeding the tool's `timeout` → error result.
-- Refused `confirm` or exceeded `max_calls` → error result; the handler does
-  not run.
-- Handler `Exception` subclasses → error result with a short message. Tool
-  errors never crash the chat. Other `BaseException`s (`KeyboardInterrupt`,
-  ...) are not swallowed.
-- `OperationCancelled` (user cancellation) and `OperationTimedOut` (the
-  question's overall deadline on the token) **propagate**; they are not
-  tool results.
-
-Turn history: `ChatSession.send` saves every finished round in
-`session.messages`. `run_with_tools` records its length before the turn and,
-**whenever the turn does not complete**, trims it back to that length and
-re-raises. This covers any exception (`OperationCancelled`,
-`OperationTimedOut`, `LLMError`, `KeyboardInterrupt`, ...) and `close()` /
-`GeneratorExit`: Ctrl+C in the CLI arrives as `KeyboardInterrupt`, then
-`stream.close()` (`src/sensai/cli/main.py`). Use a `completed` flag like
-`ChatSession.send` (`src/sensai/chat/session.py`), so an interrupted turn
-leaves no partial rounds.
-
-Existing `ControlledTool` (`src/sensai/core/isolation.py`) satisfies
-`ToolPort` and can interrupt a blocked handler, but today it forwards only
-`output`, not `error`.
-
-## Registering tools
-
-`register` takes three per-tool settings:
-
-- `timeout` (default `TOOL_TIMEOUT_SECONDS`): seconds per call. A number runs
-  the handler with that limit; isolating it (e.g. `ControlledTool`, which runs
-  the tool in a child process) is the implementer's choice. `None` means no
-  limit and the handler runs **in the main process**. Use `None` for
-  interactive tools that read the terminal, since child processes cannot.
-- `confirm` (default `False`): ask before each call. With
-  `ToolRegistry(approval=...)`, send an `ApprovalRequest(action, resource,
-  reason)` to that `ApprovalPort` and run only if `ApprovalDecision.approved`
-  (T46 will provide a terminal-backed one). Without it, use a plain y/N
-  prompt on the chat's terminal reader; how the registry reaches the reader
-  is the implementer's choice. A refusal is an error result; the handler
-  does not run.
-- `max_calls` (default `None`): limit for this tool per question. Calls
-  beyond it are error results, and every call also counts toward
-  `MAX_TOOL_CALLS`. `run_with_tools` resets the counts at the start of each
-  question; the method for it (e.g. `start_question()`) is the
-  implementer's choice.
-
-```python
-registry.register(RUN_PYTHON, run_python, confirm=True)   # T19
-registry.register(ASK_USER, ask_user, timeout=None)       # T28
+```text
+I'll calculate that.
+{"tool": "calculate", "arguments": {"expression": "(14 + 6) / 100"}}
 ```
 
-Interactive tools such as `ask_user` handle Ctrl+C themselves: the handler
-catches `KeyboardInterrupt` while reading and returns a result such as
-`ToolResult("user skipped the question")`, so the turn continues instead of
-being cancelled. Ctrl+C outside such a handler still cancels the turn.
-Interactive handlers must not poll the chat's `cancel_requested` callback
-(directly or through the token's `raise_if_cancelled()`) while the user
-types: it discards unrecognised pending keys (`src/sensai/cli/terminal.py`).
+`BlockReader` holds a possible final object during streaming and releases
+text if a decoded object is followed by more text. `finish()` returns the
+**full** visible reply and the final object, so callers print only its
+not-yet-emitted suffix. `split_block` uses the same final-block rules.
+Malformed JSON, NaN, Infinity, overflowing JSON numbers, inline objects and
+objects followed by text remain visible. Valid final objects are hidden;
+non-tool objects are returned unchanged to the caller.
 
-Time spent waiting for the user does not count toward the question's overall
-deadline. A `timeout=None` handler (and `execute` around it) receives a token
-that keeps the cancel check but has **no deadline**. After it returns, the
-rest of the turn uses the deadline extended by the time the tool took (for
-example a new `CancellationToken` with the same cancel check).
+`parse_tool_call` requires a nonblank string `tool` and an optional JSON
+object `arguments` (default `{}`). Direct calls and decoded arguments must
+contain only finite JSON values, with string object keys.
 
-## Other blocks
+## Registry and handlers
 
-`run_with_tools` executes only blocks that have a `"tool"` key. Any other
-valid block ends the loop and is returned to the caller unchanged:
+`ToolRegistry(approval=None, *, read=input)` satisfies `ToolPort` and retains
+the existing `register`, `definitions` and `execute` signatures. Definitions
+keep insertion order. Registration rejects blank/duplicate names,
+noncallable handlers, invalid timeouts and invalid per-question limits.
 
 ```python
-visible, block = yield from run_with_tools(session, registry, text)
-if block is not None:
-    ...  # handled by the caller
+registry.register(DEFINITION, handler, timeout=30.0, confirm=False, max_calls=None)
 ```
 
-## How later tasks plug in
+A handler takes `(arguments, cancellation)` and returns
+`ToolResult(output: str, error: str | None = None)`. The registry checks
+required properties and the basic JSON types `string`, `number`, `integer`,
+`boolean`, `array`, `object` and `null`. Booleans are distinct from numbers
+and integers. This is a schema subset, not a full JSON Schema validator.
+Unknown tools, invalid arguments, refused approval, exhausted limits, wrong
+result types/fields and ordinary handler exceptions produce short error
+results. Global cancellation/deadlines and non-`Exception` control failures
+propagate.
 
-Each registers a `ToolDefinition` and a handler; none of them changes the loop.
+Each attempted known-tool call consumes its per-question count, including
+bad arguments and refused approval. `max_calls=None` is unlimited;
+`max_calls=0` disables execution. Counts live in the parent and reset once
+at the start of `run_with_tools`.
 
-- T19: `run_python` (sandboxed code execution).
-- T41: `web_search`.
-- T28: `ask_user` (ask the user a question).
-- T26: `read_file` / `write_file` / `create_file`, backed by `FileSystemPort`
-  ([filesystem brief](filesystem-permissions.md)); permission checks stay in
-  the handler.
-- T42: MCP tools, each mapped to a `ToolDefinition`.
-- T32: `save_fact` / `delete_fact` (brand fact sheet in SQLite).
-- T21 (self-fixing code) and T20 (reasoning loop with tools) call
-  `run_with_tools`; T20 passes `on_tool` and `max_rounds`.
+### Numeric deadlines: child processes
 
-## Tests
+A positive finite numeric timeout uses the existing spawn-based
+`ControlledTool`. Process startup counts toward the local deadline, which
+starts **after approval**. The effective deadline is the earlier of the
+local and question deadlines. A local expiry becomes a tool error; the
+original question token is rechecked after process cleanup so global
+cancellation or expiry still propagates. A handler-raised `OperationTimedOut`
+before either deadline propagates, even if cleanup later crosses the local
+deadline.
 
-Use fake sessions and handlers; no live model or network. Cover streamed
-blocks split across chunks, invalid, non-final and non-tool blocks, unknown
-tools, bad arguments, per-tool timeouts, handler errors, the round limit
-(including malformed rounds), a lower `max_rounds` and `ValueError` below 1,
-`on_tool` called once per round (including malformed and unknown calls)
-with the call and its result, `confirm` refusal, per-tool `max_calls` and
-its reset per question, approval through `ApprovalPort` and the y/N
-fallback, `timeout=None` running in-process with no deadline and the
-extended deadline afterwards, the final reply after the limit (tool block
-hidden and `None`, non-tool block returned), and history trimming on
-`OperationCancelled`, `OperationTimedOut`, `LLMError`, `KeyboardInterrupt`
-(Ctrl+C) and `close()` mid-turn.
+Timed handlers must be importable/pickleable module functions or callable
+instances with serializable configuration. Registration checks
+`pickle.dumps`; this cannot guarantee importability in a new process, and
+startup failures become tool errors. Open DB connections, files and other
+resources **inside the child**. Parent in-memory mutations are not shared.
+The worker process group and descendants are stopped after success,
+failure, cancellation or timeout. This isolates execution lifetime; it is
+not a filesystem/network permission sandbox.
+
+The IPC preserves `ToolResult.output` and `error`, plus cancellation and
+control failures. `KeyboardInterrupt`, `SystemExit` and `GeneratorExit`
+retain their public families; unknown non-`Exception` failures become a
+plain `BaseException` without deserializing arbitrary classes. Existing LLM
+worker error behavior is unchanged.
+
+### Approval and interactive tools
+
+`confirm=True` asks the supplied `ApprovalPort` with
+`ApprovalRequest(action=name, resource=JSON arguments, reason=description)`.
+Without it, the injected reader asks `[y/N]`: `y`, `yes`, `o` and `oui`
+(case-insensitive) permit execution; other answers and EOF refuse. The CLI
+injects `TerminalInput.read`, so approval works in its raw terminal mode.
+Approval happens in the parent before spawning and pauses the question
+budget while the user answers.
+
+`timeout=None` executes in the parent for interactive tools. The original
+token temporarily has no deadline, and its deadline is extended by elapsed
+time in `finally`, including on failure. Its cancellation state and callback
+remain the same. Neither the registry nor the handler should poll the
+terminal cancellation callback while reading: that callback consumes pending
+keys. Such a handler may catch its own `KeyboardInterrupt` and return a
+skipped result; otherwise control exceptions propagate.
+
+## Question loop and history
+
+`run_with_tools(session, registry, text, cancellation=None, *, max_rounds=5,
+on_tool=None)` reuses `ChatSession.send`, yields only visible model text and
+returns `(last_visible_reply, non_tool_block_or_None)`.
+
+Every parsed block containing a `tool` key consumes a round, including
+malformed/unknown calls. `max_rounds` must be an integer of at least one.
+After the last round, the next request contains its result and an
+instruction to give a final answer without tools. At most `max_rounds + 1`
+model replies occur; a final tool block is hidden and never executed.
+
+`on_tool(call, result)` runs once per completed tool round, before the result
+is sent. A malformed call uses `ToolCall("<invalid>", {})`. The CLI prints
+`Using tool: ...`; other clients can supply their own observer. Results use
+the existing user message role, clearly prefixed `Tool result from ...` or
+`Tool error from ...`, so the saved message schema is unchanged.
+
+A cancelled, timed-out, failed or closed question first closes the active
+stream, then removes **all** history added by that question. Observer
+failures also roll back the question. Already-performed external tool effects
+cannot be undone. Persistence occurs only after the whole loop completes,
+with successful tool rounds preserved for resume. Session title generation
+uses the first final visible answer rather than an intermediate tool call;
+a failed save retains the existing retry behavior.
+
+The CLI appends current registry instructions once to its initial prompt
+and each persona prompt, preserving creator profile/custom instructions and
+completed history. One registry serves the conversation.
+
+## Calculator and verification
+
+`calculate` accepts a required string `expression`, capped at 1024
+characters before parsing. It uses `ast` (never `eval`) for numeric constants,
+unary `+`/`-`, binary `+`/`-`/`*`/`/` and parentheses. Booleans, names, calls,
+attributes, other operators and nonfinite values/results are rejected.
+Numeric execution is isolated like other timed tools.
+
+Offline tests use scripted model replies, fake approvals/terminals and real
+spawned processes. No model or network is required:
 
 ```sh
-.venv/bin/python -m pytest -q tests/unit
+PYTHONPATH=src:tests/helpers .venv/bin/python -m pytest -q tests/unit
 ```
-
-Contract examples are in `tests/unit/core/test_tool_ports.py`; they do not test
-a working loop.

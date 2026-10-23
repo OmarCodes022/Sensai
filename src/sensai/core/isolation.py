@@ -21,6 +21,9 @@ _ERRORS = {cls.__name__: cls for cls in (
     LLMError, LLMConnectionError, ModelNotFoundError, PortError, PolicyDenied,
     OperationCancelled, OperationTimedOut, ValueError,
 )}
+_TOOL_CONTROL = {cls.__name__: cls for cls in (
+    KeyboardInterrupt, SystemExit, GeneratorExit, BaseException,
+)}
 
 
 def _child(channel, factory, kind, arguments, deadline):
@@ -58,9 +61,27 @@ def _child(channel, factory, kind, arguments, deadline):
             token.raise_if_cancelled()
             result = worker.execute(arguments[0], cancellation=token)
             token.raise_if_cancelled()
-            emit("result", result.output)
+            if (not isinstance(result, ToolResult) or not isinstance(result.output, str)
+                    or result.error is not None and not isinstance(result.error, str)):
+                raise PortError("tool returned an invalid ToolResult")
+            emit("result", {"output": result.output, "error": result.error})
         emit("done")
     except BaseException as exc:
+        if (kind == "tool" and isinstance(exc, OperationTimedOut)
+                and (deadline is None or monotonic() < deadline)):
+            try:
+                emit("handler_timeout", str(exc))
+            except (OSError, ValueError):
+                pass
+            return
+        if kind == "tool" and not isinstance(exc, Exception):
+            name = next((cls.__name__ for cls in (KeyboardInterrupt, SystemExit, GeneratorExit)
+                         if isinstance(exc, cls)), "BaseException")
+            try:
+                emit("control", [name, "tool worker interrupted"])
+            except (OSError, ValueError):
+                pass
+            return
         name = type(exc).__name__
         message = str(exc) if name in _ERRORS else "execution worker failed"
         if name not in _ERRORS:
@@ -138,6 +159,13 @@ def _frames(factory, kind, arguments, cancellation):
                 if name == "error":
                     cls, message = value
                     raise _ERRORS[cls](message)
+                if name == "control" and kind == "tool":
+                    cls, message = value
+                    raise _TOOL_CONTROL[cls](message)
+                if name == "handler_timeout" and kind == "tool":
+                    error = OperationTimedOut(value)
+                    error._handler_raised = True  # Preserve origin across worker teardown.
+                    raise error
                 yield name, value
     except BaseException as exc:
         failure = exc
@@ -224,7 +252,7 @@ class ControlledTool:
         try:
             for name, value in frames:
                 if name == "result":
-                    result = ToolResult(value)
+                    result = ToolResult(**value)
         finally:
             frames.close()
         if cancellation is not None:

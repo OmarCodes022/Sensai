@@ -11,6 +11,7 @@ from sensai.core.ports import PortError, SessionSnapshot
 from sensai.core.errors import SensaiError
 from sensai.core.messages import Message
 from sensai.llm.client import LLMClient, close_stream
+from sensai.chat.blocks import split_block
 
 ID_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789"
 PROFILE_HEADER = "Profil de la créatrice (instructions personnalisées) :"
@@ -89,7 +90,14 @@ def generate_title(client: LLMClient, model: str, first_user: str, first_answer:
 
 def first_exchange(messages: Sequence[Message]) -> tuple[str, str]:
     user = next((m.content for m in messages if m.role == "user"), "")
-    answer = next((m.content for m in messages if m.role == "assistant"), "")
+    answer = ""
+    for message in messages:
+        if message.role != "assistant":
+            continue
+        visible, block = split_block(message.content)
+        if (block is None or "tool" not in block) and visible.strip():
+            answer = visible
+            break
     return user, answer
 
 
