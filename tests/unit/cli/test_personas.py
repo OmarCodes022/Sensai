@@ -11,12 +11,13 @@ from sensai.chat.personas import PersonaRegistry
 from sensai.chat.prompts import load_system_prompt
 from sensai.chat.session import ChatSession
 from sensai.settings import Settings
+from sensai.sandbox import RUN_PYTHON
 from sensai.tools import CALCULATE, tool_instructions
 from sensai.core import cancellation
 from sensai.core.cancellation import CancellationToken, OperationCancelled
 from sensai.core.errors import LLMError
 
-TOOLS = "\n\n" + tool_instructions([CALCULATE])
+TOOLS = "\n\n" + tool_instructions([CALCULATE, RUN_PYTHON])
 
 pytestmark = pytest.mark.usefixtures("isolated_settings")
 
@@ -153,6 +154,9 @@ def test_actual_repl_cancellation_keeps_persona_and_discards_partial_turn(
             partial_emitted = False
             return next(self.inputs)
 
+        def read_key(self, prompt, choices, default):
+            return default
+
         def cancel_requested(self):
             return partial_emitted and len(client.calls) == 1
 
@@ -280,6 +284,9 @@ def test_main_switches_cached_custom_profiles_without_losing_history(
                 catalogue.write_text("invalid JSON after startup", encoding="utf-8")
                 prompt_file.write_text("Changed after startup", encoding="utf-8")
             return text
+
+        def read_key(self, prompt, choices, default):
+            return default
 
         def cancel_requested(self):
             return False

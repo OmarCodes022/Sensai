@@ -72,6 +72,11 @@ def scripted_terminal(inputs: Iterable[str | BaseException] | None,
                 raise value
             return value
 
+        def read_key(self, prompt, choices, default):
+            """Replay the next input as a single-key choice (non-TTY rules)."""
+            answer = self.read(prompt).strip()[:1].lower()
+            return answer if answer and answer in choices else default
+
         def cancel_requested(self):
             return False
 

@@ -23,7 +23,7 @@ pytestmark = pytest.mark.usefixtures("isolated_settings")
 TOOL_CALL = '{"tool":"lookup","arguments":{}}'
 
 
-def register_lookup(read, *, confirm=False):
+def register_lookup(read, *, confirm=False, **_):
     registry = ToolRegistry(read=read)
     registry.register(ToolDefinition("lookup", "Look up a supplied value."),
                       lambda arguments, cancellation: ToolResult("7"),
@@ -133,7 +133,7 @@ def test_cli_approval_uses_actual_raw_terminal_reader(monkeypatch, tmp_path):
     output = TerminalOutput()
     client = FakeClient([TOOL_CALL], ["Seven"])
 
-    def tools(read):
+    def tools(read, **_):
         registry = ToolRegistry(read=read)
 
         def lookup(arguments, cancellation):

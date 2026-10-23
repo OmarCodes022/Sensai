@@ -10,10 +10,11 @@ from sensai.cli import main as cli
 from sensai.cli.main import parse_args, repl
 from sensai.chat.session import ChatSession
 from sensai.settings import Settings
+from sensai.sandbox import RUN_PYTHON
 from sensai.tools import CALCULATE, tool_instructions
 from sensai.core.cancellation import OperationCancelled, OperationTimedOut
 
-TOOLS = "\n\n" + tool_instructions([CALCULATE])
+TOOLS = "\n\n" + tool_instructions([CALCULATE, RUN_PYTHON])
 
 
 def test_cli_model_argument_overrides_settings():
