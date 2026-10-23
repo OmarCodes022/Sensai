@@ -487,8 +487,8 @@ def test_title_request_is_announced_and_has_its_own_deadline(
     chat(monkeypatch, tmp_path, FakeClient(["R1"], ["R2"]), ["Q1", "Q2", "exit"],
          "--operation-timeout", timeout)
     output = capsys.readouterr().out
-    assert "R1\nTitre de la session…\n<title request>\n" in output
-    assert output.count("Titre de la session…") == 1
+    assert "R1\n<title request>\n" in output
+    assert "Titre de la session" not in output
     assert len(remaining) == 1 and budget - 1 < remaining[0] <= budget
     assert stored(tmp_path)[0][0].title == "Titre"
 
