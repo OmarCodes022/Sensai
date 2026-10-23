@@ -20,4 +20,6 @@ class Settings(BaseSettings):
     db_path: str | None = Field(None, validation_alias="SENSAI_DB")
     creator: str = Field("default", validation_alias="SENSAI_CREATOR")
     profile_file: str | None = Field(None, validation_alias="SENSAI_PROFILE_FILE")
+    # Files copied into each run_python folder; empty means unset.
+    data_dir: str | None = Field(None, validation_alias="SENSAI_DATA_DIR")
     test_model: str = Field("gemma3:1b", validation_alias="SENSAI_TEST_MODEL")

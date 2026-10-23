@@ -98,6 +98,34 @@ class TerminalInput:
                 self.stdout.write(char)
             self.stdout.flush()
 
+    def read_key(self, prompt, choices, default):
+        """Return one lowercase char of `choices`; Enter picks `default`."""
+        if len(default) != 1 or default not in choices:
+            raise ValueError("default must be one of choices")
+        if self.fd is not None and self.cancel_requested():
+            raise KeyboardInterrupt  # Keys typed earlier never answer this prompt.
+        self.stdout.write(prompt)
+        self.stdout.flush()
+        if self.fd is None:
+            line = self.stdin.readline()
+            if not line:
+                raise EOFError
+            answer = line.strip()[:1].lower()
+            return answer if answer and answer in choices else default
+        while True:
+            key = self._key()
+            if key is None:
+                continue
+            if not key or key == b"\x04":
+                raise EOFError
+            if key in (b"\x03", b"\x1b"):
+                raise KeyboardInterrupt
+            answer = default if key in (b"\r", b"\n") else key.decode("ascii", "ignore").lower()
+            if answer and answer in choices:
+                self.stdout.write(answer + "\n")
+                self.stdout.flush()
+                return answer
+
     def cancel_requested(self):
         if self.fd is None:
             return False

@@ -112,7 +112,8 @@ manual checks: [persona guide](docs/product/personas.md).
 
 `/tools` lists available tools without calling the model. Sensai currently
 includes `calculate` for arithmetic with `+`, `-`, `*`, `/` and parentheses;
-for example, ask it to calculate `(14 + 6) / 100 * 100`. The model chooses
+for example, ask it to calculate `(14 + 6) / 100 * 100`, and `run_python`
+(see [Sandbox](#sandbox)). The model chooses
 whether to request a tool, and the CLI prints `Using tool: calculate(...)`
 before using its result. Tool protocol JSON stays hidden.
 
@@ -125,6 +126,54 @@ resources in the child. Interactive tools and human approval pause the
 question budget. This execution isolation is not a permission sandbox.
 See [the implemented tool contract](docs/tasks/tool-loop.md) for limits and
 handler registration.
+
+#### Sandbox
+
+`run_python` lets the model run the Python it writes. Sensai always asks
+first and shows the start of the code: `y` runs it, `n` refuses (the model is
+told), `v` shows all of it. Set `SENSAI_DATA_DIR` to a folder whose top-level
+files are copied next to the code (at most 50 MB in total):
+
+```text
+$ SENSAI_DATA_DIR=tests/fixtures .venv/bin/sensai qwen2.5:7b
+> Use Python to print the average daily accounts_reached from 21 to 27 Sep in engagement.csv
+Run run_python?
+  code:
+    import csv
+    reach = []
+    for row in csv.DictReader(open("engagement.csv")):
+        if row["source"] == "instagram_insights_daily":
+            if "2026-09-21" <= row["date"] <= "2026-09-27":
+                reach.append(int(row["accounts_reached"]))
+    … (+1 more line)
+[y] run · [n] refuse · [v] view all y
+Using tool: run_python · Exit code 0 · 0.3 s
+The average daily reach from 21 to 27 Sep was 1021.4 accounts.
+> /run broken.py
+Running in the sandbox (limit 15 s)…
+Exit code 1 · 0.2 s
+stderr:
+Traceback (most recent call last):
+  File "main.py", line 4, in <module>
+KeyError: 'reach'
+```
+
+`/run <file.py>` runs a local script the same way, without the model or an
+approval, and leaves the chat history untouched. Each run gets a fresh
+temporary folder (deleted afterwards), the code as `main.py`, no keyboard
+input and an almost empty environment: no `.env` values, `SENSAI_*`/`OLLAMA_*`
+variables or API keys. Limits: 15 s of wall-clock time, 10 s of CPU, 512 MB of
+memory, 10 MB per written file, and 10,000 characters each of stdout (the
+start) and stderr (the end, so the traceback survives). Ctrl+C stops the code
+at once. Small models may garble code inside JSON; a larger model such as
+`qwen2.5:7b` works better.
+
+This stops runaway or careless code, **not deliberately malicious code**. The
+code still has network access and can read any file your user can read by
+absolute path. The memory limit only works on Linux (macOS ignores it), and
+fork bombs or processes that leave their process group are not prevented.
+Stronger isolation (for example `docker run --rm --network none`) is not
+implemented.
 
 ### Sessions and creator profile
 
