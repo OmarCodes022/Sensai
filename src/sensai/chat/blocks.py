@@ -20,26 +20,15 @@ _DECODER = json.JSONDecoder(parse_constant=_invalid_constant, parse_float=_finit
 _START = re.compile(r"(?m)^\{")
 
 
-def _closed_object_end(reply, offset):
-    depth, quoted, escaped = 0, False, False
-    for index in range(offset, len(reply)):
-        char = reply[index]
-        if quoted:
-            if escaped:
-                escaped = False
-            elif char == "\\":
-                escaped = True
-            elif char == '"':
-                quoted = False
-        elif char == '"':
-            quoted = True
-        elif char == "{":
-            depth += 1
-        elif char == "}":
-            depth -= 1
-            if depth == 0:
-                return index + 1
-    return None
+# Where a decode error points when only the end of the buffer is missing (besides
+# an unterminated string): a cut \uXXXX escape (or surrogate pair), number or literal.
+_PARTIAL_TOKEN = re.compile(r'''
+    \\?u[0-9a-fA-F]{0,4}(?:\\u?[0-9a-fA-F]{0,3})?
+  | -|\.|[eE][-+]?
+  | t(?:ru?)?|f(?:a(?:ls?)?)?|n(?:ul?)?
+''', re.X)
+_STRING_BODY = re.compile(r'(?:[^"\\\x00-\x1f]+|\\["\\/bfnrt]|\\u[0-9a-fA-F]{4})*')
+_CUT_ESCAPE = re.compile(r'\\(?:u[0-9a-fA-F]{0,3})?')
 
 
 def split_block(reply: str) -> tuple[str, dict | None]:
@@ -55,31 +44,43 @@ def split_block(reply: str) -> tuple[str, dict | None]:
 
 
 class BlockReader:
-    """Hold possible final blocks; release decoded objects followed by text."""
+    """Hold a ``{`` line while it may still become the final block, else release it."""
 
     def __init__(self):
         self._reply = ""
         self._printed = 0
+        self._string = None  # Scan position inside a held block's unterminated string.
 
     def feed(self, chunk: str) -> str:
         self._reply += chunk
+        if self._string is not None:
+            # Long string arguments: check only the new text, not the whole block again.
+            scan = _STRING_BODY.match(self._reply, self._string).end()
+            if scan == len(self._reply) or _CUT_ESCAPE.fullmatch(self._reply, scan):
+                self._string = scan
+                return ""
+            self._string = None
         start = _START.search(self._reply, self._printed)
         safe = len(self._reply)
         while start is not None:
             offset = start.start()
             try:
                 _, end = _DECODER.raw_decode(self._reply, offset)
+            except json.JSONDecodeError as exc:
+                cut_string = exc.msg.startswith("Unterminated string")
+                if (cut_string or exc.pos >= len(self._reply)
+                        or _PARTIAL_TOKEN.fullmatch(self._reply, exc.pos)):
+                    safe = offset  # More text may still complete this object.
+                    if cut_string:
+                        self._string = exc.pos + 1
+                    break
+                end = offset + 1  # The error is final: try the next line.
             except (ValueError, RecursionError):
-                end = _closed_object_end(self._reply, offset)
-                if end is None:
+                end = offset + 1  # NaN/Infinity, nonfinite numbers, deep nesting.
+            else:
+                if not self._reply[end:].strip():
                     safe = offset
                     break
-                # A closed invalid object cannot become the final protocol block.
-                start = _START.search(self._reply, end)
-                continue
-            if not self._reply[end:].strip():
-                safe = offset
-                break
             start = _START.search(self._reply, end)
         visible = self._reply[self._printed:safe]
         self._printed = safe

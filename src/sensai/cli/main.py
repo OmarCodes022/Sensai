@@ -1,5 +1,6 @@
 """Command line interface."""
 import argparse
+import json
 import os
 import sqlite3
 import stat
@@ -198,10 +199,14 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
 
         def on_tool(call, result):
             if call.name == RUN_PYTHON.name:
-                text = result.error if result.error is not None else result.output
-                write(f"\nUsing tool: {call.name} · {(text.splitlines() or [''])[0]}")
-            else:
-                write(f"\nUsing tool: {call.name}({dict(call.arguments)})")
+                summary = result.error if result.error is not None else result.output
+                write(f"Using tool: {call.name} · {(summary.splitlines() or [''])[0]}")
+                return
+            # Visible text before a block always ends a line: no extra newline.
+            arguments = json.dumps(dict(call.arguments), ensure_ascii=False)
+            # Lone surrogates from model JSON cannot be printed as UTF-8.
+            arguments = arguments.encode("utf-8", "backslashreplace").decode("utf-8")
+            write(f"Using tool: {call.name}({arguments})")
 
         stream = run_with_tools(session, tool_registry, text, token, on_tool=on_tool)
         completed = False
@@ -357,7 +362,6 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
             tool_registry = _tools(terminal.read, approval=TerminalApproval(terminal.read_key, print),
                                    data_dir=args.data_dir)
             def titler(first_user: str, first_answer: str) -> str | None:
-                print("Titre de la session…")
                 token = CancellationToken(
                     monotonic() + min(saved_sessions.TITLE_TIMEOUT, args.operation_timeout),
                     terminal.cancel_requested)
