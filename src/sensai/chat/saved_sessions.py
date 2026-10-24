@@ -20,6 +20,7 @@ TITLE_PROMPT = (
 )
 QUOTES = "\"'«»“”‘’`"
 TITLE_TIMEOUT = 15.0
+TOOL_PROTOCOL_PREFIXES = ("Tool result from ", "Tool error from ")
 
 
 def new_session_id(exists: Callable[[str], bool]) -> str:
@@ -85,6 +86,15 @@ def generate_title(client: LLMClient, model: str, first_user: str, first_answer:
     if not title.isprintable() or len(title) > 60:
         return None
     return title
+
+
+def user_messages(messages: Sequence[Message]) -> list[str]:
+    """The creator's own messages in order; /history and /edit N number them from 1.
+
+    Tool-loop results and errors are sent as user turns but are not the creator's words.
+    """
+    return [m.content for m in messages
+            if m.role == "user" and not m.content.startswith(TOOL_PROTOCOL_PREFIXES)]
 
 
 def first_exchange(messages: Sequence[Message]) -> tuple[str, str]:

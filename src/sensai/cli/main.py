@@ -70,13 +70,21 @@ def parse_args(settings: Settings, argv: Sequence[str] | None = None) -> argpars
     return args
 
 
-HISTORY_LABELS = {"user": "Vous", "assistant": "Sensai"}
+HISTORY_WIDTH = 100
+
+
+def _history_line(text: str) -> str:
+    lines = text.strip().splitlines()
+    line = lines[0].strip() if lines else ""
+    if len(line) > HISTORY_WIDTH:
+        return line[:HISTORY_WIDTH].rstrip() + " …"
+    return line + " …" if len(lines) > 1 else line
 
 
 def _history(messages) -> str:
-    blocks = [f"{HISTORY_LABELS[m.role]} : {m.content}"
-              for m in messages if m.role in HISTORY_LABELS]
-    return "\n\n".join(blocks) or "Aucun message dans cette session."
+    lines = [f"{n}. {_history_line(text)}"
+             for n, text in enumerate(saved_sessions.user_messages(messages), 1)]
+    return "\n".join(lines) or "Aucun message dans cette session."
 
 
 def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
