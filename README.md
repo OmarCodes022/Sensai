@@ -119,9 +119,9 @@ before using its result. Tool protocol JSON stays hidden.
 Each question allows five tool rounds followed by a final answer. Tool
 errors return to the model; cancellation or a failed question drops all its
 rounds from history. Successful rounds are saved together and restored on
-resume. Numeric tool calls run in child processes with a 30-second default
-limit; custom timed handlers must be importable/pickleable and open their
-resources in the child. Interactive tools and human approval pause the
+resume. Tools with a numeric timeout run in child processes (30-second
+default limit); custom timed handlers must be importable/pickleable and open
+their resources in the child. Interactive tools and human approval pause the
 question budget. This execution isolation is not a permission sandbox.
 See [the implemented tool contract](docs/tasks/tool-loop.md) for limits and
 handler registration.
