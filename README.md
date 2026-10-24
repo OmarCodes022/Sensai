@@ -132,7 +132,9 @@ handler registration.
 `run_python` lets the model run the Python it writes. Sensai always asks
 first and shows the start of the code: `y` runs it, `n` refuses (the model is
 told), `v` shows all of it. Set `SENSAI_DATA_DIR` to a folder whose top-level
-files are copied next to the code (at most 50 MB in total):
+files are copied next to the code (at most 50 MB in total). Hidden files (such
+as `.env`) and files Python could import instead of the standard library
+(`.py`, `.pyc`, `.pyw`, `.so`, `.pyd`) are not copied:
 
 ```text
 $ SENSAI_DATA_DIR=tests/fixtures .venv/bin/sensai qwen2.5:7b
@@ -172,6 +174,12 @@ This stops runaway or careless code, **not deliberately malicious code**. The
 code still has network access and can read any file your user can read by
 absolute path. The memory limit only works on Linux (macOS ignores it), and
 fork bombs or processes that leave their process group are not prevented.
+macOS does not enforce the hard CPU limit either: code that ignores SIGXCPU
+runs until the 15 s wall-clock limit. If Sensai's tool process is killed hard
+(`kill -9`, out of memory) while the code runs, processes the code started keep
+running on both systems, and on macOS the code itself does too (on Linux it
+dies with its parent). A later run removes the leftover folder, not the
+processes.
 Stronger isolation (for example `docker run --rm --network none`) is not
 implemented.
 
