@@ -210,6 +210,8 @@ def test_environment_holds_only_the_allowed_values(monkeypatch):
     run = run_python("import json, os\nprint(json.dumps({**os.environ, 'cwd': os.getcwd()}))")
     env = json.loads(run.stdout)
     folder = env.pop("cwd")
+    if sys.platform == "darwin":
+        env.pop("__CF_USER_TEXT_ENCODING", None)  # Added by macOS itself; harmless.
     assert env == {"PATH": os.defpath, "LANG": "C.UTF-8", "PYTHONIOENCODING": "utf-8",
                    "PYTHONDONTWRITEBYTECODE": "1", "HOME": folder, "TMPDIR": folder}
     assert "secret-value" not in run.stdout
@@ -222,11 +224,35 @@ def test_data_folder_copies_top_level_regular_files_only(tmp_path):
     (data / "a.txt").write_text("a")
     (data / "main.py").write_text("print('data file must not replace the code')")
     (data / "nested" / "c.txt").write_text("c")
+    (data / ".env").write_text("API_KEY=secret")
+    for name in ("csv.py", "json.pyc", "x.pyw", "m.so", "m.pyd", "STAT.PY"):
+        (data / name).write_text("raise SystemExit('a data file shadowed the stdlib')")
     (tmp_path / "outside.txt").write_text("secret")
     (data / "link.txt").symlink_to(tmp_path / "outside.txt")
-    code = "import os\nprint(sorted(os.listdir()), open('a.txt').read())"
+    code = "import csv, json, os, stat\nprint(sorted(os.listdir()), open('a.txt').read())"
     run = run_python(code, data)
     assert run.stdout.strip() == "['a.txt', 'b.csv', 'main.py'] a"
+
+
+def test_data_folder_skips_hidden_files_like_dotenv(tmp_path, monkeypatch):
+    data = tmp_path / "data"
+    data.mkdir()
+    (data / ".env").write_text("OPENAI_API_KEY=leak-me")
+    (data / ".hidden.csv").write_text("x")
+    (data / "visible.csv").write_text("ok")
+    monkeypatch.chdir(data)  # SENSAI_DATA_DIR=.
+    run = run_python("import os\nprint(sorted(os.listdir()))", ".", limits=FAST)
+    assert run.stdout == "['main.py', 'visible.csv']\n"
+
+
+def test_data_folder_size_ignores_skipped_files(tmp_path):
+    data = tmp_path / "data"
+    data.mkdir()
+    (data / ".big").write_bytes(b"x" * 50)
+    (data / "big.py").write_bytes(b"x" * 50)
+    (data / "small.csv").write_bytes(b"x" * 5)
+    run = run_python("print(open('small.csv').read())", data, limits=SandboxLimits(data_bytes=10))
+    assert run.stdout == "xxxxx\n"
 
 
 def test_data_folder_errors_happen_before_any_run(tmp_path, temp_root):
@@ -384,14 +410,14 @@ def test_parent_death_kills_code_and_next_run_sweeps_its_folder(tmp_path, temp_r
 def test_stale_sweep_removes_dead_owner_folders_only(tmp_path, temp_root):
     dead = subprocess.Popen([sys.executable, "-c", "pass"])
     dead.wait()
-    stale = temp_root / f"{PREFIX}{dead.pid}-old"
-    live = temp_root / f"{PREFIX}{os.getpid()}-busy"
+    stale = temp_root / f"{PREFIX}{dead.pid}-old_1234"
+    live = temp_root / f"{PREFIX}{os.getpid()}-busy1234"
     other = temp_root / f"{PREFIX}notapid-x"
     target = tmp_path / "keep"
     for folder in (stale, live, other, target):
         folder.mkdir()
         (folder / "file").write_text("x")
-    link = temp_root / f"{PREFIX}{dead.pid}-link"
+    link = temp_root / f"{PREFIX}{dead.pid}-link1234"
     link.symlink_to(target)
     run_python("pass")
     assert not stale.exists()
@@ -401,10 +427,17 @@ def test_stale_sweep_removes_dead_owner_folders_only(tmp_path, temp_root):
 def test_tool_definition_and_pickleable_handler():
     assert RUN_PYTHON.name == "run_python"
     assert RUN_PYTHON.parameters == {"type": "object", "properties": {"code": {"type": "string"}},
-                                     "required": ["code"]}
+                                     "required": ["code"], "additionalProperties": False}
     assert "standard library" in RUN_PYTHON.description and "no pandas" in RUN_PYTHON.description
     handler = pickle.loads(pickle.dumps(partial(python_tool, data_dir="data")))
     assert handler.keywords == {"data_dir": "data"}
+    handler = pickle.loads(pickle.dumps(partial(python_tool, data_dir=None, limits=FAST)))
+    assert handler.keywords == {"data_dir": None, "limits": FAST}
+
+
+def test_python_tool_runs_and_reports_with_the_given_limits():
+    result = python_tool({"code": "import time\ntime.sleep(100)"}, limits=SandboxLimits(wall_seconds=.5))
+    assert "Time limit reached (0.5 s)" in result.output and result.error == result.output
 
 
 @pytest.mark.parametrize("run, expected", [

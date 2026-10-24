@@ -137,7 +137,7 @@ def test_run_chat_exit_removes_stale_sandbox_folders(monkeypatch, temp_root):
     import sys
     dead = subprocess.Popen([sys.executable, "-c", "pass"])
     dead.wait()
-    stale = temp_root / f"{PREFIX}{dead.pid}-killed"
+    stale = temp_root / f"{PREFIX}{dead.pid}-killed_1"
     (stale / "big").mkdir(parents=True)
     monkeypatch.setattr(cli, "create_client", lambda settings: FakeClient())
     monkeypatch.setattr(cli, "TerminalInput", scripted_terminal(["exit"]))

@@ -6,6 +6,7 @@ can still use the network and read files by absolute path.
 from dataclasses import dataclass
 import errno
 import os
+import re
 import resource
 import selectors
 import shutil
@@ -24,6 +25,11 @@ PREFIX = "sensai-sandbox-"
 _MB = 1024 * 1024
 _PR_SET_PDEATHSIG = 1
 _FILE_TOO_LARGE = f"[Errno {errno.EFBIG}] {os.strerror(errno.EFBIG)}"
+# Exactly what mkdtemp(prefix=f"{PREFIX}{pid}-") creates: 8 characters from its alphabet.
+_OURS = re.compile(re.escape(PREFIX) + r"([0-9]+)-[a-z0-9_]{8}")
+# Data files Python could import instead of the standard library (3.10 has no -P).
+_IMPORTABLE = (".py", ".pyc", ".pyw", ".so", ".pyd")
+_DRAIN_SECONDS = .2
 
 
 class SandboxError(ValueError):
@@ -59,7 +65,8 @@ RUN_PYTHON = ToolDefinition(
     "Run Python 3 code in a throw-away folder and return what it prints; "
     "data files are in the current folder. Only the standard library is available "
     "(csv, statistics, json...; no pandas or numpy).",
-    {"type": "object", "properties": {"code": {"type": "string"}}, "required": ["code"]},
+    {"type": "object", "properties": {"code": {"type": "string"}}, "required": ["code"],
+     "additionalProperties": False},
 )
 
 
@@ -115,8 +122,8 @@ def remove_stale_folders() -> None:
         return
     with entries:
         for entry in entries:
-            owner = entry.name[len(PREFIX):].split("-", 1)[0]
-            if not entry.name.startswith(PREFIX) or not (owner.isascii() and owner.isdigit()):
+            match = _OURS.fullmatch(entry.name)
+            if match is None:
                 continue
             try:
                 if (not entry.is_dir(follow_symlinks=False)
@@ -124,12 +131,18 @@ def remove_stale_folders() -> None:
                     continue
             except OSError:
                 continue
-            if _dead(owner):
+            if _dead(match.group(1)):
                 shutil.rmtree(entry.path, ignore_errors=True)
 
 
+def _wanted(entry):
+    """Visible, non-importable regular file: no .env, no csv.py shadowing the stdlib."""
+    return (not entry.name.startswith(".") and not entry.name.lower().endswith(_IMPORTABLE)
+            and entry.is_file(follow_symlinks=False))
+
+
 def _data_files(data_dir, limit):
-    """Top-level regular files of data_dir, sorted, with their total size checked."""
+    """Top-level regular data files of data_dir, sorted, with their total size checked."""
     if data_dir is None:
         return []
     path = os.fspath(data_dir)
@@ -137,8 +150,7 @@ def _data_files(data_dir, limit):
         raise SandboxError(f"data folder not found: {path}")
     try:
         with os.scandir(path) as entries:
-            files = sorted((e for e in entries if e.is_file(follow_symlinks=False)),
-                           key=lambda e: e.name)
+            files = sorted(filter(_wanted, entries), key=lambda e: e.name)
             total = sum(e.stat(follow_symlinks=False).st_size for e in files)
     except OSError as exc:
         raise SandboxError(f"cannot read data folder: {exc}") from exc
@@ -169,7 +181,9 @@ def _copy_data(files, target, limit):
 def _exited(process):
     """Exit check that leaves the zombie in place, so its process group id stays ours."""
     if hasattr(os, "waitid"):
-        return os.waitid(os.P_PID, process.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT) is not None
+        info = os.waitid(os.P_PID, process.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT)
+        # macOS also reports a stopped (or continued) child here: that is not an exit.
+        return info is not None and info.si_code in (os.CLD_EXITED, os.CLD_KILLED, os.CLD_DUMPED)
     return process.poll() is not None
 
 
@@ -239,7 +253,12 @@ class _Output:
         else:
             self.err += data
             if len(self.err) > self.cap:
-                del self.err[:-self.cap]
+                # Start on a character: skip at most 3 UTF-8 continuation bytes.
+                start = len(self.err) - self.cap
+                end = min(start + 3, len(self.err))
+                while start < end and 0x80 <= self.err[start] < 0xC0:
+                    start += 1
+                del self.err[:start]
                 self.cut = True
 
 
@@ -250,6 +269,7 @@ def _collect(process, limits, token, guard):
     selector.register(process.stderr, selectors.EVENT_READ, "err")
     deadline = monotonic() + limits.wall_seconds
     timed_out = False
+    drain_until = None
     try:
         while True:
             guard.check()
@@ -259,6 +279,12 @@ def _collect(process, limits, token, guard):
             remaining = deadline - monotonic()
             if remaining <= 0:
                 timed_out = not exited
+                break
+            if exited and drain_until is None:
+                # A grandchild may keep the pipes busy: the group kill ends it soon.
+                drain_until = monotonic() + _DRAIN_SECONDS
+            elif exited and monotonic() >= drain_until:
+                output.cut = output.cut or bool(selector.get_map() and selector.select(0))
                 break
             if not selector.get_map():
                 if exited:
@@ -361,10 +387,11 @@ def format_run(run: SandboxRun, limits: SandboxLimits = SandboxLimits()) -> str:
     return "\n".join(lines)
 
 
-def python_tool(arguments, cancellation=None, *, data_dir=None) -> ToolResult:
+def python_tool(arguments, cancellation=None, *, data_dir=None,
+                limits: SandboxLimits = SandboxLimits()) -> ToolResult:
     try:
-        run = run_python(arguments["code"], data_dir, cancellation)
+        run = run_python(arguments["code"], data_dir, cancellation, limits=limits)
     except SandboxError as exc:
         return ToolResult("", str(exc))
-    text = format_run(run)
+    text = format_run(run, limits)
     return ToolResult(text, text if run.exit_code != 0 or run.timed_out else None)

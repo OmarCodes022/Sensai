@@ -241,6 +241,17 @@ def test_extra_argument_key_cannot_fake_extra_preview_lines():
     assert len(physical) <= 6 + 1 + 1, physical
 
 
+def test_extra_argument_key_is_rejected_before_any_approval_prompt(tmp_path):
+    """Needs the T18 registry support for "additionalProperties": false (PR #94 fixes)."""
+    marker = tmp_path / "ran"
+    keys = Keys()  # Any prompt would fail: there is no answer to give.
+    decoy = "\n".join(["print('harmless')"] * 10)
+    lines, sent, output = approve_with(keys, f"open({str(marker)!r}, 'w').write('x')",
+                                       **{"code ": decoy})
+    assert keys.prompts == [] and lines == [] and not marker.exists()
+    assert sent == "Tool error from run_python:\ninvalid arguments: unexpected property code "
+
+
 def test_lone_surrogate_in_code_still_shows_the_approval_prompt():
     def terminal(line=""):
         line.encode("utf-8")  # What print() does on a UTF-8 terminal (errors="strict").

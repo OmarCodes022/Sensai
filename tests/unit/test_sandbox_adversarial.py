@@ -173,6 +173,7 @@ def test_documented_gap_grandchild_leaving_the_group_survives(tmp_path, escape):
         os.kill(grandchild, signal.SIGKILL)
 
 
+@pytest.mark.skipif(not LINUX, reason="macOS does not enforce the hard CPU limit (README)")
 def test_cpu_limit_with_sigxcpu_ignored_hits_the_hard_limit():
     limits = SandboxLimits(wall_seconds=10, cpu_seconds=1)
     run = run_python("import signal\nsignal.signal(signal.SIGXCPU, signal.SIG_IGN)\nwhile True: pass",
@@ -182,7 +183,11 @@ def test_cpu_limit_with_sigxcpu_ignored_hits_the_hard_limit():
 
 
 def kill_worker_after_files(tmp_path, temp_root, pids, count):
-    """Real ControlledTool path: Ctrl+C once the code made `count` folders, then check leftovers."""
+    """Real ControlledTool path: Ctrl+C once the code made `count` folders, then check leftovers.
+
+    Like the CLI, sweep after the interruption: the folder must not depend on the worker's
+    grace period to be removed.
+    """
     marker = tmp_path / "pids"
     many = (f"for i in range({count}):\n"
             "    os.mkdir(f'd{i}'); open(f'd{i}/f', 'w').close()\n"
@@ -202,6 +207,7 @@ def kill_worker_after_files(tmp_path, temp_root, pids, count):
         registry.execute(ToolCall("run_python", {"code": grandchild_code(marker, then=many)}),
                          CancellationToken(None, made_them))
     pid, grandchild, folder = read_marker(marker, pids)
+    sandbox.remove_stale_folders()
     left = os.path.exists(folder)
     __import__("shutil").rmtree(folder, ignore_errors=True)
     assert gone(pid) and gone(grandchild)
@@ -333,6 +339,7 @@ def test_cwd_home_and_tempfile_are_the_throwaway_folder():
     assert run_python(code, limits=FAST).stdout == "True True\n"
 
 
+@pytest.mark.skipif(not os.path.isdir("/proc/self"), reason="needs /proc/self/environ")
 def test_environment_has_no_parent_secrets_inside_the_worker(monkeypatch):
     for name in ("SENSAI_TOKEN", "OLLAMA_HOST", "OPENAI_API_KEY", "AWS_SECRET_ACCESS_KEY"):
         monkeypatch.setenv(name, "leak-me")
