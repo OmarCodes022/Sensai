@@ -285,7 +285,6 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
         with TerminalInput() as terminal:
             tool_registry = _tools(terminal.read)
             def titler(first_user: str, first_answer: str) -> str | None:
-                print("Titre de la session…")
                 token = CancellationToken(
                     monotonic() + min(saved_sessions.TITLE_TIMEOUT, args.operation_timeout),
                     terminal.cancel_requested)
