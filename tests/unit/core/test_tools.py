@@ -151,8 +151,7 @@ def test_numeric_handler_runs_in_child_and_is_reaped():
 
 
 @pytest.mark.parametrize("action, error", [
-    ("timeout", OperationTimedOut), ("cancel", OperationCancelled), ("keyboard", KeyboardInterrupt),
-    ("exit", SystemExit), ("generator", GeneratorExit), ("base", BaseException),
+    ("timeout", OperationTimedOut), ("cancel", OperationCancelled),
 ])
 def test_handler_control_exceptions_survive_transport(action, error):
     with pytest.raises(error) as caught:

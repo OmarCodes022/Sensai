@@ -21,9 +21,6 @@ _ERRORS = {cls.__name__: cls for cls in (
     LLMError, LLMConnectionError, ModelNotFoundError, PortError, PolicyDenied,
     OperationCancelled, OperationTimedOut, ValueError,
 )}
-_TOOL_CONTROL = {cls.__name__: cls for cls in (
-    KeyboardInterrupt, SystemExit, GeneratorExit, BaseException,
-)}
 
 
 def _child(channel, factory, kind, arguments, deadline):
@@ -75,10 +72,9 @@ def _child(channel, factory, kind, arguments, deadline):
                 pass
             return
         if kind == "tool" and not isinstance(exc, Exception):
-            name = next((cls.__name__ for cls in (KeyboardInterrupt, SystemExit, GeneratorExit)
-                         if isinstance(exc, cls)), "BaseException")
+            # Only the handler stopped; the parent was not interrupted: a tool failure.
             try:
-                emit("control", [name, "tool worker interrupted"])
+                emit("error", ["PortError", f"tool handler raised {type(exc).__name__}"])
             except (OSError, ValueError):
                 pass
             return
@@ -159,9 +155,6 @@ def _frames(factory, kind, arguments, cancellation):
                 if name == "error":
                     cls, message = value
                     raise _ERRORS[cls](message)
-                if name == "control" and kind == "tool":
-                    cls, message = value
-                    raise _TOOL_CONTROL[cls](message)
                 if name == "handler_timeout" and kind == "tool":
                     error = OperationTimedOut(value)
                     error._handler_raised = True  # Preserve origin across worker teardown.

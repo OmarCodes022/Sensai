@@ -103,6 +103,30 @@ class ToolRegistry:
     def register(self, definition: ToolDefinition, handler: ToolHandler, *,
                  timeout: float | None = TOOL_TIMEOUT_SECONDS, confirm: bool = False,
                  max_calls: int | None = None) -> None:
+        """Add a tool; raise ValueError on a blank or duplicate name or a bad setting.
+
+        - ``timeout``: seconds per call, counted after approval. A number runs
+          the handler in a fresh spawned process (``ControlledTool``), so it
+          must be pickleable and importable and open its DB/files in the
+          child; parent in-memory state is not shared. Expiry gives an error
+          result. ``None`` runs the handler in the main process with no limit:
+          use it for interactive tools that read the terminal and for tools
+          that need in-memory state. Its token keeps the cancel check but has
+          no deadline, and the question deadline is extended by the time it
+          took. Such a handler handles Ctrl+C itself (e.g. returns "user
+          skipped") and must not poll the chat's ``cancel_requested`` callback
+          (directly or via ``raise_if_cancelled()``) while the user types: it
+          discards unrecognised pending keys.
+        - ``confirm``: before each call, ask the registry's ``ApprovalPort``
+          (``ApprovalRequest(name, JSON arguments, description)``), else a y/N
+          prompt on the injected reader (``y``/``yes``/``o``/``oui``; EOF
+          refuses). A refusal gives an error result; the handler does not run.
+          Waiting for the answer pauses the question deadline.
+        - ``max_calls``: limit for this tool per question (``None``: no own
+          limit, ``0``: disabled). Every attempted call counts, including bad
+          arguments and refusals, and also counts toward the question's rounds.
+          ``run_with_tools`` resets the counts through ``start_question()``.
+        """
         name = definition.name
         if not isinstance(name, str) or not name.strip() or name in self._tools:
             raise ValueError("tool name must be nonblank and unique")
@@ -141,6 +165,23 @@ class ToolRegistry:
             return answer.strip().lower() in ("y", "yes", "o", "oui")
 
     def execute(self, call: ToolCall, cancellation: CancellationToken | None = None) -> ToolResult:
+        """Run one call and return a ``ToolResult``; tool failures never raise.
+
+        In order: unknown tool, ``max_calls`` exceeded, arguments that fail
+        the ``parameters`` subset (``required``, basic ``properties`` types,
+        ``"additionalProperties": false``), then refused ``confirm``, each
+        give an error result before the handler runs. A local timeout, a
+        handler ``Exception`` or an invalid returned ``ToolResult`` also give
+        an error result, as does a non-``Exception`` raised by a handler in its
+        child process (the main process was not interrupted).
+
+        Propagated, not results: ``OperationCancelled`` and ``OperationTimedOut``
+        from ``cancellation`` (checked again after the child is cleaned up),
+        the same errors raised by the handler itself (for a timed handler, an
+        ``OperationTimedOut`` only if raised before either deadline), and, for
+        ``timeout=None`` handlers running in the main process,
+        ``KeyboardInterrupt`` and other non-``Exception`` errors.
+        """
         if cancellation is not None:
             cancellation.raise_if_cancelled()
         if not isinstance(call.name, str) or call.name not in self._tools:
@@ -195,6 +236,11 @@ def _validate_arguments(arguments, parameters):
     for name in parameters.get("required", []):
         if name not in arguments:
             raise ValueError(f"missing required property {name}")
+    if parameters.get("additionalProperties") is False:
+        known = parameters.get("properties", {})
+        for name in arguments:
+            if name not in known:
+                raise ValueError(f"unexpected property {name}")
     checks = {
         "string": lambda value: isinstance(value, str),
         "integer": lambda value: type(value) is int,
@@ -221,6 +267,12 @@ def tool_instructions(definitions: Sequence[ToolDefinition]) -> str:
 
 
 def parse_tool_call(block: Mapping[str, object]) -> ToolCall:
+    """Turn a parsed block into a ``ToolCall``; raise ValueError on any other shape.
+
+    Requires a nonblank string ``tool`` and an optional JSON object
+    ``arguments`` (missing means ``{}``). The block must contain only finite
+    JSON values with string keys.
+    """
     try:
         _check_json(block)
     except (ValueError, RecursionError) as exc:
@@ -237,6 +289,31 @@ def run_with_tools(session: "ChatSession", registry: ToolRegistry, text: str,
                    cancellation: CancellationToken | None = None, *,
                    max_rounds: int = MAX_TOOL_CALLS, on_tool: ToolObserver | None = None,
                    ) -> Generator[str, None, tuple[str, dict | None]]:
+    """Answer ``text``, calling tools as the model asks; yield visible text.
+
+    Each reply streams through a ``BlockReader``, so a final tool block is
+    never shown. A final block with a ``"tool"`` key is one round: parse and
+    execute it (a malformed call or unknown tool gives an error result), call
+    ``on_tool(call, result)`` if given (a malformed block gives
+    ``ToolCall("<invalid>", {})``), then send the result back as a user
+    message starting ``Tool result from <name>:`` or ``Tool error from
+    <name>:``. Every round counts toward ``max_rounds`` (an integer >= 1, else
+    ValueError). The message after the last round also asks for a final
+    answer without tools, so a question makes at most ``max_rounds + 1``
+    model replies; a tool block in that last reply is hidden, not executed.
+
+    Returns (via ``yield from``) the last reply's full visible text and its
+    non-tool block unchanged, or ``None``. A ``timeout=None`` tool and
+    approval waits extend the question deadline by the time they took.
+
+    Whenever the question does not complete (any exception, including
+    ``OperationCancelled``, ``OperationTimedOut``, ``LLMError``,
+    ``KeyboardInterrupt`` or an ``on_tool`` failure, or ``close()`` /
+    ``GeneratorExit``), the active stream is closed first, then **every**
+    message the question added to ``session.messages`` is removed, completed
+    tool rounds included, and the error propagates. Effects a tool already
+    had outside the session cannot be undone.
+    """
     if type(max_rounds) is not int or max_rounds < 1:
         raise ValueError("max_rounds must be an integer >= 1")
     registry.start_question()
