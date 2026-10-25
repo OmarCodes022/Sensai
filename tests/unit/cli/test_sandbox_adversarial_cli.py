@@ -16,7 +16,7 @@ from sensai.chat.session import ChatSession
 from sensai.cli import main as cli
 from sensai.cli.approval import TerminalApproval
 from sensai.core.ports import ApprovalDecision, ApprovalRequest
-from sensai.sandbox import PREFIX, RUN_PYTHON
+from sensai.sandbox import PREFIX, RUN_PYTHON, SandboxLimits, python_tool
 from sensai.tools import ToolRegistry
 
 pytestmark = pytest.mark.usefixtures("isolated_settings")
@@ -129,7 +129,11 @@ def test_model_gets_time_limit_as_tool_error():
 
 
 def test_model_gets_cpu_limit_as_tool_error():
-    sent, _ = sent_to_model("while True: pass")
+    # Wide wall margin, as in the other CPU tests: a busy CI runner may give the loop
+    # under 1 s of CPU in 1.5 s, and the wall limit would fire first.
+    registry = ToolRegistry()
+    registry.register(RUN_PYTHON, partial(python_tool, limits=SandboxLimits(wall_seconds=10, cpu_seconds=1)))
+    sent, _ = sent_to_model("while True: pass", registry)
     assert sent.startswith("Tool error from run_python:\n") and "CPU time limit reached" in sent
 
 
