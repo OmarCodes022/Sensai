@@ -1,0 +1,83 @@
+site_name: Sensai Documentation
+site_description: Developer documentation of Sensai, a local command-line AI assistant for a skincare creator
+site_url: https://omarcodes022.github.io/Sensai/
+repo_name: OmarCodes022/Sensai
+repo_url: https://github.com/OmarCodes022/Sensai
+edit_uri: edit/main/docs/
+docs_dir: docs
+
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+  anchors: warn
+
+nav:
+  - Home: README.md
+  - Getting started: getting-started.md
+  - Architecture:
+      - Overview: architecture/overview.md
+      - Typed ports: architecture/ports.md
+      - Cancellation: architecture/cancellation.md
+      - SQLite storage: architecture/storage.md
+      - Retrieval: architecture/retrieval.md
+      - Structured output: architecture/structured-output.md
+      - Telemetry: architecture/telemetry.md
+  - Product:
+      - Scope: product/scope.md
+      - Privacy and claims: product/privacy-and-claims.md
+      - Personas: product/personas.md
+  - User stories: stories/README.md
+  - Operations:
+      - Remote Ollama over SSH: operations/remote-ollama.md
+      - Epitech mirror: operations/epitech-mirror.md
+      - Documentation site: operations/documentation.md
+  - Task briefs:
+      - Filesystem permissions: tasks/filesystem-permissions.md
+      - Tool loop: tasks/tool-loop.md
+  - Contributing: contributing.md
+
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - toc.follow
+    - search.highlight
+    - search.suggest
+    - content.code.copy
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+plugins:
+  - search
