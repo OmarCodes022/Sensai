@@ -28,7 +28,7 @@ and the review status (draft or reviewed).
 ## Index of implemented features
 
 Only features implemented in the code are listed; see the
-[README feature list](../../README.md#features).
+[README feature list](https://github.com/OmarCodes022/Sensai/blob/main/README.md#features).
 
 | Feature | Stories | Status |
 | --- | --- | --- |

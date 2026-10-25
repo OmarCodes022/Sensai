@@ -9,7 +9,7 @@ approval of a real skincare claim.
 
 The default system prompt (`src/sensai/chat/system_prompt.txt`) now expresses these boundaries as model instructions.
 This does not enforce the policy or sanitize inputs before generation.
-[The manual adversarial runner](../../evals/adversarial/README.md) lets a tester
+[The manual adversarial runner](https://github.com/OmarCodes022/Sensai/blob/main/evals/adversarial/README.md) lets a tester
 record the current model's behavior without claiming that a validation gate exists.
 
 ## Decisions for inputs and outputs

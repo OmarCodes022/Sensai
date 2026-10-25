@@ -2,7 +2,7 @@
 
 This guide covers the Persona feature (A5 in the subject catalogue): its user
 stories, manual checks and automated test coverage. Command usage is in the
-root [README](../../README.md#personas).
+root [README](https://github.com/OmarCodes022/Sensai/blob/main/README.md#personas).
 
 The fictional skincare creator Nadia can start the same chat in three distinct
 working roles. **Rédaction** prepares posts and captions in the supplied brand

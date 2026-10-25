@@ -35,11 +35,11 @@
 
 ## Evaluation
 
-- [Adversarial testing: manual runner and attack catalogue](../evals/adversarial/README.md)
-- [Adversarial harness report (2026-10-10)](../evals/adversarial/report.md)
+- [Adversarial testing: manual runner and attack catalogue](https://github.com/OmarCodes022/Sensai/blob/main/evals/adversarial/README.md)
+- [Adversarial harness report (2026-10-10)](https://github.com/OmarCodes022/Sensai/blob/main/evals/adversarial/report.md)
 
 ## Test data
 
-- [`tests/fixtures/`](../tests/fixtures/): synthetic brand facts and claims, DMs,
+- [`tests/fixtures/`](https://github.com/OmarCodes022/Sensai/tree/main/tests/fixtures/): synthetic brand facts and claims, DMs,
   posts and engagement figures for the fictional Serein Studio; no test uses
   them yet.
