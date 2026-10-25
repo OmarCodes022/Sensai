@@ -13,10 +13,11 @@ from sensai.chat import saved_sessions
 from sensai.cli import remote
 from sensai.chat.personas import PersonaRegistry
 from sensai.settings import Settings
+from sensai.sandbox import RUN_PYTHON
 from sensai.tools import CALCULATE, tool_instructions
 from sensai.memory.sqlite_store import StorageRepository
 
-TOOLS = "\n\n" + tool_instructions([CALCULATE])
+TOOLS = "\n\n" + tool_instructions([CALCULATE, RUN_PYTHON])
 
 
 ROOT = Path(__file__).resolve().parents[3]

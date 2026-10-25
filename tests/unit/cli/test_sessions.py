@@ -14,6 +14,7 @@ from sensai.cli import main as cli
 from sensai.chat import saved_sessions
 from sensai.chat.personas import PersonaRegistry
 from sensai.settings import Settings
+from sensai.sandbox import RUN_PYTHON
 from sensai.tools import CALCULATE, tool_instructions
 from sensai.core.cancellation import OperationCancelled, OperationTimedOut
 from sensai.core.ports import Profile, SessionSnapshot
@@ -22,7 +23,7 @@ from sensai.core.messages import Message
 from sensai.memory import sqlite_store
 from sensai.memory.sqlite_store import StorageError, StorageRepository
 
-TOOLS = "\n\n" + tool_instructions([CALCULATE])
+TOOLS = "\n\n" + tool_instructions([CALCULATE, RUN_PYTHON])
 
 ROOT = Path(__file__).resolve().parents[3]
 PROFILE_HEADER = "Profil de la créatrice (instructions personnalisées) :"
