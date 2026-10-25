@@ -228,4 +228,12 @@ Manual adversarial testing: see [evals/adversarial](evals/adversarial/README.md)
 
 ## Documentation
 
-Start at the [documentation index](docs/README.md).
+Start at the [documentation index](docs/README.md). The same pages are
+published at <https://omarcodes022.github.io/Sensai/>. To preview the site
+locally:
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -r requirements-docs.txt
+.venv/bin/mkdocs serve    # http://127.0.0.1:8000
+```
