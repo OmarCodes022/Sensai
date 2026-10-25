@@ -145,6 +145,23 @@ def parse_args(settings: Settings, argv: Sequence[str] | None = None) -> argpars
     return args
 
 
+HISTORY_WIDTH = 100
+
+
+def _history_line(text: str) -> str:
+    lines = text.strip().splitlines()
+    line = lines[0].strip() if lines else ""
+    if len(line) > HISTORY_WIDTH:
+        return line[:HISTORY_WIDTH].rstrip() + " …"
+    return line + " …" if len(lines) > 1 else line
+
+
+def _history(messages) -> str:
+    lines = [f"{n}. {_history_line(text)}"
+             for n, text in enumerate(saved_sessions.user_messages(messages), 1)]
+    return "\n".join(lines) or "Aucun message dans cette session."
+
+
 def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
          operation_timeout: float = 120.0, cancel_requested=None,
          persona_registry: PersonaRegistry | None = None,
@@ -188,6 +205,9 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
                     write(f"Persona sélectionnée : {persona.id}")
                     if recorder is not None:
                         recorder.persona_changed(persona.id)
+            continue
+        if command and command[0] == "/history":
+            write(_history(session.messages) if len(command) == 1 else "usage: /history")
             continue
         token = CancellationToken(monotonic() + operation_timeout, cancel_requested)
         if command and command[0] == "/run":
