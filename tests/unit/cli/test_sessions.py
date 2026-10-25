@@ -14,12 +14,16 @@ from sensai.cli import main as cli
 from sensai.chat import saved_sessions
 from sensai.chat.personas import PersonaRegistry
 from sensai.settings import Settings
+from sensai.sandbox import RUN_PYTHON
+from sensai.tools import CALCULATE, tool_instructions
 from sensai.core.cancellation import OperationCancelled, OperationTimedOut
 from sensai.core.ports import Profile, SessionSnapshot
 from sensai.core.errors import LLMError
 from sensai.core.messages import Message
 from sensai.memory import sqlite_store
 from sensai.memory.sqlite_store import StorageError, StorageRepository
+
+TOOLS = "\n\n" + tool_instructions([CALCULATE, RUN_PYTHON])
 
 ROOT = Path(__file__).resolve().parents[3]
 PROFILE_HEADER = "Profil de la créatrice (instructions personnalisées) :"
@@ -118,7 +122,7 @@ def test_new_session_saved_only_after_first_complete_turn_with_separate_title(
     title_request = client.requests[4][1]
     assert [m.role for m in title_request] == ["system", "user"]
     assert title_request[0].content == saved_sessions.TITLE_PROMPT
-    assert client.calls[5] == ["Shared rules", "Salut", "Bonjour !", "Again"]
+    assert client.calls[5] == ["Shared rules" + TOOLS, "Salut", "Bonjour !", "Again"]
     assert len(client.requests) == 6
 
 
@@ -132,7 +136,7 @@ def test_restart_resumes_shared_profile_persona_then_previous_turns(
     assert "Session k7f2qa\n" in capsys.readouterr().out
     client = FakeClient(["R3"])
     chat(monkeypatch, tmp_path, client, ["Third", "exit"], "--session", "k7f2qa")
-    system = "Shared rules\n\n" + PROFILE + "\n\n" + persona_prompt("redaction")
+    system = "Shared rules\n\n" + PROFILE + "\n\n" + persona_prompt("redaction") + TOOLS
     assert client.calls == [[system, "Premier message", "R1", "Second", "R2", "Third"]]
     assert [m.role for m in client.requests[0][1]] == [
         "system", "user", "assistant", "user", "assistant", "user"]
@@ -153,12 +157,12 @@ def test_explicit_persona_wins_and_runtime_switch_is_persisted(
     chat(monkeypatch, tmp_path, client, ["Q2", "/persona analyse", "Q3", "exit"],
          "--session", "k7f2qa", "--persona", "communaute",
          on_read=lambda: personas.append(stored(tmp_path)[1]["k7f2qa"].persona_id))
-    assert client.calls[0][0] == "Shared rules\n\n" + persona_prompt("communaute")
-    assert client.calls[1][0] == "Shared rules\n\n" + persona_prompt("analyse")
+    assert client.calls[0][0] == "Shared rules\n\n" + persona_prompt("communaute") + TOOLS
+    assert client.calls[1][0] == "Shared rules\n\n" + persona_prompt("analyse") + TOOLS
     assert personas == ["redaction", "communaute", "analyse", "analyse"]
     client = FakeClient(["R4"])
     chat(monkeypatch, tmp_path, client, ["Q4", "exit"], "--session", "k7f2qa")
-    assert client.calls[0][:2] == ["Shared rules\n\n" + persona_prompt("analyse"), "Q1"]
+    assert client.calls[0][:2] == ["Shared rules\n\n" + persona_prompt("analyse") + TOOLS, "Q1"]
 
 
 def test_environment_persona_does_not_override_saved_persona(monkeypatch, tmp_path, ids):
@@ -167,7 +171,7 @@ def test_environment_persona_does_not_override_saved_persona(monkeypatch, tmp_pa
     monkeypatch.setenv("SENSAI_PERSONA", "analyse")
     client = FakeClient(["R2"])
     chat(monkeypatch, tmp_path, client, ["Q2", "exit"], "--session", "k7f2qa")
-    assert client.calls[0][0] == "Shared rules"
+    assert client.calls[0][0] == "Shared rules" + TOOLS
 
 
 def test_missing_saved_persona_fails_before_client(monkeypatch, tmp_path, ids):
@@ -183,7 +187,7 @@ def test_missing_saved_persona_fails_before_client(monkeypatch, tmp_path, ids):
                   "--db", str(tmp_path / "s.db"), "--session", "k7f2qa"])
     client = FakeClient(["R2"])
     chat(monkeypatch, tmp_path, client, ["Q2", "exit"], "--session", "k7f2qa", "--persona", "analyse")
-    assert client.calls[0][:3] == ["Shared rules\n\n" + persona_prompt("analyse"), "Q1", "R1"]
+    assert client.calls[0][:3] == ["Shared rules\n\n" + persona_prompt("analyse") + TOOLS, "Q1", "R1"]
 
 
 def test_profile_file_replaces_stored_profile_then_is_injected_without_file(
@@ -194,17 +198,17 @@ def test_profile_file_replaces_stored_profile_then_is_injected_without_file(
     second = write_profile(tmp_path, {"ton": "direct", "public": "mode"}, "second.json")
     client = FakeClient(["R"])
     chat(monkeypatch, tmp_path, client, ["Q", "exit"], "--profile-file", second)
-    assert client.calls[0][0] == "Shared rules\n\n" + PROFILE
+    assert client.calls[0][0] == "Shared rules\n\n" + PROFILE + TOOLS
     assert stored(tmp_path)[2] == Profile("default", {"ton": "direct", "public": "mode"})
     client = FakeClient(["R"], ["R2"])
     chat(monkeypatch, tmp_path, client, ["Q", "/persona analyse", "Q2", "exit"])
-    assert client.calls[0][0] == "Shared rules\n\n" + PROFILE
-    assert client.calls[1][0] == "Shared rules\n\n" + PROFILE + "\n\n" + persona_prompt("analyse")
+    assert client.calls[0][0] == "Shared rules\n\n" + PROFILE + TOOLS
+    assert client.calls[1][0] == "Shared rules\n\n" + PROFILE + "\n\n" + persona_prompt("analyse") + TOOLS
 
 
 @pytest.mark.parametrize("persona_id", [None, "redaction"])
 def test_empty_profile_keeps_prompt_identical(monkeypatch, tmp_path, persona_id):
-    expected = "Shared rules" + (f"\n\n{persona_prompt(persona_id)}" if persona_id else "")
+    expected = "Shared rules" + (f"\n\n{persona_prompt(persona_id)}" if persona_id else "") + TOOLS
     persona = ["--persona", persona_id] if persona_id else []
     client = FakeClient(["R"])
     chat(monkeypatch, tmp_path, client, ["Q", "exit"], *persona)
@@ -315,7 +319,7 @@ def test_write_failure_is_reported_and_next_save_has_full_history(
     summaries, sessions, _ = stored(tmp_path)
     assert [m.content for m in sessions["k7f2qa"].messages] == ["Q1", "R1", "Q2", "R2"]
     assert summaries[0].title == "Q1"
-    assert client.calls[1] == ["Shared rules", "Q1", "R1", "Q2"]
+    assert client.calls[1] == ["Shared rules" + TOOLS, "Q1", "R1", "Q2"]
 
 
 @pytest.mark.parametrize("reply", [[""], ["Ligne\nDeux"], ["x" * 61], [LLMError("down")],
@@ -328,7 +332,7 @@ def test_invalid_title_reply_falls_back_to_truncated_first_message(
     chat(monkeypatch, tmp_path, client, [question, "Q2", "exit"])
     summaries, sessions, _ = stored(tmp_path)
     assert summaries[0].title == question[:39] + "…"
-    assert client.calls[2] == ["Shared rules", question, "R1", "Q2"]
+    assert client.calls[2] == ["Shared rules" + TOOLS, question, "R1", "Q2"]
     assert [m.content for m in sessions[summaries[0].id].messages] == [question, "R1", "Q2", "R2"]
 
 
@@ -402,7 +406,7 @@ def test_invalid_environment_persona_is_ignored_on_resume(monkeypatch, tmp_path,
     monkeypatch.setenv("SENSAI_PERSONA", "ghost")
     client = FakeClient(["R2"])
     chat(monkeypatch, tmp_path, client, ["Q2", "exit"], "--session", "k7f2qa")
-    assert client.calls[0][:2] == ["Shared rules\n\n" + persona_prompt("analyse"), "Q1"]
+    assert client.calls[0][:2] == ["Shared rules\n\n" + persona_prompt("analyse") + TOOLS, "Q1"]
     no_client(monkeypatch)
     with pytest.raises(SystemExit, match="^error: unknown persona: ghost$"):
         cli.main(["model", "--prompt", str(tmp_path / "prompt.txt"),
@@ -453,7 +457,7 @@ def test_blank_stored_profile_entries_keep_prompt_identical(monkeypatch, tmp_pat
         repository.for_creator("default").profiles.save(Profile("default", {"ton": " ", " ": "x"}))
     client = FakeClient(["R"])
     chat(monkeypatch, tmp_path, client, ["Q", "exit"])
-    assert client.calls[0][0] == "Shared rules"
+    assert client.calls[0][0] == "Shared rules" + TOOLS
 
 
 def test_ctrl_c_during_save_keeps_chatting(monkeypatch, tmp_path, capsys, ids):
@@ -487,8 +491,8 @@ def test_title_request_is_announced_and_has_its_own_deadline(
     chat(monkeypatch, tmp_path, FakeClient(["R1"], ["R2"]), ["Q1", "Q2", "exit"],
          "--operation-timeout", timeout)
     output = capsys.readouterr().out
-    assert "R1\nTitre de la session…\n<title request>\n" in output
-    assert output.count("Titre de la session…") == 1
+    assert "R1\n<title request>\n" in output
+    assert "Titre de la session" not in output
     assert len(remaining) == 1 and budget - 1 < remaining[0] <= budget
     assert stored(tmp_path)[0][0].title == "Titre"
 
@@ -531,7 +535,7 @@ def test_cancelled_and_errored_first_turns_save_nothing_then_first_success_saves
         assert saved_sessions.TITLE_PROMPT not in [m.content for m in messages]
         assert "Titre généré" not in [m.content for m in messages]
     assert [m.content for m in client.requests[5][1]] == [
-        "Shared rules", "Q1", "A1", "Q2", "A2", "Q3"]
+        "Shared rules" + TOOLS, "Q1", "A1", "Q2", "A2", "Q3"]
     summaries, sessions, _ = stored(tmp_path)
     assert [(s.id, s.title) for s in summaries] == [("k7f2qa", "Titre généré")]
     assert contents(sessions["k7f2qa"]) == [
@@ -581,7 +585,7 @@ def test_three_restarts_rebuild_system_and_keep_full_history(
          "--session", "k7f2qa")
     assert "Session k7f2qa — Titre\n" in capsys.readouterr().out
     profile_text = f"{PROFILE_HEADER}\n- ton : direct"
-    system = f"Shared rules\n\n{profile_text}\n\n{persona_prompt('analyse')}"
+    system = f"Shared rules\n\n{profile_text}\n\n{persona_prompt('analyse')}" + TOOLS
     assert [m.content for m in client.requests[0][1]] == [system, "Q1", "A1", "Qerr"]
     assert [m.content for m in client.requests[1][1]] == [system, "Q1", "A1", "Q2"]
     assert len(client.requests) == 2  # titled session: no further title call
@@ -591,7 +595,7 @@ def test_three_restarts_rebuild_system_and_keep_full_history(
     chat(monkeypatch, tmp_path, client, ["Q3", "exit"], "--session", "k7f2qa",
          "--profile-file", write_profile(tmp_path, {"langue": "fr"}, "p2.json"))
     system = (f"Shared rules\n\n{PROFILE_HEADER}\n- langue : fr\n\n"
-              f"{persona_prompt('redaction')}")
+              f"{persona_prompt('redaction')}") + TOOLS
     assert [m.content for m in client.requests[0][1]] == [
         system, "Q1", "A1", "Q2", "A2", "Q3"]
     assert [m.role for m in client.requests[0][1]] == [
@@ -609,7 +613,7 @@ def test_resume_with_cleared_profile_drops_profile_block(monkeypatch, tmp_path, 
     client = FakeClient(["A2"])
     chat(monkeypatch, tmp_path, client, ["Q2", "exit"], "--session", "k7f2qa",
          "--profile-file", write_profile(tmp_path, {}, "empty.json"))
-    assert client.requests[0][1][0].content == "Shared rules"
+    assert client.requests[0][1][0].content == "Shared rules" + TOOLS
     assert stored(tmp_path)[2] == Profile("default", {})
 
 
@@ -620,7 +624,7 @@ def test_new_launch_creates_distinct_session_and_keeps_old_one(
     chat(monkeypatch, tmp_path, FakeClient(["A1"]), ["First", "exit"])
     client = FakeClient(["A2"])
     chat(monkeypatch, tmp_path, client, ["Second", "exit"])
-    assert [m.content for m in client.requests[0][1]] == ["Shared rules", "Second"]
+    assert [m.content for m in client.requests[0][1]] == ["Shared rules" + TOOLS, "Second"]
     summaries, sessions, _ = stored(tmp_path)
     assert [s.id for s in summaries] == ["bbbbbb", "aaaaaa"]
     assert [m for _, m in contents(sessions["aaaaaa"])] == ["First", "A1"]
@@ -650,7 +654,7 @@ def test_environment_persona_applies_to_new_sessions(monkeypatch, tmp_path, ids)
     monkeypatch.setenv("SENSAI_PERSONA", "analyse")
     client = FakeClient(["A1"])
     chat(monkeypatch, tmp_path, client, ["Q1", "exit"])
-    assert client.requests[0][1][0].content == f"Shared rules\n\n{persona_prompt('analyse')}"
+    assert client.requests[0][1][0].content == f"Shared rules\n\n{persona_prompt('analyse')}" + TOOLS
     assert stored(tmp_path)[1]["k7f2qa"].persona_id == "analyse"
 
 
@@ -712,7 +716,7 @@ def test_profile_block_keeps_stored_key_order(monkeypatch, tmp_path, ids):
     client = FakeClient(["A2"])
     chat(monkeypatch, tmp_path, client, ["Q2", "exit"])
     assert client.requests[0][1][0].content == (
-        f"Shared rules\n\n{PROFILE_HEADER}\n- zeta : 1\n- alpha : 2")
+        f"Shared rules\n\n{PROFILE_HEADER}\n- zeta : 1\n- alpha : 2" + TOOLS)
 
 
 def test_profile_is_creator_scoped(monkeypatch, tmp_path, ids):
@@ -721,7 +725,7 @@ def test_profile_is_creator_scoped(monkeypatch, tmp_path, ids):
          "--profile-file", write_profile(tmp_path, {"ton": "alice"}))
     client = FakeClient(["A"])
     chat(monkeypatch, tmp_path, client, ["Q", "exit"], "--creator", "bob")
-    assert client.requests[0][1][0].content == "Shared rules"
+    assert client.requests[0][1][0].content == "Shared rules" + TOOLS
 
 
 # --- Isolation and early errors ----------------------------------------------------------

@@ -1,19 +1,23 @@
 """Command line interface."""
 import argparse
+import json
 import os
 import sqlite3
+import stat
 import sys
 from datetime import datetime, timezone
 from math import isfinite
 from time import monotonic
 from collections.abc import Callable, Sequence
+from functools import partial
 from typing import NamedTuple
 
 from sensai.core.errors import SensaiError
 from sensai.core.cancellation import CancellationToken, OperationCancelled, OperationTimedOut
-from sensai.core.ports import PortError, Profile
+from sensai.core.ports import PortError, Profile, ToolCall
 from sensai.chat import saved_sessions
 from sensai.chat.saved_sessions import SessionRecorder, display_title, profile_block
+from sensai.cli.approval import TerminalApproval
 from sensai.cli.terminal import TerminalInput
 from sensai.llm import create_client
 from sensai.chat.prompts import load_system_prompt
@@ -21,8 +25,78 @@ from sensai.chat.personas import PersonaRegistry
 from sensai.chat.session import ChatSession
 from sensai.settings import Settings
 from sensai.memory.sqlite_store import StorageError, StorageRepository
+from sensai.core.messages import Message
+from sensai.sandbox import RUN_PYTHON, SandboxLimits, python_tool, remove_stale_folders
+from sensai.tools import CALCULATE, ToolRegistry, calculate, run_with_tools, tool_instructions
 
 DEFAULT_DB_PATH = "sensai.sqlite3"
+MAX_SCRIPT_BYTES = 1024 * 1024
+
+
+def _tool_prompt(prompt, registry):
+    instructions = tool_instructions(registry.definitions())
+    return prompt if prompt.endswith(instructions) else f"{prompt}\n\n{instructions}"
+
+
+def _tools(read, approval=None, data_dir=None):
+    registry = ToolRegistry(approval, read=read)
+    registry.register(CALCULATE, calculate)
+    registry.register(RUN_PYTHON, partial(python_tool, data_dir=data_dir), confirm=True)
+    return registry
+
+
+def _read_script(path):
+    try:
+        # Non-blocking open so a FIFO cannot hang the chat; only regular files are read.
+        fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+        try:
+            if not stat.S_ISREG(os.fstat(fd).st_mode):
+                raise ValueError(f"{path} is not a regular file")
+            with open(fd, "rb", closefd=False) as f:
+                data = f.read(MAX_SCRIPT_BYTES + 1)
+        finally:
+            os.close(fd)
+    except OSError as e:
+        raise ValueError(f"cannot read {path}: {e.strerror or e}") from None
+    if len(data) > MAX_SCRIPT_BYTES:
+        raise ValueError(f"{path} is larger than 1 MiB")
+    try:
+        return data.decode("utf-8")
+    except UnicodeDecodeError:
+        raise ValueError(f"{path} is not UTF-8 text") from None
+
+
+def _sweep_quietly():
+    """Remove folders of killed tool workers; a second Ctrl+C must not escape the REPL."""
+    try:
+        remove_stale_folders()
+    except KeyboardInterrupt:
+        pass
+
+
+def _run_script(path, data_dir, token, write):
+    """/run: the tool's timed worker path, without approval or chat history."""
+    try:
+        code = _read_script(path)
+    except ValueError as e:
+        write(f"error: {e}")
+        return
+    write(f"Running in the sandbox (limit {SandboxLimits().wall_seconds:g} s)…")
+    registry = ToolRegistry()
+    registry.register(RUN_PYTHON, partial(python_tool, data_dir=data_dir))
+    try:
+        result = registry.execute(ToolCall(RUN_PYTHON.name, {"code": code}), token)
+    except (KeyboardInterrupt, OperationCancelled):
+        token.cancel()
+        _sweep_quietly()
+        write("\nExécution interrompue")
+    except OperationTimedOut:
+        _sweep_quietly()
+        write("\nDélai maximal dépassé")
+    except SensaiError as e:
+        write(f"error: {e}")
+    else:
+        write(result.output or f"error: {result.error}")
 
 
 class PreparedChat(NamedTuple):
@@ -63,6 +137,7 @@ def parse_args(settings: Settings, argv: Sequence[str] | None = None) -> argpars
                    default=settings.operation_timeout, help="maximum seconds per complete turn")
     args = p.parse_args(argv)
     args.persona_explicit = args.persona is not None
+    args.data_dir = settings.data_dir or None
     if args.persona is None:
         args.persona = settings.persona
     if not args.model and not args.list_personas and not args.list_sessions:
@@ -90,9 +165,14 @@ def _history(messages) -> str:
 def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
          operation_timeout: float = 120.0, cancel_requested=None,
          persona_registry: PersonaRegistry | None = None,
-         base_prompt: str | None = None, recorder: SessionRecorder | None = None) -> None:
+         base_prompt: str | None = None, recorder: SessionRecorder | None = None,
+         tool_registry: ToolRegistry | None = None, data_dir: str | None = None) -> None:
     if base_prompt is None:
         base_prompt = session.messages[0].content
+    if tool_registry is None:
+        tool_registry = _tools(read)
+    session.messages[0] = Message(role="system", content=_tool_prompt(
+        session.messages[0].content, tool_registry))
     while True:
         try:
             text = read("\n> ")
@@ -105,6 +185,10 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
         if text.strip().lower() in ("exit", "quit"):
             return
         command = text.strip().split(maxsplit=1)
+        if command and command[0] == "/tools":
+            for definition in tool_registry.definitions():
+                write(f"{definition.name}: {definition.description}")
+            continue
         if command and command[0] == "/persona":
             if persona_registry is None:
                 write("error: persona selection is unavailable")
@@ -116,7 +200,8 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
                 if persona is None:
                     write(f"error: unknown persona: {command[1]}")
                 else:
-                    session.set_system_prompt(f"{base_prompt}\n\n{persona.system_prompt}")
+                    session.set_system_prompt(_tool_prompt(
+                        f"{base_prompt}\n\n{persona.system_prompt}", tool_registry))
                     write(f"Persona sélectionnée : {persona.id}")
                     if recorder is not None:
                         recorder.persona_changed(persona.id)
@@ -125,7 +210,25 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
             write(_history(session.messages) if len(command) == 1 else "usage: /history")
             continue
         token = CancellationToken(monotonic() + operation_timeout, cancel_requested)
-        stream = session.send(text, token)
+        if command and command[0] == "/run":
+            if len(command) == 1:
+                write("usage: /run <file.py>")
+            else:
+                _run_script(command[1], data_dir, token, write)
+            continue
+
+        def on_tool(call, result):
+            if call.name == RUN_PYTHON.name:
+                summary = result.error if result.error is not None else result.output
+                write(f"Using tool: {call.name} · {(summary.splitlines() or [''])[0]}")
+                return
+            # Visible text before a block always ends a line: no extra newline.
+            arguments = json.dumps(dict(call.arguments), ensure_ascii=False)
+            # Lone surrogates from model JSON cannot be printed as UTF-8.
+            arguments = arguments.encode("utf-8", "backslashreplace").decode("utf-8")
+            write(f"Using tool: {call.name}({arguments})")
+
+        stream = run_with_tools(session, tool_registry, text, token, on_tool=on_tool)
         completed = False
         try:
             for chunk in stream:
@@ -134,8 +237,10 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
             completed = True
         except (KeyboardInterrupt, OperationCancelled):
             token.cancel()
+            _sweep_quietly()  # A killed tool worker may not have removed its folder.
             write("\nRéponse interrompue")
         except OperationTimedOut:
+            _sweep_quietly()
             write("\nDélai maximal dépassé")
         except ValueError:
             write("Please type something.")
@@ -232,6 +337,8 @@ def prepare_chat(args: argparse.Namespace) -> PreparedChat | None:
         base_prompt = load_system_prompt(args.prompt)
     except OSError as e:
         sys.exit(f"error: cannot read system prompt: {e}")
+    if args.data_dir and not os.path.isdir(args.data_dir):
+        sys.exit(f"error: data folder not found: {args.data_dir}")
     preferences = None
     if args.profile_file:
         try:
@@ -272,8 +379,9 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
         else:
             print(f"Session {recorder.session_id}")
         with TerminalInput() as terminal:
+            tool_registry = _tools(terminal.read, approval=TerminalApproval(terminal.read_key, print),
+                                   data_dir=args.data_dir)
             def titler(first_user: str, first_answer: str) -> str | None:
-                print("Titre de la session…")
                 token = CancellationToken(
                     monotonic() + min(saved_sessions.TITLE_TIMEOUT, args.operation_timeout),
                     terminal.cancel_requested)
@@ -281,14 +389,18 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
                                                     first_answer, token)
 
             recorder.titler = titler
-            session = ChatSession(client, args.model, prompt)
+            session = ChatSession(client, args.model, _tool_prompt(prompt, tool_registry))
             session.messages.extend(recorder.messages)
             repl(session, read=terminal.read,
                  operation_timeout=args.operation_timeout,
                  cancel_requested=terminal.cancel_requested,
-                 persona_registry=registry, base_prompt=base_prompt, recorder=recorder)
+                 persona_registry=registry, base_prompt=base_prompt, recorder=recorder,
+                 tool_registry=tool_registry, data_dir=args.data_dir)
     finally:
-        repository.close()
+        try:
+            remove_stale_folders()
+        finally:
+            repository.close()
 
 
 def main(argv: Sequence[str] | None = None) -> None:
