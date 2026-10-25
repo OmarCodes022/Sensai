@@ -1,5 +1,9 @@
 # Documentation index
 
+## Getting started
+
+- [Getting started: install, configure, chat and run the tests](getting-started.md)
+
 ## Architecture
 
 - [Overview: base chat, modules and extension points](architecture/overview.md)
@@ -27,6 +31,7 @@
 
 - [Local or remote Ollama over SSH (`sensai-remote`)](operations/remote-ollama.md)
 - [Epitech mirror](operations/epitech-mirror.md)
+- [Documentation site: build, deploy and local preview](operations/documentation.md)
 
 ## Task briefs (not implemented)
 
@@ -43,3 +48,7 @@
 - [`tests/fixtures/`](https://github.com/OmarCodes022/Sensai/tree/main/tests/fixtures/): synthetic brand facts and claims, DMs,
   posts and engagement figures for the fictional Serein Studio; no test uses
   them yet.
+
+## Contributing
+
+- [Contributing: branches, commits, workflows and new documentation pages](contributing.md)
