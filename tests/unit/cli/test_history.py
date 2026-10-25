@@ -128,7 +128,9 @@ def test_history_does_not_contact_model_change_messages_or_record():
     repl(session, read=read, write=lambda *args, **kw: None, recorder=recorder)
     assert snapshots[1] == snapshots[2] == snapshots[3]
     messages, requests, writes, title_calls = snapshots[3]
-    assert [m.content for m in messages] == ["sys", "Q1", "R1"]
+    # With tools registered, repl appends the tool instructions to the system message.
+    assert messages[0].content.startswith("sys")
+    assert [m.content for m in messages[1:]] == ["Q1", "R1"]
     assert requests == 1 and title_calls == 1 and len(writes) == 2
 
 
