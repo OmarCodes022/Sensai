@@ -1,5 +1,6 @@
 """Command line interface."""
 import argparse
+import json
 import os
 import sqlite3
 import sys
@@ -21,8 +22,21 @@ from sensai.chat.personas import PersonaRegistry
 from sensai.chat.session import ChatSession
 from sensai.settings import Settings
 from sensai.memory.sqlite_store import StorageError, StorageRepository
+from sensai.core.messages import Message
+from sensai.tools import CALCULATE, ToolRegistry, calculate, run_with_tools, tool_instructions
 
 DEFAULT_DB_PATH = "sensai.sqlite3"
+
+
+def _tool_prompt(prompt, registry):
+    instructions = tool_instructions(registry.definitions())
+    return prompt if prompt.endswith(instructions) else f"{prompt}\n\n{instructions}"
+
+
+def _tools(read):
+    registry = ToolRegistry(read=read)
+    registry.register(CALCULATE, calculate)
+    return registry
 
 
 class PreparedChat(NamedTuple):
@@ -73,9 +87,14 @@ def parse_args(settings: Settings, argv: Sequence[str] | None = None) -> argpars
 def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
          operation_timeout: float = 120.0, cancel_requested=None,
          persona_registry: PersonaRegistry | None = None,
-         base_prompt: str | None = None, recorder: SessionRecorder | None = None) -> None:
+         base_prompt: str | None = None, recorder: SessionRecorder | None = None,
+         tool_registry: ToolRegistry | None = None) -> None:
     if base_prompt is None:
         base_prompt = session.messages[0].content
+    if tool_registry is None:
+        tool_registry = _tools(read)
+    session.messages[0] = Message(role="system", content=_tool_prompt(
+        session.messages[0].content, tool_registry))
     while True:
         try:
             text = read("\n> ")
@@ -88,6 +107,10 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
         if text.strip().lower() in ("exit", "quit"):
             return
         command = text.strip().split(maxsplit=1)
+        if command and command[0] == "/tools":
+            for definition in tool_registry.definitions():
+                write(f"{definition.name}: {definition.description}")
+            continue
         if command and command[0] == "/persona":
             if persona_registry is None:
                 write("error: persona selection is unavailable")
@@ -99,13 +122,21 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
                 if persona is None:
                     write(f"error: unknown persona: {command[1]}")
                 else:
-                    session.set_system_prompt(f"{base_prompt}\n\n{persona.system_prompt}")
+                    session.set_system_prompt(_tool_prompt(
+                        f"{base_prompt}\n\n{persona.system_prompt}", tool_registry))
                     write(f"Persona sélectionnée : {persona.id}")
                     if recorder is not None:
                         recorder.persona_changed(persona.id)
             continue
         token = CancellationToken(monotonic() + operation_timeout, cancel_requested)
-        stream = session.send(text, token)
+        def on_tool(call, result):
+            # Visible text before a block always ends a line: no extra newline.
+            arguments = json.dumps(dict(call.arguments), ensure_ascii=False)
+            # Lone surrogates from model JSON cannot be printed as UTF-8.
+            arguments = arguments.encode("utf-8", "backslashreplace").decode("utf-8")
+            write(f"Using tool: {call.name}({arguments})")
+
+        stream = run_with_tools(session, tool_registry, text, token, on_tool=on_tool)
         completed = False
         try:
             for chunk in stream:
@@ -252,6 +283,7 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
         else:
             print(f"Session {recorder.session_id}")
         with TerminalInput() as terminal:
+            tool_registry = _tools(terminal.read)
             def titler(first_user: str, first_answer: str) -> str | None:
                 token = CancellationToken(
                     monotonic() + min(saved_sessions.TITLE_TIMEOUT, args.operation_timeout),
@@ -260,12 +292,13 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
                                                     first_answer, token)
 
             recorder.titler = titler
-            session = ChatSession(client, args.model, prompt)
+            session = ChatSession(client, args.model, _tool_prompt(prompt, tool_registry))
             session.messages.extend(recorder.messages)
             repl(session, read=terminal.read,
                  operation_timeout=args.operation_timeout,
                  cancel_requested=terminal.cancel_requested,
-                 persona_registry=registry, base_prompt=base_prompt, recorder=recorder)
+                 persona_registry=registry, base_prompt=base_prompt, recorder=recorder,
+                 tool_registry=tool_registry)
     finally:
         repository.close()
 

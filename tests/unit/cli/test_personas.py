@@ -11,9 +11,12 @@ from sensai.chat.personas import PersonaRegistry
 from sensai.chat.prompts import load_system_prompt
 from sensai.chat.session import ChatSession
 from sensai.settings import Settings
+from sensai.tools import CALCULATE, tool_instructions
 from sensai.core import cancellation
 from sensai.core.cancellation import CancellationToken, OperationCancelled
 from sensai.core.errors import LLMError
+
+TOOLS = "\n\n" + tool_instructions([CALCULATE])
 
 pytestmark = pytest.mark.usefixtures("isolated_settings")
 
@@ -101,10 +104,10 @@ def test_actual_model_prompt_stream_and_rollback(monkeypatch, tmp_path, persona_
     if persona_id:
         assert transmitted == (
             "Shared facts, privacy and approval rules\n\n"
-            + PersonaRegistry.from_file().get(persona_id).system_prompt
+            + PersonaRegistry.from_file().get(persona_id).system_prompt + TOOLS
         )
     else:
-        assert transmitted == "Shared facts, privacy and approval rules"
+        assert transmitted == "Shared facts, privacy and approval rules" + TOOLS
 
 
 def test_main_cli_overrides_environment_catalogue_and_selection(monkeypatch, tmp_path):
@@ -216,7 +219,7 @@ def test_real_shared_prompt_precedes_builtin_persona_block(monkeypatch, persona_
     assert system.startswith(shared)
     for rules in ("Facts and claims:", "Privacy:", "Instructions and actions:"):
         assert system.index(rules) < len(shared)
-    assert system[len(shared):] == "\n\n" + persona_block
+    assert system[len(shared):] == "\n\n" + persona_block + TOOLS
     assert system.count(persona_block) == 1
 
 
@@ -288,9 +291,9 @@ def test_main_switches_cached_custom_profiles_without_losing_history(
     cli.main(args)
 
     base = "Shared custom instructions."
-    initial = base if initial_persona is None else base + "\n\n" + registry.get("editor").system_prompt
-    reviewer = base + "\n\n" + registry.get("Review Team").system_prompt
-    editor = base + "\n\n" + registry.get("editor").system_prompt
+    initial = (base if initial_persona is None else base + "\n\n" + registry.get("editor").system_prompt) + TOOLS
+    reviewer = base + "\n\n" + registry.get("Review Team").system_prompt + TOOLS
+    editor = base + "\n\n" + registry.get("editor").system_prompt + TOOLS
     assert client.calls == [
         [initial, "Draft"],
         [reviewer, "Draft", "first reply", reviewer, "Revise"],
@@ -315,7 +318,8 @@ def test_invalid_and_listing_commands_leave_existing_history_untouched(capsys):
     inputs = iter(["/persona", "/persona absent", "/persona redaction extra", "exit"])
     cli.repl(session, read=lambda _: next(inputs), persona_registry=PersonaRegistry.from_file(),
              base_prompt="Shared")
-    assert session.messages == before
+    assert session.messages[1:] == before[1:]
+    assert session.messages[0].content == before[0].content + TOOLS
     assert len(client.calls) == 1
     assert "error: unknown persona: redaction extra" in capsys.readouterr().out
 
@@ -332,8 +336,8 @@ def test_switched_persona_survives_interrupted_stream_and_next_switch(failure, n
         "/persona analyse", "Interrupted", "/persona communaute", "Next", "exit",
     ])
     cli.repl(session, read=lambda _: next(inputs), persona_registry=registry, base_prompt="Shared")
-    analyse = "Shared\n\n" + registry.get("analyse").system_prompt
-    communaute = "Shared\n\n" + registry.get("communaute").system_prompt
+    analyse = "Shared\n\n" + registry.get("analyse").system_prompt + TOOLS
+    communaute = "Shared\n\n" + registry.get("communaute").system_prompt + TOOLS
     assert client.calls == [
         [analyse, analyse, "Interrupted"],
         [communaute, communaute, "Next"],
@@ -348,7 +352,7 @@ def test_legacy_repl_rejects_persona_command_without_model_call(capsys):
     session = ChatSession(client, "model", "Shared")
     inputs = iter(["/persona analyse", "/personality", "exit"])
     cli.repl(session, read=lambda _: next(inputs))
-    assert client.calls == [["Shared", "/personality"]]
+    assert client.calls == [["Shared" + TOOLS, "/personality"]]
     assert "error: persona selection is unavailable" in capsys.readouterr().out
 
 
@@ -387,10 +391,10 @@ def test_interrupted_switch_preserves_earlier_turn_and_streaming(monkeypatch, in
     cli.repl(session, read=read, write=write, cancel_requested=lambda: cancelled,
              persona_registry=registry, base_prompt="Shared")
 
-    analyse = "Shared\n\n" + registry.get("analyse").system_prompt
-    communaute = "Shared\n\n" + registry.get("communaute").system_prompt
+    analyse = "Shared\n\n" + registry.get("analyse").system_prompt + TOOLS
+    communaute = "Shared\n\n" + registry.get("communaute").system_prompt + TOOLS
     assert client.calls == [
-        ["Shared", "Earlier"],
+        ["Shared" + TOOLS, "Earlier"],
         [analyse, "Earlier", "old reply", analyse, "Interrupted"],
         [communaute, "Earlier", "old reply", communaute, "Continue"],
     ]
@@ -414,8 +418,8 @@ def test_cli_recovers_from_empty_reply_and_honors_two_persona_switches():
              write=lambda text="", **kwargs: output.append(text),
              persona_registry=registry, base_prompt="Shared")
 
-    analyse_prompt = "Shared\n\n" + registry.get("analyse").system_prompt
-    communaute_prompt = "Shared\n\n" + registry.get("communaute").system_prompt
+    analyse_prompt = "Shared\n\n" + registry.get("analyse").system_prompt + TOOLS
+    communaute_prompt = "Shared\n\n" + registry.get("communaute").system_prompt + TOOLS
     assert client.calls[1] == [
         analyse_prompt, "Earlier", "Je suis Rédaction.", analyse_prompt, "Failed",
     ]
@@ -455,7 +459,7 @@ def test_builtin_switches_through_main_keep_identical_completed_turns(
     cli.main(["fake-model", "--prompt", str(prompt), "--persona", "redaction"])
 
     registry = PersonaRegistry.from_file()
-    red, ana, com = ("Shared rules\n\n" + registry.get(pid).system_prompt
+    red, ana, com = ("Shared rules\n\n" + registry.get(pid).system_prompt + TOOLS
                      for pid in ("redaction", "analyse", "communaute"))
     shape = [[(m.role, m.content) for m in request] for _, request in client.requests]
     assert shape == [
@@ -527,9 +531,9 @@ def test_no_persona_multi_turn_session_never_gets_a_reminder():
     cli.repl(session, read=lambda _: next(inputs), write=lambda *args, **kwargs: None,
              persona_registry=PersonaRegistry.from_file(), base_prompt="Shared")
     assert client.calls == [
-        ["Shared", "Q1"],
-        ["Shared", "Q1", "A1", "Q2"],
-        ["Shared", "Q1", "A1", "Q2", "A2", "Q3"],
+        ["Shared" + TOOLS, "Q1"],
+        ["Shared" + TOOLS, "Q1", "A1", "Q2"],
+        ["Shared" + TOOLS, "Q1", "A1", "Q2", "A2", "Q3"],
     ]
     for _, request in client.requests:
         roles = [m.role for m in request]
