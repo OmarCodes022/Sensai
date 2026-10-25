@@ -10,9 +10,11 @@ from sensai.chat.personas import PersonaRegistry
 from sensai.chat.saved_sessions import SessionRecorder
 from sensai.chat.session import ChatSession
 from sensai.core.messages import Message
+from sensai.core.ports import ToolDefinition, ToolResult
 from sensai.cli import main as cli
 from sensai.cli.main import repl
 from sensai.memory.sqlite_store import StorageRepository
+from sensai.tools import ToolRegistry
 
 
 @pytest.fixture(autouse=True)
@@ -181,3 +183,20 @@ def test_numbering_counts_only_listed_messages():
     messages.insert(3, Message(role="user", content="Tool result from t:\n{}"))
     lines = cli._history(messages).split("\n")
     assert lines[0] == "1. Q1" and lines[3] == "4. Q4" and lines[-1] == "11. Q11"
+
+
+def test_real_tool_rounds_leave_only_creator_messages():
+    tools = ToolRegistry()
+    tools.register(ToolDefinition("lookup", "Look up."),
+                   lambda arguments, cancellation: ToolResult("7"), timeout=None)
+    tools.register(ToolDefinition("broken", "Always fails."),
+                   lambda arguments, cancellation: ToolResult("", error="boom"), timeout=None)
+    client = FakeClient(['{"tool": "lookup", "arguments": {}}'], ["Seven"],
+                        ['{"tool": "broken", "arguments": {}}'], ["Sorry"])
+    session = ChatSession(client, "model", "sys")
+    output = run(session, ["First question", "Second question", "/history", "exit"],
+                 tool_registry=tools)
+    contents = [m.content for m in session.messages]
+    assert any(c.startswith("Tool result from lookup:") for c in contents)
+    assert any(c.startswith("Tool error from broken:") for c in contents)
+    assert output.endswith("Sorry\n1. First question\n2. Second question\n")
