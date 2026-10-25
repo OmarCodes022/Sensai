@@ -39,6 +39,31 @@ The CLI also implements two optional features on top of it:
 `llm.ollama` imports `core.isolation` lazily when a cancellation token is
 passed; that runtime link is intentional.
 
+This is how the modules call each other when `sensai` or `sensai-remote` runs
+(the dotted arrow is not used by the CLI, which sets no event sink):
+
+```mermaid
+flowchart TD
+    remote["sensai-remote: cli.remote"] -->|"SSH tunnel, then run_chat"| cli["sensai: cli.main REPL"]
+    remote --> settings["settings: .env and environment"]
+    cli --> settings
+    cli -->|"run_with_tools, /run"| tools["tools: ToolRegistry and tool loop"]
+    tools -->|"session.send"| session["chat.session: ChatSession"]
+    cli -->|"create_client"| ollama["llm.ollama: OllamaClient"]
+    session -->|"client.stream"| ollama
+    ollama -->|"token given: ControlledLLMClient"| isolation["core.isolation: spawned child process"]
+    isolation -->|"POST /api/chat"| server[("Ollama server")]
+    tools -->|"confirm=True: request"| approval["cli.approval: TerminalApproval"]
+    tools -->|"timed tool: ControlledTool"| isolation
+    isolation -->|"python_tool"| sandbox["sandbox: run_python"]
+    cli -->|"after_turn"| recorder["chat.saved_sessions: SessionRecorder"]
+    recorder -->|"generate_title"| ollama
+    recorder -->|"save, set_title"| memory[("memory.sqlite_store: SQLite file")]
+    cli -->|"list, load, save profile"| memory
+    isolation -->|"new_operation_id"| telemetry["telemetry: usage and event hooks"]
+    ollama -.->|"event_sink only"| telemetry
+```
+
 ## Data flow and extension points
 
 ```text
@@ -71,6 +96,49 @@ required to implement these ports.
 | Tools | Execution and resource isolation | `ToolCall` → `ToolResult` **after** permission and any required approval, never as an implicit model side effect |
 | Policy | Rules, scope, consent/approval UX, input/output guardrails | `PermissionPort`, `ApprovalPort`, `GuardrailPort` with typed decisions; deny by default when no applicable authorization |
 | Observability and evaluation | Safe event consumers | `EventPort` metadata; no automatic prompt/response logging |
+
+## One turn with a tool call
+
+This is one question in the CLI where the model asks for `run_python`, a
+`confirm=True` tool, and then answers with its result:
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant CLI as cli.main repl
+    participant ToolLoop as tools.run_with_tools
+    participant Session as ChatSession
+    participant Model as OllamaClient and model
+    participant Registry as ToolRegistry
+    participant Approval as TerminalApproval
+    participant Sandbox as run_python in a child process
+    User->>CLI: question
+    CLI->>ToolLoop: run_with_tools(session, registry, text, token)
+    ToolLoop->>Session: send(text)
+    Session->>Model: stream(model, messages)
+    Model-->>Session: reply chunks
+    Session-->>ToolLoop: chunks ending with a tool block
+    Note over ToolLoop: BlockReader hides the tool block
+    ToolLoop->>Registry: execute(ToolCall run_python)
+    Registry->>Approval: request(ApprovalRequest)
+    Approval->>User: Run run_python? with a code preview
+    User-->>Approval: y, n or v
+    Approval-->>Registry: ApprovalDecision
+    alt approved
+        Registry->>Sandbox: python_tool through ControlledTool
+        Sandbox-->>Registry: ToolResult with exit code, stdout, stderr
+    else refused
+        Note over Registry: error result, tool approval refused
+    end
+    Registry-->>ToolLoop: ToolResult
+    ToolLoop->>CLI: on_tool(call, result) prints the Using tool line
+    ToolLoop->>Session: send(Tool result or Tool error from run_python)
+    Session->>Model: stream(model, messages)
+    Model-->>Session: reply chunks
+    Session-->>ToolLoop: answer chunks, no tool block
+    ToolLoop-->>CLI: visible text
+    CLI-->>User: streamed answer
+```
 
 ## Error, cancellation, privacy invariants
 

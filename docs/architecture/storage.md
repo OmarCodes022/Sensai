@@ -80,6 +80,40 @@ with existing tables, and incompatible known tables are rejected rather than
 overwritten. An interrupted or failed migration leaves the original version
 and data intact.
 
+These are the four tables of a version 3 database. Every column is `TEXT`;
+there are no foreign keys, so the links below are kept by the repository code:
+
+```mermaid
+erDiagram
+    sessions ||--|| session_meta : "saved and deleted together"
+    profiles |o--o{ facts : "deleted with their profile"
+    sessions {
+        TEXT creator_id PK
+        TEXT session_id PK
+        TEXT messages "JSON, not null"
+        TEXT persona_id "nullable"
+    }
+    session_meta {
+        TEXT creator_id PK
+        TEXT session_id PK
+        TEXT title "nullable"
+        TEXT created_at "ISO-8601 UTC"
+        TEXT updated_at "ISO-8601 UTC"
+    }
+    profiles {
+        TEXT creator_id PK
+        TEXT profile_id PK
+        TEXT preferences "JSON, not null"
+    }
+    facts {
+        TEXT creator_id PK
+        TEXT profile_id PK
+        TEXT fact_id PK
+        TEXT text "not null"
+        TEXT source "not null"
+    }
+```
+
 Invalid IDs (non-string, blank, control characters, or over 255 characters)
 raise `InvalidStorageId`; unsupported databases raise
 `UnsupportedStorageSchema`; invalid payloads or failed transactions raise
