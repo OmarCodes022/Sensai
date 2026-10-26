@@ -18,6 +18,7 @@ Features from the subject catalogue that are implemented in the code:
 | B1 | Functional CLI chatbot (base chat) | Streamed replies, in-session history, clean errors (empty input, missing model, connection failure, timeout), model chosen by argument or `.env`, Ctrl+C/Esc interrupts a reply | [Overview](docs/architecture/overview.md), [cancellation](docs/architecture/cancellation.md) |
 | A5 | Persona | Built-in and JSON-file personas, chosen at startup or switched with `/persona <id>` without losing history | [Persona guide](docs/product/personas.md) |
 | M1 | Session Persistence & Profiles | Sessions saved after each completed turn, listed and resumed after restart; a creator profile file injected into the system prompt | [Storage](docs/architecture/storage.md) |
+| M2 | Token Budgeting & Semantic Compression | Token count per turn (from Ollama, or an estimate) against `--context-budget`; at 80% the oldest messages become one saved summary; `/context` shows usage, summaries and tokens saved; a failed or cancelled summary keeps the full history | [Stories](docs/stories/m2-context-budget.md) |
 
 User stories: see [docs/stories/](docs/stories/README.md). A5 has draft
 stories; B1 and M1 still need theirs.
@@ -70,6 +71,13 @@ is dropped from history. Each turn has a 120-second budget
 thinking models, set `SENSAI_CONTEXT_LENGTH=8192`. A reply that ends without
 visible text, or stops at the token limit, is reported as an error and not
 kept in history.
+
+When a turn uses 80% of the token budget (`--context-budget` or
+`SENSAI_CONTEXT_BUDGET`; default `SENSAI_CONTEXT_LENGTH`, else 4096), the
+oldest messages are replaced by one `Summary of earlier conversation:` message
+(the system prompt and the last 4 messages are kept). The summary replaces those
+turns in the saved session too. `/context` shows the budget, the last count,
+the number of summaries and the tokens saved.
 
 ### Chat with a remote model over SSH
 

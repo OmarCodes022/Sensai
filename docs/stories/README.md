@@ -35,6 +35,7 @@ Only features implemented in the code are listed; see the
 | B1 Functional CLI chatbot (base chat) | — | **Stories needed** |
 | A5 Persona | [3 stories in the persona guide](../product/personas.md#story-1-choose-a-role-for-the-activity) | Draft, not independently reviewed |
 | M1 Session Persistence & Profiles | — | **Stories needed** |
+| M2 Token Budgeting & Semantic Compression | [2 stories](m2-context-budget.md) | Draft, not independently reviewed |
 
 Partial foundations (embeddings, vector index, structured output, telemetry,
 the manual adversarial runner) are not complete catalogue features and need
