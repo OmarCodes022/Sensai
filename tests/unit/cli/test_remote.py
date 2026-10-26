@@ -377,7 +377,7 @@ def test_launcher_switches_with_context_loaded_once_before_tunnel(
         yield
         events.append("tunnel closed")
 
-    def create_client(client_settings):
+    def create_client(client_settings, usage_sink=None):
         assert client_settings.host == settings.host
         assert events == (["tunnel opened"] if over_ssh else [])
         invalidate_loaded_files()
@@ -445,7 +445,7 @@ def test_launcher_forwards_session_options(monkeypatch, tmp_path, capsys, over_s
     database = str(tmp_path / "cli.db")
     client = FakeClient(["R1"], ["R2"])
 
-    def create_client(client_settings):
+    def create_client(client_settings, usage_sink=None):
         events.append("client created")
         return client
 

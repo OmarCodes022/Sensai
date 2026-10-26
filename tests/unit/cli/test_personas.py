@@ -51,7 +51,7 @@ def test_settings_cli_priority(monkeypatch):
 def test_listing_needs_no_model_or_client(monkeypatch, capsys):
     monkeypatch.setattr(cli, "Settings", lambda: Settings(_env_file=None, SENSAI_MODEL=None,
                                                          SENSAI_PERSONA="unknown"))
-    monkeypatch.setattr(cli, "create_client", lambda _: pytest.fail("client created"))
+    monkeypatch.setattr(cli, "create_client", lambda _, usage_sink=None: pytest.fail("client created"))
     monkeypatch.setattr(cli, "load_system_prompt", lambda _: pytest.fail("prompt read"))
     cli.main(["--list-personas"])
     assert capsys.readouterr().out.splitlines() == [
@@ -64,7 +64,7 @@ def test_listing_needs_no_model_or_client(monkeypatch, capsys):
 ])
 def test_invalid_startup_fails_before_client(monkeypatch, args):
     monkeypatch.setattr(cli, "Settings", lambda: Settings(_env_file=None))
-    monkeypatch.setattr(cli, "create_client", lambda _: pytest.fail("client created"))
+    monkeypatch.setattr(cli, "create_client", lambda _, usage_sink=None: pytest.fail("client created"))
     with pytest.raises(SystemExit, match="error:"):
         cli.main(["model", *args])
 
@@ -76,7 +76,7 @@ def test_actual_model_prompt_stream_and_rollback(monkeypatch, tmp_path, persona_
     client = FakeClient(["first", " reply"], ["partial"], ["next"])
     settings = Settings(_env_file=None, SENSAI_PERSONA=None, SENSAI_PERSONAS_FILE=None)
     monkeypatch.setattr(cli, "Settings", lambda: settings)
-    monkeypatch.setattr(cli, "create_client", lambda _: client)
+    monkeypatch.setattr(cli, "create_client", lambda _, usage_sink=None: client)
 
     def exercise(session: ChatSession, **kwargs):
         assert list(session.send("first message")) == ["first", " reply"]
@@ -115,7 +115,7 @@ def test_main_cli_overrides_environment_catalogue_and_selection(monkeypatch, tmp
     monkeypatch.setenv("SENSAI_PERSONAS_FILE", str(tmp_path / "missing-env.json"))
     monkeypatch.setenv("SENSAI_PERSONA", "missing-env-persona")
     client = FakeClient(["draft"], ["revision"])
-    monkeypatch.setattr(cli, "create_client", lambda settings: client)
+    monkeypatch.setattr(cli, "create_client", lambda settings, usage_sink=None: client)
 
     monkeypatch.setattr(cli, "TerminalInput",
                         scripted_terminal(["Write a draft", "Revise it", "exit"]))
@@ -134,7 +134,7 @@ def test_actual_repl_cancellation_keeps_persona_and_discards_partial_turn(
     prompt = tmp_path / "prompt.txt"
     prompt.write_text("Shared rules", encoding="utf-8")
     client = FakeClient(["shown partial", "never shown"], ["complete"])
-    monkeypatch.setattr(cli, "create_client", lambda settings: client)
+    monkeypatch.setattr(cli, "create_client", lambda settings, usage_sink=None: client)
     partial_emitted = False
 
     class Terminal:
@@ -185,7 +185,7 @@ def test_bad_catalogue_is_explicit_startup_error_before_model_or_prompt(
 ):
     path = tmp_path / "bad.json"
     path.write_bytes(contents)
-    monkeypatch.setattr(cli, "create_client", lambda settings: pytest.fail("model client created"))
+    monkeypatch.setattr(cli, "create_client", lambda settings, usage_sink=None: pytest.fail("model client created"))
     monkeypatch.setattr(cli, "load_system_prompt", lambda path: pytest.fail("prompt loaded"))
     with pytest.raises(SystemExit, match="error: cannot load personas:"):
         cli.main(["fake-model", "--personas-file", str(path)])
@@ -198,7 +198,7 @@ def test_listing_custom_environment_catalogue_from_another_cwd(monkeypatch, tmp_
     monkeypatch.setenv("SENSAI_PERSONAS_FILE", str(catalogue))
     monkeypatch.setenv("SENSAI_PERSONA", "unknown-selection")
     monkeypatch.setenv("SENSAI_PROMPT", "missing-prompt.txt")
-    monkeypatch.setattr(cli, "create_client", lambda settings: pytest.fail("model client created"))
+    monkeypatch.setattr(cli, "create_client", lambda settings, usage_sink=None: pytest.fail("model client created"))
     monkeypatch.setattr(cli, "load_system_prompt", lambda path: pytest.fail("prompt loaded"))
     cli.main(["--list-personas"])
     assert capsys.readouterr().out.splitlines() == ["editor: Édition locale"]
@@ -208,7 +208,7 @@ def test_listing_custom_environment_catalogue_from_another_cwd(monkeypatch, tmp_
 def test_real_shared_prompt_precedes_builtin_persona_block(monkeypatch, persona_id):
     shared = load_system_prompt()
     client = FakeClient(["ok"])
-    monkeypatch.setattr(cli, "create_client", lambda settings: client)
+    monkeypatch.setattr(cli, "create_client", lambda settings, usage_sink=None: client)
     monkeypatch.setattr(cli, "TerminalInput", scripted_terminal(["Hello", "exit"]))
     cli.main(["fake-model", "--persona", persona_id])
     system = client.requests[0][1][0].content
@@ -222,7 +222,7 @@ def test_real_shared_prompt_precedes_builtin_persona_block(monkeypatch, persona_
 
 def test_unknown_environment_persona_fails_before_client(monkeypatch):
     monkeypatch.setenv("SENSAI_PERSONA", "ghost")
-    monkeypatch.setattr(cli, "create_client", lambda settings: pytest.fail("client created"))
+    monkeypatch.setattr(cli, "create_client", lambda settings, usage_sink=None: pytest.fail("client created"))
     with pytest.raises(SystemExit, match="^error: unknown persona: ghost$"):
         cli.main(["model"])
 
@@ -230,7 +230,7 @@ def test_unknown_environment_persona_fails_before_client(monkeypatch):
 def test_json_object_catalogue_fails_before_client(monkeypatch, tmp_path):
     path = tmp_path / "object.json"
     path.write_text(json.dumps({"personas": [PROFILE]}), encoding="utf-8")
-    monkeypatch.setattr(cli, "create_client", lambda settings: pytest.fail("client created"))
+    monkeypatch.setattr(cli, "create_client", lambda settings, usage_sink=None: pytest.fail("client created"))
     with pytest.raises(SystemExit, match="^error: cannot load personas: .*JSON array"):
         cli.main(["model", "--personas-file", str(path)])
 
@@ -257,7 +257,7 @@ def test_main_switches_cached_custom_profiles_without_losing_history(
     client = FakeClient(["first", " reply"], ["revision"], ["last"])
     monkeypatch.setattr(cli, "Settings", lambda: Settings(_env_file=None, SENSAI_PERSONA=None,
                                                          SENSAI_PERSONAS_FILE=None))
-    monkeypatch.setattr(cli, "create_client", lambda _: client)
+    monkeypatch.setattr(cli, "create_client", lambda _, usage_sink=None: client)
 
     class Terminal:
         def __enter__(self):
@@ -448,7 +448,7 @@ def test_builtin_switches_through_main_keep_identical_completed_turns(
         return sessions[-1]
 
     monkeypatch.setattr(cli, "ChatSession", make_session)
-    monkeypatch.setattr(cli, "create_client", lambda settings: client)
+    monkeypatch.setattr(cli, "create_client", lambda settings, usage_sink=None: client)
     monkeypatch.setattr(cli, "TerminalInput", scripted_terminal([
         "Turn one", "/persona analyse", "Turn two", "/persona communaute", "Turn three", "exit",
     ], on_read=lambda: snapshots.append(list(sessions[0].messages))))

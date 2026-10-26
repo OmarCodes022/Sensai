@@ -81,7 +81,7 @@ def test_default_prompt_is_packaged_and_overrides_still_apply(monkeypatch, tmp_p
     elif source == "env":
         monkeypatch.setenv("SENSAI_PROMPT", str(custom))
     client = FakeClient(["ok"])
-    monkeypatch.setattr(cli, "create_client", lambda settings: client)
+    monkeypatch.setattr(cli, "create_client", lambda settings, usage_sink=None: client)
     monkeypatch.setattr(cli, "TerminalInput", scripted_terminal(["Hi", "exit"]))
     cli.main(argv)
     expected = load_system_prompt() if source == "default" else "Custom rules"
@@ -104,7 +104,7 @@ def test_prompt_option_precedence_and_empty_values(monkeypatch, tmp_path, case):
     else:
         argv += ["--prompt", ""]
     client = FakeClient(["ok"])
-    monkeypatch.setattr(cli, "create_client", lambda settings: client)
+    monkeypatch.setattr(cli, "create_client", lambda settings, usage_sink=None: client)
     monkeypatch.setattr(cli, "TerminalInput", scripted_terminal(["Hi", "exit"]))
     cli.main(argv)
     assert client.calls == [[expected, "Hi"]]

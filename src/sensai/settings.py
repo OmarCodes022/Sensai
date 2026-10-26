@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     personas_file: str | None = Field(None, validation_alias="SENSAI_PERSONAS_FILE")
     timeout: float = Field(60.0, gt=0, allow_inf_nan=False, validation_alias="SENSAI_TIMEOUT")
     context_length: int | None = Field(None, gt=0, validation_alias="SENSAI_CONTEXT_LENGTH")
+    context_budget: int | None = Field(None, gt=0, validation_alias="SENSAI_CONTEXT_BUDGET")
     operation_timeout: float = Field(120.0, gt=0, allow_inf_nan=False,
                                      validation_alias="SENSAI_OPERATION_TIMEOUT")
     db_path: str | None = Field(None, validation_alias="SENSAI_DB")

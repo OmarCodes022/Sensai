@@ -12,7 +12,7 @@ from typing import NamedTuple
 from sensai.core.errors import SensaiError
 from sensai.core.cancellation import CancellationToken, OperationCancelled, OperationTimedOut
 from sensai.core.ports import PortError, Profile
-from sensai.chat import saved_sessions
+from sensai.chat import compression, saved_sessions
 from sensai.chat.saved_sessions import SessionRecorder, display_title, profile_block
 from sensai.cli.terminal import TerminalInput
 from sensai.llm import create_client
@@ -23,6 +23,49 @@ from sensai.settings import Settings
 from sensai.memory.sqlite_store import StorageError, StorageRepository
 
 DEFAULT_DB_PATH = "sensai.sqlite3"
+
+
+DEFAULT_CONTEXT_BUDGET = 4096
+
+
+class ContextState:
+    """Token budget, the last turn's count and what summaries saved (M2)."""
+
+    def __init__(self, budget: int):
+        self.budget = budget
+        self.reported: int | None = None
+        self.last_tokens: int | None = None
+        self.summaries = 0
+        self.saved = 0
+        self.before_summary: int | None = None
+        self.after_summary = False
+
+    def on_usage(self, usage) -> None:
+        # Called once per request; the last request of a turn holds the whole history.
+        if usage.prompt_tokens is not None and usage.output_tokens is not None:
+            self.reported = usage.prompt_tokens + usage.output_tokens
+
+    def start_turn(self) -> None:
+        self.reported = None
+
+    def end_turn(self, messages) -> int:
+        """Real count if Ollama reported one this turn, else characters / 4."""
+        tokens = self.reported if self.reported is not None else compression.estimate_tokens(messages)
+        self.last_tokens = tokens
+        self.after_summary = self.before_summary is not None
+        if self.before_summary is not None:
+            self.saved += max(self.before_summary - tokens, 0)
+            self.before_summary = None
+        return tokens
+
+    def line(self, tokens: int) -> str:
+        return f"Context: {tokens:,} / {self.budget:,} tokens ({tokens * 100 // self.budget}%)"
+
+    def report(self) -> str:
+        last = "—" if self.last_tokens is None else \
+            f"{self.last_tokens:,} ({self.last_tokens * 100 // self.budget}%)"
+        return (f"Budget {self.budget:,}   Last turn {last}   "
+                f"Summaries {self.summaries}   Saved about {self.saved:,} tokens")
 
 
 class PreparedChat(NamedTuple):
@@ -61,6 +104,18 @@ def parse_args(settings: Settings, argv: Sequence[str] | None = None) -> argpars
         return number
     p.add_argument("--operation-timeout", type=positive_timeout,
                    default=settings.operation_timeout, help="maximum seconds per complete turn")
+    def positive_int(value):
+        try:
+            number = int(value)
+        except ValueError:
+            raise argparse.ArgumentTypeError("context budget must be a positive integer") from None
+        if number <= 0:
+            raise argparse.ArgumentTypeError("context budget must be a positive integer")
+        return number
+    p.add_argument("--context-budget", type=positive_int,
+                   default=settings.context_budget or settings.context_length or DEFAULT_CONTEXT_BUDGET,
+                   help="token budget; older messages are summarized at 80%% "
+                        "(default: SENSAI_CONTEXT_BUDGET, SENSAI_CONTEXT_LENGTH or 4096)")
     args = p.parse_args(argv)
     args.persona_explicit = args.persona is not None
     if args.persona is None:
@@ -73,7 +128,8 @@ def parse_args(settings: Settings, argv: Sequence[str] | None = None) -> argpars
 def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
          operation_timeout: float = 120.0, cancel_requested=None,
          persona_registry: PersonaRegistry | None = None,
-         base_prompt: str | None = None, recorder: SessionRecorder | None = None) -> None:
+         base_prompt: str | None = None, recorder: SessionRecorder | None = None,
+         context: ContextState | None = None) -> None:
     if base_prompt is None:
         base_prompt = session.messages[0].content
     while True:
@@ -104,6 +160,11 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
                     if recorder is not None:
                         recorder.persona_changed(persona.id)
             continue
+        if command and command[0] == "/context":
+            write(context.report() if context is not None else "error: context budget is unavailable")
+            continue
+        if context is not None:
+            context.start_turn()
         token = CancellationToken(monotonic() + operation_timeout, cancel_requested)
         stream = session.send(text, token)
         completed = False
@@ -123,8 +184,33 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
             write(f"error: {e}")
         finally:
             stream.close()
-        if completed and recorder is not None:
+        if not completed:
+            continue
+        # Count before the title or summary requests report their own usage.
+        tokens = context.end_turn(session.messages) if context is not None else None
+        if context is not None and context.after_summary:
+            write(context.line(tokens))
+        if recorder is not None:
             recorder.after_turn(session)
+        if context is not None and compression.should_compress(tokens, context.budget):
+            _summarize(session, context, tokens, write, recorder,
+                       CancellationToken(monotonic() + operation_timeout, cancel_requested))
+
+
+def _summarize(session: ChatSession, context: ContextState, tokens: int, write,
+               recorder: SessionRecorder | None, token: CancellationToken) -> None:
+    """Between turns only: condense the oldest messages; a failure keeps the full history."""
+    cut = compression.choose_cut(session.messages)
+    if cut is None:
+        return
+    write(f"{context.line(tokens)}, summarizing {cut - 1} older messages…")
+    if not compression.compress(session, cut, token):
+        write("warning: summary failed, full history kept")
+        return
+    context.summaries += 1
+    context.before_summary = tokens
+    if recorder is not None:
+        recorder.after_turn(session)
 
 
 def _open_storage(args: argparse.Namespace):
@@ -245,8 +331,10 @@ def prepare_chat(args: argparse.Namespace) -> PreparedChat | None:
 def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedChat) -> None:
     prompt, registry, base_prompt, repository, recorder = prepared
     try:
-        client = create_client(settings.model_copy(update={"host": args.host}))
-        print(f"Chatting with {args.model}. Type '/persona' to list profiles or 'exit' to quit.")
+        state = ContextState(args.context_budget)
+        client = create_client(settings.model_copy(update={"host": args.host}), usage_sink=state.on_usage)
+        print(f"Chatting with {args.model}. Type '/persona' to list profiles, "
+              "'/context' for token usage or 'exit' to quit.")
         if recorder.saved:
             print(f"Session {recorder.session_id} — {display_title(recorder.title, recorder.messages)}")
         else:
@@ -266,7 +354,8 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
             repl(session, read=terminal.read,
                  operation_timeout=args.operation_timeout,
                  cancel_requested=terminal.cancel_requested,
-                 persona_registry=registry, base_prompt=base_prompt, recorder=recorder)
+                 persona_registry=registry, base_prompt=base_prompt, recorder=recorder,
+                 context=state)
     finally:
         repository.close()
 

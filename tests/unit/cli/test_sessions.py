@@ -48,7 +48,7 @@ def base_argv(tmp_path):
 
 
 def chat(monkeypatch, tmp_path, client, inputs, *argv, on_read=lambda: None, model=("model",)):
-    monkeypatch.setattr(cli, "create_client", lambda settings: client)
+    monkeypatch.setattr(cli, "create_client", lambda settings, usage_sink=None: client)
     monkeypatch.setattr(cli, "TerminalInput", scripted_terminal(inputs, on_read))
     cli.main([*model, *base_argv(tmp_path), *argv])
 
