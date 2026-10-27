@@ -11,7 +11,7 @@
         "kind": "direct"
     },
     {
-        "question": "How long do I have to use the cream ?",
+        "question": "How long does the Calm Barrier Cream take to reduce redness ?",
         "source": "calm-barrier-cream",
         "answer": "4 weeks",
         "kind": "direct"
@@ -37,7 +37,7 @@
     {
         "question": "Does the Hydra Glow Serum reduce redness ?",
         "source": "calm-barrier-cream",
-        "answer": "4 weeks",
+        "answer": "reduce redness",
         "kind": "near-miss"
     },
     {
