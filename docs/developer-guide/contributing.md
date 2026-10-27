@@ -16,7 +16,7 @@
 | Workflow | File | Runs on | Does |
 | --- | --- | --- | --- |
 | Tests | `.github/workflows/tests.yml` | Push and pull request to `main` | Runs the offline unit tests (job `Unit tests`) |
-| Documentation | `.github/workflows/docs.yml` | Push and pull request to `main`, manual run | Builds this site with `mkdocs build --strict`; deploys it from `main` only |
+| Documentation | `.github/workflows/docs.yml` | Push and pull request to `main` that change the site, manual run | Builds this site with `mkdocs build --strict`; deploys it from `main` only |
 
 ## Documentation
 
@@ -72,3 +72,8 @@ flowchart LR
 `mkdocs build --strict`. On a pull request it only builds the site. On a push
 to `main` or a manual run, it also uploads `site/` and deploys it to GitHub
 Pages. Only the `OmarCodes022/Sensai` repository deploys.
+
+The workflow starts only when a push or pull request changes `docs/`,
+`mkdocs.yml`, `requirements-docs.txt` or the workflow file, so other changes
+don't redeploy an identical site. To redeploy by hand, run it from
+**Actions → Documentation → Run workflow**.
