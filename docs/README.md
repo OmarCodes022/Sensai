@@ -1,54 +1,46 @@
-# Documentation index
+# Sensai
 
-## Getting started
+Sensai is a command-line AI assistant for a creator who runs her own skincare
+brand. It chats with a local model through [Ollama](https://ollama.com), streams
+its replies, switches between working personas and remembers past sessions. It
+can also compute figures with a calculator or a short Python program instead of
+guessing them.
 
-- [Getting started: install, configure, chat and run the tests](getting-started.md)
+## Who it is for
 
-## Architecture
+Nadia runs the fictional skincare brand Serein Studio on her own. Each week she
+drafts Instagram captions, prepares answers to her community's questions and
+reviews last week's numbers. She opens Sensai in her terminal, drafts captions
+with the writing persona, switches to the analysis persona for her report, and
+lets Sensai run Python on her exported engagement figures. The next day she
+resumes the same session where she left off.
 
-- [Overview: base chat, modules and extension points](architecture/overview.md)
-- [Typed ports and test doubles](architecture/ports.md)
-- [Cancellation and total deadlines](architecture/cancellation.md)
-- [SQLite session, profile and fact storage](architecture/storage.md)
-- [Embeddings and local vector index (foundation)](architecture/retrieval.md)
-- [Schema-constrained Ollama replies (foundation)](architecture/structured-output.md)
-- [Usage and privacy-safe event hooks (foundation)](architecture/telemetry.md)
-- Diagram: [`diagrams/sensai-strategy-flow.drawio`](diagrams/sensai-strategy-flow.drawio),
-  an editable draw.io diagram of the target blueprint, not the current
-  implementation.
+## Features
 
-## Product
+| Feature | What it does | Guide |
+| --- | --- | --- |
+| Base chat (B1) | Streams replies from a local model and keeps the conversation as context | [Chatting](user-guide/chatting.md) |
+| Personas (A5) | Three built-in working roles, or your own from a JSON file, switchable mid-chat | [Personas](user-guide/personas.md) |
+| Sessions and profile (M1) | Saves every chat, resumes it later and adds your profile to every chat | [Sessions and profile](user-guide/sessions.md) |
+| Tools | Lets the model call a calculator and answer with the result | [Tools and sandbox](user-guide/tools.md) |
+| Python sandbox | Runs the model's Python code on your data files, after you approve it | [Tools and sandbox](user-guide/tools.md) |
 
-- [Product scope: one creator, four reviewable outputs](product/scope.md) (planned, not built)
-- [Privacy and product-claim policy](product/privacy-and-claims.md) (specification, not enforced)
-- [Personas: stories, manual checks and test coverage](product/personas.md)
+## Quick start
 
-## User stories
+On Linux or macOS, with Python 3.10 or newer and Ollama running
+(`ollama serve`), from the repository root:
 
-- [User stories: format, template and index per feature](stories/README.md)
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+ollama pull gemma3:1b
+.venv/bin/sensai gemma3:1b
+```
 
-## Operations
+Details: [Install and configure](user-guide/install.md).
 
-- [Local or remote Ollama over SSH (`sensai-remote`)](operations/remote-ollama.md)
-- [Epitech mirror](operations/epitech-mirror.md)
-- [Documentation site: build, deploy and local preview](operations/documentation.md)
+## Where to go next
 
-## Task briefs (not implemented)
-
-- [Creator-scoped filesystem permissions](tasks/filesystem-permissions.md)
-- [Tool loop: calling tools and using their results (T18)](tasks/tool-loop.md)
-
-## Evaluation
-
-- [Adversarial testing: manual runner and attack catalogue](https://github.com/OmarCodes022/Sensai/blob/main/evals/adversarial/README.md)
-- [Adversarial harness report (2026-10-10)](https://github.com/OmarCodes022/Sensai/blob/main/evals/adversarial/report.md)
-
-## Test data
-
-- [`tests/fixtures/`](https://github.com/OmarCodes022/Sensai/tree/main/tests/fixtures/): synthetic brand facts and claims, DMs,
-  posts and engagement figures for the fictional Serein Studio; no test uses
-  them yet.
-
-## Contributing
-
-- [Contributing: branches, commits, workflows and new documentation pages](contributing.md)
+- [Overview](overview/features.md): what Sensai does and how it works, without code.
+- [User guide](user-guide/install.md): how to install Sensai and use each feature.
+- [Developer guide](developer-guide/architecture.md): how Sensai is built, tested and extended.
