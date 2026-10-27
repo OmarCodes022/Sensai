@@ -1,5 +1,5 @@
 site_name: Sensai Documentation
-site_description: Developer documentation of Sensai, a local command-line AI assistant for a skincare creator
+site_description: Documentation of Sensai, a local command-line AI assistant for a skincare creator
 site_url: https://omarcodes022.github.io/Sensai/
 repo_name: OmarCodes022/Sensai
 repo_url: https://github.com/OmarCodes022/Sensai
@@ -14,33 +14,36 @@ validation:
 
 nav:
   - Home: README.md
-  - Getting started: getting-started.md
-  - Architecture:
-      - Overview: architecture/overview.md
-      - Typed ports: architecture/ports.md
-      - Cancellation: architecture/cancellation.md
-      - SQLite storage: architecture/storage.md
-      - Retrieval: architecture/retrieval.md
-      - Structured output: architecture/structured-output.md
-      - Telemetry: architecture/telemetry.md
-  - Product:
-      - Scope: product/scope.md
-      - Privacy and claims: product/privacy-and-claims.md
-      - Personas: product/personas.md
-  - User stories: stories/README.md
-  - Operations:
-      - Remote Ollama over SSH: operations/remote-ollama.md
-      - Epitech mirror: operations/epitech-mirror.md
-      - Documentation site: operations/documentation.md
-  - Task briefs:
-      - Filesystem permissions: tasks/filesystem-permissions.md
-      - Tool loop: tasks/tool-loop.md
-  - Contributing: contributing.md
+  - Overview:
+      - Features: overview/features.md
+      - How it works: overview/how-it-works.md
+      - User stories: overview/user-stories.md
+  - User guide:
+      - Install and configure: user-guide/install.md
+      - Chatting: user-guide/chatting.md
+      - Personas: user-guide/personas.md
+      - Sessions and profile: user-guide/sessions.md
+      - Tools and sandbox: user-guide/tools.md
+  - Developer guide:
+      - Architecture: developer-guide/architecture.md
+      - File structure: developer-guide/file-structure.md
+      - Storage: developer-guide/storage.md
+      - Extending: developer-guide/extending.md
+      - Testing: developer-guide/testing.md
+      - Contributing: developer-guide/contributing.md
+
+exclude_docs: |
+  architecture/
+  product/
+  operations/
+  tasks/
+  diagrams/
 
 theme:
   name: material
   language: en
   features:
+    - navigation.tabs
     - navigation.sections
     - navigation.top
     - navigation.footer
