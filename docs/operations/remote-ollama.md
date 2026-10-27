@@ -176,6 +176,33 @@ endpoint, the launcher reuses it without checking which server it reaches,
 and leaves it open afterward. Stop an old manual tunnel if you need to change
 its destination. An occupied port with an invalid endpoint fails explicitly.
 
+This is what `sensai-remote` does when `SENSAI_SSH_HOST` is set and the local
+port is free:
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Launcher as sensai-remote
+    participant SSH as ssh -NT on 127.0.0.1:11435
+    participant Ollama as Windows Ollama on 127.0.0.1:11434
+    User->>Launcher: sensai-remote [options]
+    Note over Launcher: load prompt, personas and session, check the alias and OLLAMA_HOST
+    Launcher->>Launcher: GET /api/tags on 127.0.0.1:11435 finds nothing
+    Launcher->>SSH: start ssh -L 127.0.0.1:11435:127.0.0.1:11434 in a new session
+    loop every 0.1 s, up to 15 s
+        Launcher->>SSH: GET /api/tags
+        SSH->>Ollama: forwarded
+        Ollama-->>Launcher: model list, through the tunnel
+    end
+    Note over Launcher: run_chat with OLLAMA_HOST=http://127.0.0.1:11435
+    User->>Launcher: messages
+    Launcher->>SSH: POST /api/chat
+    SSH->>Ollama: forwarded
+    Ollama-->>Launcher: streamed reply, through the tunnel
+    User->>Launcher: exit or quit, or a SIGTERM or SIGHUP
+    Launcher->>SSH: terminate, then kill if still running
+```
+
 After a client or server reboot, launch again to recreate the tunnel. There is
 no background reconnection daemon: a connection dropped during chat requires
 a new launch. Ollama must be started again after a Windows reboot unless

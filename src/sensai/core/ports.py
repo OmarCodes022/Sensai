@@ -137,7 +137,7 @@ class RetrievalPort(Protocol):
 
 @dataclass(frozen=True)
 class ToolDefinition:
-    """Contract only: a tool as described to the model (see docs/tasks/tool-loop.md).
+    """Contract only: a tool as described to the model (see docs/developer-guide/extending.md).
 
     `parameters` is a JSON-schema subset:
     ``{"type": "object", "properties": {...}, "required": [...]}``.

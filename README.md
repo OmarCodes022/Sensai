@@ -15,12 +15,12 @@ Features from the subject catalogue that are implemented in the code:
 
 | ID | Feature | What works today | Docs |
 | --- | --- | --- | --- |
-| B1 | Functional CLI chatbot (base chat) | Streamed replies, in-session history, clean errors (empty input, missing model, connection failure, timeout), model chosen by argument or `.env`, Ctrl+C/Esc interrupts a reply | [Overview](docs/architecture/overview.md), [cancellation](docs/architecture/cancellation.md) |
-| A5 | Persona | Built-in and JSON-file personas, chosen at startup or switched with `/persona <id>` without losing history | [Persona guide](docs/product/personas.md) |
-| M1 | Session Persistence & Profiles | Sessions saved after each completed turn, listed and resumed after restart; a creator profile file injected into the system prompt | [Storage](docs/architecture/storage.md) |
+| B1 | Functional CLI chatbot (base chat) | Streamed replies, in-session history, clean errors (empty input, missing model, connection failure, timeout), model chosen by argument or `.env`, Ctrl+C/Esc interrupts a reply | [Architecture](docs/developer-guide/architecture.md), [cancellation](docs/architecture/cancellation.md) |
+| A5 | Persona | Built-in and JSON-file personas, chosen at startup or switched with `/persona <id>` without losing history | [Persona guide](docs/user-guide/personas.md) |
+| M1 | Session Persistence & Profiles | Sessions saved after each completed turn, listed and resumed after restart; a creator profile file injected into the system prompt | [Storage](docs/developer-guide/storage.md) |
 
-User stories: see [docs/stories/](docs/stories/README.md). A5 has draft
-stories; B1 and M1 still need theirs.
+User stories: see [docs/overview/user-stories.md](docs/overview/user-stories.md). Four
+end-to-end stories cover every feature on `main`.
 
 Foundations that exist in code but are **not** complete features and are not
 used by the CLI: an Ollama embedding adapter and in-memory vector index
@@ -106,7 +106,7 @@ JSON file replaces the built-in list; each entry needs exactly `id`, `name`,
 
 Invalid files or unknown IDs fail before the model is contacted. Personas are
 model instructions, not an enforced privacy or fact-checking gate. Details and
-manual checks: [persona guide](docs/product/personas.md).
+manual checks: [persona guide](docs/user-guide/personas.md).
 
 ### Tools
 
@@ -124,7 +124,7 @@ resume. Tools with a numeric timeout run in child processes (30-second
 default limit); custom timed handlers must be importable/pickleable and open
 their resources in the child. Interactive tools and human approval pause the
 question budget. This execution isolation is not a permission sandbox.
-See [the implemented tool contract](docs/tasks/tool-loop.md) for limits and
+See [the implemented tool contract](docs/developer-guide/extending.md) for limits and
 handler registration.
 
 #### Sandbox
@@ -203,7 +203,7 @@ creators apart; it is a key, not authentication. The database is plaintext.
 Type `/history` in a chat to list your own messages of the saved or current
 conversation, numbered from 1 and cut to one line each (replies and tool
 results are left out); startup does not print it.
-Storage details: [storage.md](docs/architecture/storage.md).
+Storage details: [storage.md](docs/developer-guide/storage.md).
 
 ## Tests
 
@@ -228,4 +228,12 @@ Manual adversarial testing: see [evals/adversarial](evals/adversarial/README.md)
 
 ## Documentation
 
-Start at the [documentation index](docs/README.md).
+Start at the [documentation index](docs/README.md). The same pages are
+published at <https://omarcodes022.github.io/Sensai/>. To preview the site
+locally:
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -r requirements-docs.txt
+.venv/bin/mkdocs serve    # http://127.0.0.1:8000
+```

@@ -18,3 +18,4 @@ sensai.sqlite3*
 devtools/
 .github/workflows/sync-push-evidence.yml
 docs/operations/push-evidence-sync.md
+site/
