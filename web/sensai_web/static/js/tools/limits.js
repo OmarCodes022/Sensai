@@ -14,6 +14,6 @@ export function limitChips(lim) {
     h('dl', { class: 'kv' }, ['wall', 'cpu', 'mem', 'file', 'out'].flatMap((k) => [h('dt', null, t(`tools.limit.${k}`)), h('dd', null, t(`tools.limit.${k}.d`))])),
     h('h3', null, t('tools.notProtected')), h('ul', { class: 'bullets' }, NOT.map((k) => h('li', null, t(`tools.not.${k}`))))), { label: t('tools.limitsTitle') }));
   return h('div', { class: 'row' },
-    chip(`${l.wall_seconds} s`, { outline: true }), chip(`${l.cpu_seconds} s CPU`, { outline: true }), chip(`${l.memory_mb} MB`, { outline: true }),
-    chip(`${l.file_mb} MB file`, { outline: true }), chip(`${l.output_chars} chars`, { outline: true }), help);
+    chip(`${l.wall_seconds} s`, { outline: true }), chip(t('limits.cpu', { n: l.cpu_seconds }), { outline: true }), chip(t('limits.mem', { n: l.memory_mb }), { outline: true }),
+    chip(t('limits.file', { n: l.file_mb }), { outline: true }), chip(t('limits.chars', { n: l.output_chars }), { outline: true }), help);
 }

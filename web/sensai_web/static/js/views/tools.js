@@ -8,6 +8,9 @@ import { createSandbox } from '../tools/sandbox.js';
 import { formatNumber } from '../format.js';
 import { t } from '../i18n.js';
 
+/** A known tool's description in the page language; any other tool keeps the text the backend sent. */
+const describe = (tool) => { const key = `tool.desc.${tool.name}`; const text = t(key); return text === key ? tool.description : text; };
+
 function registry(items) {
   if (!items.length) return emptyState({ icon: 'tools', title: t('tools.none') });
   return h('div', { class: 'table-wrap' }, h('table', { class: 'table table--cards' }, h('caption', { class: 'sr-only' }, t('tools.registry')),
@@ -16,7 +19,7 @@ function registry(items) {
       const [server, short] = x.name.includes('.') ? x.name.split('.', 2) : [null, x.name];
       return h('tr', null,
         h('td', { 'data-label': t('tools.col.name') }, server ? chip(server, { tone: 'teal', outline: true }) : null, h('code', { class: 'chip chip--mono' }, server ? short : x.name)),
-        h('td', { 'data-label': t('tools.col.description') }, x.description),
+        h('td', { 'data-label': t('tools.col.description') }, describe(x)),
         h('td', { class: 'num', 'data-label': t('tools.col.timeout') }, x.timeout != null ? `${formatNumber(x.timeout)} s` : t('common.na')),
         h('td', { 'data-label': t('tools.col.confirm') }, x.confirm ? chip(t('tools.confirm'), { tone: 'amber' }) : chip(t('tools.noConfirm'), { outline: true })),
         h('td', { class: 'num', 'data-label': t('tools.col.max') }, x.max_calls != null ? formatNumber(x.max_calls) : t('tools.noLimit')));

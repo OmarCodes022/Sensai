@@ -5,7 +5,7 @@ import { t } from '../i18n.js';
 
 export const KEYS = ['ollama_host', 'model', 'request_timeout', 'turn_budget', 'context_length', 'database_path', 'creator', 'profile_file', 'data_dir', 'prompt_file', 'personas_file'];
 export const SECRET = /token|key|secret|password/i;
-const SOURCES = { cli: 'CLI', env: 'env', dotenv: '.env', default: 'default' };
+const SOURCES = ['cli', 'env', 'dotenv', 'default'];
 const DEFAULT_TEXT = { prompt_file: 'settings.packaged', personas_file: 'settings.builtin', profile_file: 'settings.none' };
 
 /** Builds the list from config.effective, falling back to the few flat fields every backend reports. */
@@ -26,7 +26,7 @@ export function configList(config) {
   const rows = effectiveRows(config);
   return h('div', { class: 'stack' }, h('dl', { class: 'kv kv--wide' }, rows.flatMap((r) => [
     h('dt', null, t(`settings.k.${r.key}`)),
-    h('dd', { class: 'row' }, renderValue(r), r.source ? chip(SOURCES[r.source] || r.source, { outline: true, title: t('settings.source') }) : chip(t('settings.sourceNa'), { outline: true }),
+    h('dd', { class: 'row' }, renderValue(r), r.source ? chip(SOURCES.includes(r.source) ? t(`settings.src.${r.source}`) : r.source, { outline: true, title: t('settings.source') }) : chip(t('settings.sourceNa'), { outline: true }),
       r.key === 'data_dir' ? h('span', { class: 'muted' }, t('settings.dataNote')) : null)])),
     config?.effective ? null : h('p', { class: 'muted' }, t('settings.noSources')));
 }

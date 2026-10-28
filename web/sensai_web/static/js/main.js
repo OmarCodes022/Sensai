@@ -55,6 +55,9 @@ async function boot() {
     h('div', { class: 'scrim', onclick: layout.closeOverlays }));
   root.replaceChildren(app);
 
+  const labelSkips = () => document.querySelectorAll('[data-skip]').forEach((a) => { a.textContent = t(a.dataset.skip === 'composer' ? 'a11y.skipComposer' : 'a11y.skipMain'); });
+  labelSkips();
+  document.addEventListener('sensai:lang', labelSkips);
   for (const a of document.querySelectorAll('[data-skip]')) {
     a.addEventListener('click', (e) => { e.preventDefault(); (document.getElementById(a.dataset.skip) || main).focus(); });
   }

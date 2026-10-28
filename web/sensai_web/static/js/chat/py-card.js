@@ -44,7 +44,7 @@ export function pythonBody(call, result) {
   const head = h('div', { class: 'row' },
     result ? chip(t('py.exit', { code: typeof m.exit_code === 'number' ? m.exit_code : t('common.na') }), { tone: typeof m.exit_code !== 'number' ? undefined : m.exit_code === 0 ? 'sage' : 'rose', mono: true }) : null,
     result ? chip(formatDuration(result.duration_ms), { outline: true }) : null,
-    chip(`${lim.wall_seconds} s`, { outline: true, title: t('py.limitWall') }), chip(`${lim.cpu_seconds} s CPU`, { outline: true, title: t('py.limitCpu') }), chip(`${lim.memory_mb} MB`, { outline: true, title: t('py.limitMem') }));
+    chip(`${lim.wall_seconds} s`, { outline: true, title: t('py.limitWall') }), chip(t('limits.cpu', { n: lim.cpu_seconds }), { outline: true, title: t('py.limitCpu') }), chip(t('limits.mem', { n: lim.memory_mb }), { outline: true, title: t('py.limitMem') }));
   const noteEls = notes.map((n) => h('p', { class: 'toolcard__note', role: 'status' }, n));
 
   let tabEl;
