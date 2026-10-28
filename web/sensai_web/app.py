@@ -23,6 +23,7 @@ from sensai_web import session_view
 from sensai_web.approvals import Approvals
 from sensai_web.catalogue import Catalogue
 from sensai_web.config import WebConfig
+from sensai_web.datafiles import DataFolder
 from sensai_web.errors import ApiError
 from sensai_web.health import Health
 from sensai_web.profile import clean_preferences
@@ -85,6 +86,7 @@ class WebApp:
         self.run_lock = Lock()
         self.tabs = TabLock()
         self.times = TurnTimes(cfg.db_path, cfg.creator)
+        self.data = DataFolder(cfg.data_dir)
         self.health = Health(cfg.host, cfg.model)
         self.meta_dir = tempfile.mkdtemp(prefix="sensai-web-")
         settings = (settings or Settings()).model_copy(update={"host": cfg.host})

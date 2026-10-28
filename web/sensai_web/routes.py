@@ -4,6 +4,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from importlib import metadata
 from time import monotonic
+from urllib.parse import unquote
 
 from sensai.core.cancellation import CancellationToken
 from sensai.sandbox import SandboxLimits
@@ -149,14 +150,29 @@ def run(app: WebApp, request):
         raise ApiError(429, "busy", "A run is already in progress.")
     try:
         token = CancellationToken(monotonic() + app.cfg.operation_timeout)
-        return sandbox.run_code(code, app.cfg.data_dir, token, app.meta_dir)
+        return sandbox.run_code(code, app.data.path, token, app.meta_dir)
     finally:
         app.run_lock.release()
 
 
 @route("GET", r"/api/run/data")
 def run_data(app: WebApp, request):
-    return sandbox.data_files(app.cfg.data_dir)
+    return app.data.listing()
+
+
+@route("POST", r"/api/run/data/example")
+def add_example_data(app: WebApp, request):
+    return app.data.add_example()
+
+
+@route("PUT", r"/api/run/data/(?P<name>[^/]+)")
+def put_data(app: WebApp, request, name: str):
+    return app.data.put(unquote(name), request.json().get("text"))
+
+
+@route("DELETE", r"/api/run/data/(?P<name>[^/]+)")
+def delete_data(app: WebApp, request, name: str):
+    return app.data.delete(unquote(name))
 
 
 @route("GET", r"/api/profile")

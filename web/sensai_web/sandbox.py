@@ -13,7 +13,7 @@ from sensai.core.cancellation import CancellationToken, OperationTimedOut
 from sensai.core.errors import SensaiError
 from sensai.core.ports import ToolCall, ToolResult
 from sensai.sandbox import (
-    RUN_PYTHON, SandboxError, SandboxLimits, SandboxRun, _data_files, _FILE_TOO_LARGE, _MB,
+    RUN_PYTHON, SandboxError, SandboxLimits, SandboxRun, _FILE_TOO_LARGE, _MB,
     format_run, run_python,
 )
 from sensai.tools import ToolRegistry
@@ -98,13 +98,3 @@ def run_code(code: object, data_dir: str | None, token: CancellationToken, meta_
     if record is None:
         raise ApiError(400, "sandbox", result.error or "The run produced no result.")
     return record
-
-
-def data_files(data_dir: str | None) -> dict:
-    if data_dir is None:
-        return {"dir": None, "files": []}
-    try:
-        files = _data_files(data_dir, SandboxLimits().data_bytes)
-    except SandboxError as exc:
-        raise ApiError(400, "sandbox_data", str(exc)) from None
-    return {"dir": data_dir, "files": [{"name": name, "bytes": os.stat(path).st_size} for path, name in files]}

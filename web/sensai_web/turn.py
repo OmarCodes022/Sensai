@@ -51,7 +51,7 @@ def run_turn(app: WebApp, active: ActiveSession, stop, text: str, emit: Emit) ->
           "number": number, "budget_seconds": cfg.operation_timeout})
     token = CancellationToken(monotonic() + cfg.operation_timeout, stop.is_set)
     approval = WebApproval(app.approvals, emit, stop, turn_id)
-    registry = ObservedRegistry(approval, emit, cfg.data_dir, app.meta_dir)
+    registry = ObservedRegistry(approval, emit, app.data.path, app.meta_dir)
     status = None
     stream = run_with_tools(
         session, registry, text, token,
