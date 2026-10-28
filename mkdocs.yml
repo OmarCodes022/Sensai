@@ -38,6 +38,7 @@ exclude_docs: |
   operations/
   tasks/
   diagrams/
+  stories/
 
 theme:
   name: material

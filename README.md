@@ -18,6 +18,7 @@ Features from the subject catalogue that are implemented in the code:
 | B1 | Functional CLI chatbot (base chat) | Streamed replies, in-session history, clean errors (empty input, missing model, connection failure, timeout), model chosen by argument or `.env`, Ctrl+C/Esc interrupts a reply | [Architecture](docs/developer-guide/architecture.md), [cancellation](docs/architecture/cancellation.md) |
 | A5 | Persona | Built-in and JSON-file personas, chosen at startup or switched with `/persona <id>` without losing history | [Persona guide](docs/user-guide/personas.md) |
 | M1 | Session Persistence & Profiles | Sessions saved after each completed turn, listed and resumed after restart; a creator profile file injected into the system prompt | [Storage](docs/developer-guide/storage.md) |
+| R1 | Brand Document Search (RAG) | Index a folder of brand documents at startup with `--docs`; model calls `search_docs` automatically for product questions; `/docs` lists or searches chunks; `/reindex` picks up changes | [Retrieval](docs/architecture/retrieval.md) |
 
 User stories: see [docs/overview/user-stories.md](docs/overview/user-stories.md). Four
 end-to-end stories cover every feature on `main`.
@@ -182,6 +183,20 @@ dies with its parent). A later run removes the leftover folder, not the
 processes.
 Stronger isolation (for example `docker run --rm --network none`) is not
 implemented.
+
+### Brand document search
+
+Let the model answer from your own product sheets and FAQ instead of inventing claims:
+
+```bash
+ollama pull nomic-embed-text
+.venv/bin/sensai qwen2.5 --docs tests/fixtures/docs
+```
+
+- `--docs` (or `SENSAI_DOCS`) is a folder of Markdown files. Each starts with a header between two `---` lines (`source`, `type`, `version`, `title`, and `product` on product sheets); see [the fixture format](tests/fixtures/docs/README.md). Files without a header are skipped with a warning.
+- The model calls `search_docs` on its own for product questions. An older version of a sheet (same `product`, earlier `version`) is marked OUTDATED in the results.
+- `/docs` lists the indexed documents, `/docs <text>` shows what a search finds without asking the model, and `/reindex` reads the folder again (removed files disappear from the index).
+- If the embedding model (`SENSAI_EMBED_MODEL`, default `nomic-embed-text`) is missing, search is off and the chat works normally.
 
 ### Sessions and creator profile
 
