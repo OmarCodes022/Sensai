@@ -2,6 +2,7 @@
 import { h } from '../dom.js';
 import { icon } from '../icons.js';
 import { renderInto } from '../markdown.js';
+import { chip } from '../components/chip.js';
 import { copyButton } from '../components/copy-button.js';
 import { usageChips } from './usage.js';
 import { wordCount } from '../format.js';
@@ -24,11 +25,12 @@ export function createAssistant(opts) {
   const body = h('div', { class: 'msg__body md', dir: 'auto' });
   const tags = h('div', { class: 'msg__tags' });
   const foot = h('footer', { class: 'msg__foot', hidden: true });
+  const cited = h('div', { class: 'msg__sources row', hidden: true });
   const steps = h('ol', { class: 'steps', hidden: true });
   body.addEventListener('click', (e) => { const b = e.target.closest('.md-cite'); if (b) opts.onCite?.(Number(b.dataset.cite), sources); });
   const el = h('article', { class: 'msg msg--assistant', 'aria-busy': 'true', 'aria-label': t('msg.assistantLabel', { name }), tabindex: '-1' },
     h('header', { class: 'msg__head' }, h('span', { class: 'avatar', dataset: { tone: opts.tone || 'accent' }, 'aria-hidden': 'true' }, (name[0] || '?').toUpperCase()), h('span', { class: 'msg__who' }, name), think),
-    group.el, steps, body, tags, foot);
+    group.el, steps, body, cited, tags, foot);
   group.el.hidden = true;
 
   const caret = () => {
@@ -55,7 +57,12 @@ export function createAssistant(opts) {
     addNote(node) { settled(); group.el.hidden = false; group.el.append(node); },
     addTool(node) { settled(); group.el.hidden = false; group.add(node); },
     addStep(step, line) { settled(); steps.hidden = false; steps.append(h('li', null, h('span', { class: 'chip chip--outline' }, step), ' ', line)); },
-    setSources(items) { sources = items; if (!streaming) paint(); },
+    setSources(items) {
+      sources = items;
+      cited.hidden = !items?.length;
+      cited.replaceChildren(...(items?.length ? [h('span', { class: 'muted' }, t('msg.sources')), ...items.map((s) => chip(`${s.n ? `${s.n}. ` : ''}${s.source}${s.version ? ` ${s.version}` : ''}${s.outdated ? ` (${t('msg.outdated')})` : ''}`, { outline: true, tone: s.outdated ? 'amber' : undefined, mono: true }))] : []));
+      if (!streaming) paint();
+    },
     finish(u) {
       streaming = false; state = 'done'; usage = u || null; clearTimeout(timer); settled();
       el.removeAttribute('aria-busy'); paint();
