@@ -3,7 +3,7 @@ import { h } from '../dom.js';
 import { chip } from '../components/chip.js';
 import { t } from '../i18n.js';
 
-export const KEYS = ['ollama_host', 'model', 'request_timeout', 'turn_budget', 'context_length', 'database_path', 'creator', 'profile_file', 'data_dir', 'prompt_file', 'personas_file'];
+export const KEYS = ['ollama_host', 'model', 'request_timeout', 'turn_budget', 'context_length', 'database_path', 'creator', 'profile_file', 'data_dir', 'prompt_file', 'personas_file', 'docs_dir', 'embed_model'];
 export const SECRET = /token|key|secret|password/i;
 const SOURCES = ['cli', 'env', 'dotenv', 'default'];
 const DEFAULT_TEXT = { prompt_file: 'settings.packaged', personas_file: 'settings.builtin', profile_file: 'settings.none' };

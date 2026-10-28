@@ -10,7 +10,7 @@ export const PERSONAS = [
 
 export const HEALTH = { ok: true, version: '0.1.0', ollama: { reachable: true, host: 'http://localhost:11434', latency_ms: 12 }, model: { name: 'gemma3:1b', available: true }, remote: false };
 export const CONFIG = {
-  capabilities: { chat: true, personas: true, sessions: true, profile: true, usage: true, tools: true, approval: true, sandbox: true, run_script: true, history: true },
+  capabilities: { chat: true, personas: true, sessions: true, profile: true, usage: true, tools: true, approval: true, sandbox: true, run_script: true, history: true, documents: true },
   draft_personas: ['redaction', 'communaute'], context_length: 4096, creator: 'default', model: 'gemma3:1b',
   effective: {
     ollama_host: { value: 'http://localhost:11434', source: 'default' }, model: { value: 'gemma3:1b', source: 'cli' }, request_timeout: { value: 120, source: 'default' },

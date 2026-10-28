@@ -89,7 +89,8 @@ ollama pull nomic-embed-text          # once: the embedding model
 - **Add documents** from anywhere: `/add <file or folder>` in the chat copies them into
   `data/docs/`. Or copy files there yourself: new, edited and removed files are noticed
   and indexed automatically. `/docs` lists them, `/docs <text>` shows what a search finds,
-  `/remove <name>` removes one.
+  `/remove <name>` removes one. The web interface has the same on its **Documents** page
+  (drag and drop, list, remove, search preview), and shows the sources under each reply.
 - `.md` and `.txt` files; a header (`source`, `version`, `product`, `title`) is optional.
   Older versions of a sheet are marked OUTDATED in the results.
 - `data/docs/` ships with fictional Serein Studio sample sheets: replace them with yours.

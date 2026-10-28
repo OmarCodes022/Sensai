@@ -49,6 +49,8 @@ In the terminal chat, from anywhere on your computer:
 | `/docs <text>` | Shows what a search for that text finds, without asking the model. |
 | `/reindex` | Forces a full rebuild (normally never needed). |
 
+In the web interface, open **Documents** in the sidebar: drag files onto the drop area (or pick them), see each file's status, remove one, reindex, and try a search to see what the model would receive. The status chip tells you when search is on, indexing, or off because the embedding model is missing. After a search, the sources the model used are shown under its reply.
+
 You can also copy files into `data/docs/` yourself. New, edited and removed files are
 noticed before each question and indexed in the background; a one-line note appears at
 the next prompt ("Document search: 2 documents indexed."). Until a file is ready,
