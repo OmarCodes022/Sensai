@@ -749,5 +749,18 @@
  "inspector.meterPartial": "Total partiel : les jetons de sortie ne sont pas communiqués, l'usage réel est donc plus élevé.",
  "link.host": "Site :",
  "link.idnChip": "Adresse trompeuse",
- "link.idn": "Cette adresse contient des caractères non ASCII et peut imiter un autre site. Hôte réel : {puny}"
+ "link.idn": "Cette adresse contient des caractères non ASCII et peut imiter un autre site. Hôte réel : {puny}",
+ "a11y.skipComposer": "Aller à la zone de message",
+ "a11y.skipMain": "Aller à la conversation",
+ "limits.cpu": "{n} s de CPU",
+ "limits.mem": "{n} Mo",
+ "limits.file": "fichier de {n} Mo",
+ "limits.chars": "{n} caractères",
+ "settings.src.cli": "CLI",
+ "settings.src.env": "env",
+ "settings.src.dotenv": ".env",
+ "settings.src.default": "par défaut",
+ "safe.hidden": "Caractère masqué rendu visible",
+ "tool.desc.calculate": "Calcule une expression arithmétique avec +, -, *, / et des parenthèses.",
+ "tool.desc.run_python": "Exécute du code Python 3 dans un dossier jetable et renvoie ce qu'il affiche. Les fichiers de données sont dans le dossier courant. Seule la bibliothèque standard est disponible (csv, statistics, json... ; ni pandas ni numpy)."
 }

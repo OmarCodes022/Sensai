@@ -749,5 +749,18 @@
  "inspector.meterPartial": "Partial total: output tokens are not reported, so the real usage is higher.",
  "link.host": "Site:",
  "link.idnChip": "Look-alike address",
- "link.idn": "This address contains non-ASCII characters and may imitate another site. Real host: {puny}"
+ "link.idn": "This address contains non-ASCII characters and may imitate another site. Real host: {puny}",
+ "a11y.skipComposer": "Skip to message box",
+ "a11y.skipMain": "Skip to conversation",
+ "limits.cpu": "{n} s CPU",
+ "limits.mem": "{n} MB",
+ "limits.file": "{n} MB file",
+ "limits.chars": "{n} chars",
+ "settings.src.cli": "CLI",
+ "settings.src.env": "env",
+ "settings.src.dotenv": ".env",
+ "settings.src.default": "default",
+ "safe.hidden": "Hidden character shown visibly",
+ "tool.desc.calculate": "Calculate arithmetic using +, -, *, / and parentheses.",
+ "tool.desc.run_python": "Run Python 3 code in a throw-away folder and return what it prints. Data files are in the current folder. Only the standard library is available (csv, statistics, json...; no pandas or numpy)."
 }
