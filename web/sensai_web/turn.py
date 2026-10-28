@@ -1,0 +1,89 @@
+"""One chat turn as stream events: text, tool calls, approvals, usage, saving, done."""
+from collections.abc import Callable
+from time import monotonic
+from uuid import uuid4
+
+from sensai.chat import saved_sessions
+from sensai.chat.saved_sessions import user_messages
+from sensai.core.cancellation import CancellationToken, OperationCancelled, OperationTimedOut
+from sensai.core.errors import LLMError, SensaiError
+from sensai.sandbox import remove_stale_folders
+from sensai.tools import run_with_tools
+from sensai_web.app import ActiveSession, WebApp, now
+from sensai_web.approvals import WebApproval
+from sensai_web.errors import llm_failure
+from sensai_web.tools import INVALID, ObservedRegistry
+
+Emit = Callable[[dict], None]
+
+
+def _add(total: int | None, value: int | None) -> int | None:
+    return total if value is None else (total or 0) + value
+
+
+def _persist(app: WebApp, active: ActiveSession, emit: Emit, stop, budget: float) -> None:
+    """Save the finished turn and report it; storage problems are warnings, never a failed turn."""
+    recorder = active.recorder
+    saved_before, title_before = recorder.saved, recorder.title
+    recorder.write = lambda message: emit({"type": "warning", "code": "storage",
+                                           "message": message.removeprefix("error: ")})
+
+    def titler(first_user: str, first_answer: str) -> str | None:
+        token = CancellationToken(monotonic() + min(saved_sessions.TITLE_TIMEOUT, budget), stop.is_set)
+        return saved_sessions.generate_title(app.title_client, app.cfg.model, first_user, first_answer, token)
+
+    recorder.titler = titler
+    recorder.after_turn(active.session)
+    if recorder.saved and not saved_before:
+        active.created_at = now()
+        emit({"type": "saved", "session_id": recorder.session_id})
+    if recorder.title and recorder.title != title_before:
+        emit({"type": "title", "title": recorder.title})
+
+
+def run_turn(app: WebApp, active: ActiveSession, stop, text: str, emit: Emit) -> None:
+    """Answer `text` on the active session. Ends with `done`, or with `error` when the turn failed."""
+    cfg, session = app.cfg, active.session
+    started_at = now()
+    turn_id = f"t{uuid4().hex[:8]}"
+    number = len(user_messages(session.messages)) + 1
+    emit({"type": "turn_start", "turn_id": turn_id, "model": cfg.model, "persona": active.persona_id,
+          "number": number, "budget_seconds": cfg.operation_timeout})
+    token = CancellationToken(monotonic() + cfg.operation_timeout, stop.is_set)
+    approval = WebApproval(app.approvals, emit, stop, turn_id)
+    registry = ObservedRegistry(approval, emit, cfg.data_dir, app.meta_dir)
+    status = None
+    stream = run_with_tools(
+        session, registry, text, token,
+        on_tool=lambda call, result: registry.malformed(call, result) if call.name == INVALID else None)
+    try:
+        for chunk in stream:
+            emit({"type": "text", "delta": chunk})
+        status = "completed"
+    except OperationCancelled:
+        status = "interrupted"
+    except OperationTimedOut:
+        status = "timed_out"
+    except ValueError:
+        emit({"type": "error", "code": "empty_input", "message": "Please type something.", "hint": None})
+    except LLMError as exc:
+        emit({"type": "error", **llm_failure(exc, cfg.model)})
+    except SensaiError as exc:
+        emit({"type": "error", "code": "error", "message": str(exc), "hint": None})
+    finally:
+        stream.close()
+        registry.close()
+        remove_stale_folders()  # A killed tool worker may not have removed its folder.
+    if status is None:
+        return
+    if status == "completed":
+        usage = app.usage.summary()
+        emit({"type": "usage", **usage})
+        active.prompt_tokens = _add(active.prompt_tokens, usage["prompt_tokens"])
+        active.output_tokens = _add(active.output_tokens, usage["output_tokens"])
+        active.last_prompt_tokens = usage["prompt_tokens"]
+        _persist(app, active, emit, stop, cfg.operation_timeout)
+        active.updated_at = now()
+        if active.recorder.saved:
+            app.times.record(active.recorder.session_id, number, started_at, active.updated_at)
+    emit({"type": "done", "status": status, "turn_id": turn_id})
