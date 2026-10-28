@@ -17,8 +17,11 @@
   .view > h1 { margin-bottom: var(--s-4); }
   .scrim { position: fixed; inset: 0; background: var(--scrim); z-index: 40; opacity: 0; visibility: hidden; transition: opacity var(--dur-panel) var(--ease), visibility 0s linear var(--dur-panel); }
 
-  /* Rail: icon-only sessions pane */
-  .app[data-sb="rail"] .sidebar :is(.sb-search, .sb-list, .sb-foot, .btn__label) { display: none; }
+  /* Rail: icon-only sessions pane. !important because the components layer comes later and sets display:flex
+     on these. In the overlay (below 1024px) the rail shows the full sidebar instead. */
+  @media (min-width: 1024px) {
+    .app[data-sb="rail"] .sidebar :is(.sb-search, .sb-list, .sb-foot, .btn__label) { display: none !important; }
+  }
   .app[data-sb="rail"] .sidebar { align-items: center; padding-top: var(--s-4); }
 
   /* 1024-1279: inspector is an overlay drawer */
@@ -36,7 +39,6 @@
     .sidebar { position: fixed; top: var(--topbar-h); left: 0; bottom: 0; width: min(300px, 92vw); z-index: 50; box-shadow: var(--shadow-pop); transform: translateX(-100%); visibility: hidden; }
     .app[data-sb="open"] .sidebar, .app[data-sb="rail"] .sidebar { transform: none; visibility: visible; transition-delay: 0s; }
     .app[data-sb="open"] .scrim, .app[data-sb="rail"] .scrim { opacity: 1; visibility: visible; transition-delay: 0s; }
-    .app[data-sb="rail"] .sidebar :is(.sb-search, .sb-list, .sb-foot, .btn__label) { display: revert; }
   }
   /* Under 768: single column, bottom sheets */
   @media (max-width: 767px) {
