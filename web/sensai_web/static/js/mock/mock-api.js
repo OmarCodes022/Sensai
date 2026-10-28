@@ -4,10 +4,11 @@ import { createSessions } from './session-store.js';
 import { play, abortError } from './player.js';
 import { SCENARIOS, byId, errorTurn } from './scenarios.js';
 import { turn, say, usage } from './script.js';
-import { PERSONAS, HEALTH, CONFIG, PROFILE, TOOLS, DATA_FILES } from './fixtures.js';
+import { PERSONAS, HEALTH, CONFIG, PROFILE, TOOLS, DATA_FILES, ENGAGEMENT_CSV } from './fixtures.js';
 
 const state = { scenario: 'happy', turnIdx: 0, speed: 'normal', inject: null, locked: false, offline: false, hideSessions: false, noTools: false };
 const sessions = createSessions();
+let dataFolder = structuredClone(DATA_FILES);
 const pending = new Map();
 let active = null, profile = { ...PROFILE, preferences: { ...PROFILE.preferences } }, turnCount = 0, panelReady = false;
 const listeners = new Set();
@@ -93,7 +94,24 @@ const impl = {
     const loop = /while\s+True/.test(code);
     return { exit_code: loop ? -9 : 0, duration_s: loop ? 15 : 0.3, timed_out: loop, truncated: false, stdout: loop ? '' : '1021.4\n', stderr: '', report: loop ? 'Time limit reached (15 s)' : 'Exit code 0 · 0.3 s' };
   },
-  runData: async () => ({ ...DATA_FILES }),
+  runData: async () => structuredClone(dataFolder),
+  async putData(name, text) {
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/.test(name)) throw new ApiError('bad_file_name', 'Use letters, digits, dots, dashes and underscores (no folders).', { status: 400 });
+    if (!dataFolder.limits.types.some((x) => name.toLowerCase().endsWith(x))) throw new ApiError('bad_file_type', `Only ${dataFolder.limits.types.join(', ')} files can be added.`, { status: 400 });
+    const bytes = new TextEncoder().encode(text).length;
+    dataFolder.files = [...dataFolder.files.filter((f) => f.name !== name), { name, bytes }].sort((a, b) => a.name.localeCompare(b.name));
+    dataFolder.exists = true;
+    return structuredClone(dataFolder);
+  },
+  async deleteData(name) {
+    if (!dataFolder.files.some((f) => f.name === name)) throw new ApiError('not_found', `No data file named ${name}.`, { status: 404 });
+    dataFolder.files = dataFolder.files.filter((f) => f.name !== name);
+    return structuredClone(dataFolder);
+  },
+  async exampleData() {
+    if (dataFolder.files.some((f) => f.name === 'engagement.csv')) throw new ApiError('exists', 'engagement.csv is already in the data folder.', { status: 409 });
+    return impl.putData('engagement.csv', ENGAGEMENT_CSV);
+  },
   profile: async () => ({ ...profile }),
   async putProfile(preferences) { profile = { ...profile, preferences: { ...preferences } }; return { ...profile }; },
   async takeover() { state.locked = false; notify(); return { ok: true }; },

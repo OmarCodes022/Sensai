@@ -29,7 +29,7 @@ export const ENGAGEMENT = [
 export const ENGAGEMENT_CSV = ['date,source,accounts_reached,accounts_engaged,engagement_rate,source_kind']
   .concat(ENGAGEMENT.map(([d, r, e, p]) => `${d},instagram,${r},${e},${p},instagram_insights_daily`))
   .concat('2026-09-21/2026-09-27,instagram,4200,630,15.0,instagram_insights_weekly_unique').join('\n');
-export const DATA_FILES = { dir: 'tests/fixtures', files: [{ name: 'engagement.csv', bytes: 812 }] };
+export const DATA_FILES = { dir: '/Users/nadia/sensai/data', exists: true, files: [{ name: 'engagement.csv', bytes: 812 }], limits: { file_mb: 10, total_mb: 50, types: ['.csv', '.tsv', '.json', '.txt', '.md'] } };
 
 export const PY_CODE = `import csv
 reach = []
