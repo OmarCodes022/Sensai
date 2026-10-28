@@ -5,7 +5,7 @@ import threading
 
 import pytest
 
-from fakes import FakeClient
+from fakes import BagOfWordsEmbedding, FakeClient
 from sensai.settings import Settings
 from sensai_web import app as web_app
 from sensai_web.config import WebConfig
@@ -16,7 +16,7 @@ def make_config(tmp_path, **overrides) -> WebConfig:
     values = dict(model="fake", host="http://localhost:1", timeout=5.0, operation_timeout=30.0,
                   context_length=None, db_path=str(tmp_path / "web.sqlite3"), creator="default",
                   prompt_path=None, persona=None, personas_file=None, profile_file=None,
-                  data_dir=None, session=None, bind="127.0.0.1", port=0, effective={})
+                  data_dir=None, session=None, docs_dir=None, bind="127.0.0.1", port=0, effective={})
     values.update(overrides)
     return WebConfig(**values)
 
@@ -76,6 +76,7 @@ def web(tmp_path, monkeypatch):
     def start(*replies, client=None, **overrides):
         client = client or FakeClient(*replies)
         monkeypatch.setattr(web_app, "make_client", lambda settings, usage_sink=None: client)
+        monkeypatch.setattr(web_app, "make_embedding", lambda cfg: BagOfWordsEmbedding())
         app = web_app.WebApp(make_config(tmp_path, **overrides), Settings(_env_file=None))
         server = WebServer(app)
         threading.Thread(target=server.serve_forever, daemon=True).start()
