@@ -13,11 +13,14 @@ from sensai.chat.prompts import load_system_prompt
 from sensai.chat.saved_sessions import SessionRecorder, profile_block
 from sensai.chat.session import ChatSession
 from sensai.core.errors import SensaiError
+from sensai.core.messages import Message
 from sensai.core.ports import PortError, Profile, SessionSnapshot
 from sensai.llm.ollama import OllamaClient
 from sensai.memory.sqlite_store import StorageRepository
 from sensai.sandbox import RUN_PYTHON, remove_stale_folders
 from sensai.settings import Settings
+from sensai.llm.embeddings import OllamaEmbeddingAdapter
+from sensai.rag import DOCS_PROMPT, SEARCH_DOCS, DocLibrary
 from sensai.tools import CALCULATE, tool_instructions
 from sensai_web import session_view
 from sensai_web.approvals import Approvals
@@ -32,12 +35,15 @@ from sensai_web.times import TurnTimes
 from sensai_web.usage import UsageCollector
 
 LIST_LIMIT = 200
-TOOLS_TEXT = tool_instructions((CALCULATE, RUN_PYTHON))
 
 
 def make_client(settings: Settings, usage_sink=None) -> OllamaClient:
     return OllamaClient(settings.host, settings.timeout, usage_sink=usage_sink,
                         context_length=settings.context_length)
+
+
+def make_embedding(cfg: WebConfig) -> OllamaEmbeddingAdapter:
+    return OllamaEmbeddingAdapter(cfg.embed_model, host=cfg.host)
 
 
 class StartupError(Exception):
@@ -87,6 +93,7 @@ class WebApp:
         self.tabs = TabLock()
         self.times = TurnTimes(cfg.db_path, cfg.creator)
         self.data = DataFolder(cfg.data_dir)
+        self.docs = DocLibrary(cfg.docs_dir, make_embedding(cfg), cfg.creator, cache_path=cfg.db_path, model=cfg.embed_model)
         self.health = Health(cfg.host, cfg.model)
         self.meta_dir = tempfile.mkdtemp(prefix="sensai-web-")
         settings = (settings or Settings()).model_copy(update={"host": cfg.host})
@@ -103,6 +110,7 @@ class WebApp:
         try:
             self._load_profile()
             self.active = self._initial_session()
+            self.docs.sync()  # Whatever is in the documents folder starts indexing right away.
         except (PortError, sqlite3.Error, OSError, ValueError) as exc:
             raise StartupError(str(exc)) from None
 
@@ -138,11 +146,26 @@ class WebApp:
 
     # Prompt and sessions
 
+    def tools_text(self) -> str:
+        return tool_instructions((CALCULATE, RUN_PYTHON, *((SEARCH_DOCS,) if self.docs.enabled else ())))
+
     def system_prompt(self, persona_id: str | None) -> str:
+        """Shared rules, profile, persona, the search instructions while documents exist, then the tools."""
         prompt, block = self.base_prompt, profile_block(self.preferences)
         persona = self.catalogue.registry.get(persona_id) if persona_id else None
-        prompt = "\n\n".join(part for part in (prompt, block, persona.system_prompt if persona else "") if part)
-        return prompt if prompt.endswith(TOOLS_TEXT) else f"{prompt}\n\n{TOOLS_TEXT}"
+        docs = DOCS_PROMPT if self.docs.ready_count() > 0 else ""
+        prompt = "\n\n".join(part for part in (prompt, block, persona.system_prompt if persona else "", docs) if part)
+        tools = self.tools_text()
+        return prompt if prompt.endswith(tools) else f"{prompt}\n\n{tools}"
+
+    def refresh_prompt(self, active: "ActiveSession") -> list[str]:
+        """Before a turn: notice document changes, keep the prompt in step, return news to show."""
+        self.docs.sync()
+        notices = self.docs.notices()
+        prompt = self.system_prompt(active.persona_id)
+        if active.session.messages[0].content != prompt:
+            active.session.messages[0] = Message(role="system", content=prompt)
+        return notices
 
     def _active(self, session_id: str, persona_id: str | None, messages=(), title=None, saved=False,
                 created_at: str | None = None, updated_at: str | None = None) -> ActiveSession:
