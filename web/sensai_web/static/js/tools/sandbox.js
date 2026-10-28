@@ -4,6 +4,7 @@ import { button } from '../components/button.js';
 import { progressBar } from '../components/meter.js';
 import { pythonBody } from '../chat/py-card.js';
 import { limitChips } from './limits.js';
+import { createDataCard } from './data.js';
 import { formatBytes } from '../format.js';
 import { announce } from '../a11y.js';
 import { t } from '../i18n.js';
@@ -80,16 +81,14 @@ export function createSandbox({ api, store }) {
   });
   cancel.addEventListener('click', () => { token++; finish(); result.replaceChildren(h('p', { class: 'muted', role: 'status' }, t('tools.cancelled'))); });
 
-  const data = h('div', { class: 'stack' });
-  api.runData().then((d) => data.replaceChildren(d?.dir ? h('div', { class: 'stack' }, h('p', { class: 'muted' }, t('tools.dataDir', { dir: d.dir })), h('ul', { class: 'bullets' }, (d.files || []).map((f) => h('li', null, h('span', { class: 'mono' }, f.name), ` (${formatBytes(f.bytes)})`)))) : h('p', { class: 'muted' }, t('tools.noData'))))
-    .catch((e) => data.replaceChildren(h('p', { class: 'field__error' }, e.message)));
+  const data = createDataCard({ api });
 
   const el = h('div', { class: 'stack' },
     h('label', { class: 'field__label', for: 'sandbox-code' }, t('tools.codeLabel')),
     h('div', { class: 'sandbox' }, gutter, ta),
     h('p', { class: 'muted', id: 'sandbox-help' }, t('tools.helper')), info,
     h('div', { class: 'row' }, run, cancel, button(t('tools.loadFile'), { onClick: () => picker.click() }), picker),
-    bar, limitChips(lim()), result, h('h3', null, t('tools.dataTitle')), data);
+    bar, limitChips(lim()), result, h('h3', null, t('tools.dataTitle')), data.el);
   syncGutter();
   return { el, dispose: () => { token++; clearInterval(timer); } };
 }

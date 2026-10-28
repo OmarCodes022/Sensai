@@ -26,4 +26,9 @@
   .limits-help { max-width: 380px; max-height: 70vh; overflow: auto; }
   .caps { list-style: none; padding: 0; }
   .empty-calm { padding: var(--s-3); background: var(--surface-2); border-radius: var(--r-2); color: var(--ink-2); }
+  .datafiles { list-style: none; padding: 0; display: flex; flex-direction: column; gap: var(--s-1); }
+  .datafiles__row { display: flex; align-items: center; gap: var(--s-3); padding: var(--s-1) var(--s-3); border: var(--bw) solid var(--line); border-radius: var(--r-2); background: var(--surface); }
+  .dropzone { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); padding: var(--s-4); border: 2px dashed var(--line-strong); border-radius: var(--r-3); }
+  .cta-center { display: flex; justify-content: center; }
+  .dropzone--over { border-color: var(--accent); background: var(--accent-tint); }
 }
