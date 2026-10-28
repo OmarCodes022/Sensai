@@ -11,11 +11,11 @@ from sensai_web import routes, security, static_files
 from sensai_web.app import WebApp
 from sensai_web.errors import ApiError
 
-MAX_BODY = 8 * 1024 * 1024
+MAX_BODY = 16 * 1024 * 1024  # A 10 MB data file plus JSON escaping.
 HEADERS = {
-    "X-Content-Type-Options": "nosniff", "X-Frame-Options": "DENY", "Referrer-Policy": "no-referrer",
+    "X-Content-Type-Options": "nosniff", "X-Frame-Options": "SAMEORIGIN", "Referrer-Policy": "no-referrer",
     "Content-Security-Policy": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; "
-                               "frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+                               "frame-ancestors 'self'; base-uri 'none'; form-action 'none'",
 }
 
 
