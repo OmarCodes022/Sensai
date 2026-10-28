@@ -1,0 +1,23 @@
+/* Keynote mode (spec 8.9): body.keynote scales type, hides dev chrome, shows the presenter bar. */
+@layer views {
+  html:has(body.keynote) { font-size: 140%; }
+  body.keynote .inspector, body.keynote .sidebar, body.keynote .devpanel, body.keynote .hide-keynote { display: none !important; }
+  body.keynote .app { --sb-w: 0px !important; --in-w: 0px !important; }
+  body.keynote .transcript__content { max-width: 920px; }
+  body.keynote .topbar { opacity: .7; }
+  body.keynote .toolcard { font-size: 1.05em; }
+  body.keynote .app { padding-bottom: 7rem; }
+  body.keynote-record :is(.toasts, .tooltip, .popover, .chat__hint) { display: none !important; }
+  .presenter { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; background: var(--surface); border-top: var(--bw) solid var(--line-strong); padding: var(--s-2) var(--s-4); display: flex; flex-direction: column; gap: var(--s-1); font-size: 14px; }
+  .presenter .select { width: auto; max-width: 22rem; }
+  .presenter .btn { min-height: 44px; }
+  .presenter .btn--icon { width: 44px; }
+  .presenter input[type="range"] { width: 8rem; }
+  .beats { display: flex; gap: var(--s-1); flex-wrap: wrap; }
+  .beats li { min-width: 28px; text-align: center; border: var(--bw) solid var(--line-strong); border-radius: var(--r-pill); font-size: 12px; padding: 0 var(--s-2); color: var(--ink-3); }
+  .beats li.is-done { background: var(--sage-tint); color: var(--sage); }
+  .beats li.is-next { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .beats__bar { display: flex; gap: var(--s-3); align-items: center; }
+  .beats__bar .progress { flex: 1; }
+  .keynote-notes { position: fixed; right: var(--s-4); bottom: 8.5rem; width: min(26rem, 90vw); max-height: 50vh; overflow: auto; z-index: 31; box-shadow: var(--shadow-pop); font-size: 14px; }
+}

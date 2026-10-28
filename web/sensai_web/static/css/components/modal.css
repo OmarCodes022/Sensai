@@ -1,0 +1,21 @@
+@layer components {
+  dialog.modal { border: var(--bw) solid var(--line-strong); border-radius: var(--r-3); padding: 0; background: var(--surface); color: var(--ink); width: min(520px, calc(100vw - 2rem)); max-height: 86dvh; box-shadow: var(--shadow-pop); overflow: hidden; }
+  dialog.modal[open] { display: flex; flex-direction: column; animation: modal-in var(--dur-modal) var(--ease); }
+  dialog.modal::backdrop { background: var(--scrim); }
+  dialog.modal--wide { width: min(680px, calc(100vw - 2rem)); }
+  dialog.modal--top { margin-top: 12vh; }
+  .modal__head { display: flex; align-items: center; gap: var(--s-3); padding: var(--s-4) var(--s-5); border-bottom: var(--bw) solid var(--line); }
+  .modal__head h2 { flex: 1; font-size: var(--fs-18); }
+  .modal__body { padding: var(--s-5); overflow: auto; overscroll-behavior: contain; }
+  .modal__foot { display: flex; justify-content: flex-end; gap: var(--s-2); padding: var(--s-4) var(--s-5); border-top: var(--bw) solid var(--line); background: var(--surface-2); }
+  dialog.drawer { margin: 0; height: 100dvh; max-height: none; border-radius: 0; width: min(380px, 100vw); }
+  dialog.drawer--right { margin-left: auto; } dialog.drawer--left { margin-right: auto; }
+  dialog.drawer--bottom { width: 100vw; height: auto; max-height: 80dvh; margin-top: auto; border-radius: var(--r-3) var(--r-3) 0 0; }
+  @keyframes modal-in { from { opacity: 0; transform: translateY(8px) scale(.98); } }
+  body:has(dialog[open]) { overflow: hidden; }
+  .palette-list { max-height: 50dvh; overflow: auto; padding: var(--s-2); }
+  .palette-group { font-size: var(--fs-12); text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3); padding: var(--s-2) var(--s-3) var(--s-1); }
+  .ghost-wrap { position: relative; }
+  .ghost { position: absolute; inset: 0; display: flex; align-items: center; padding: 0 var(--s-3); color: var(--ink-3); pointer-events: none; white-space: pre; border: var(--bw) solid transparent; }
+  .ghost b { visibility: hidden; font-weight: inherit; }
+}

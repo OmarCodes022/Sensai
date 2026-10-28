@@ -220,6 +220,24 @@ conversation, numbered from 1 and cut to one line each (replies and tool
 results are left out); startup does not print it.
 Storage details: [storage.md](docs/developer-guide/storage.md).
 
+### Web interface
+
+The same assistant in your browser: streaming chat, personas, saved sessions, tool calls with approval, the Python sandbox and your profile. It runs on your computer only and uses the same database, creator and `.env` as the terminal chat.
+
+From the repository root, with Ollama running and the setup above done:
+
+```bash
+.venv/bin/sensai-web gemma3:1b      # then open http://127.0.0.1:8765/
+```
+
+- Same options as the CLI: `--persona`, `--session <id>`, `--db`, `--creator`, `--host`, plus `--port` (default 8765). `.venv/bin/sensai-web --help` lists them all.
+- If the command is missing, run `.venv/bin/python -m pip install -e .` once to register it.
+- It only listens on `127.0.0.1` (the sandbox is not a security boundary). Stop it with Ctrl+C.
+- For a remote Ollama set `SENSAI_SSH_HOST` as for `sensai-remote`; the tunnel opens and closes with the server.
+- **Your data:** the Python sandbox reads the files in `data/` (at the repository root, from where you launch). The folder is a placeholder in git and its contents are never pushed. In the page, **Tools, then Data files** lets you drag in CSV, TSV, JSON, text or Markdown files (10 MB each, 50 MB in all), remove them, or click **Add example data** for a week of Instagram figures. `SENSAI_DATA_DIR` points elsewhere. The terminal chat uses the same folder.
+- To try the page with scripted demo data, without a model, add `?mock=1` to the address.
+- Code: [web/](web/sensai_web/); page, API and design notes: [web/web-ui.md](web/web-ui.md).
+
 ## Tests
 
 Offline unit tests (no Ollama, no network; scripted fakes in

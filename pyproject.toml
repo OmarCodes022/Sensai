@@ -14,15 +14,17 @@ dev = ["pytest>=8.0"]
 [project.scripts]
 sensai = "sensai.cli.main:main"
 sensai-remote = "sensai.cli.remote:main"
+sensai-web = "sensai_web.cli:main"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["src", "web"]
 include = ["sensai*"]
 namespaces = false
 
 [tool.setuptools.package-data]
 "sensai.chat" = ["personas.json", "system_prompt.txt"]
+"sensai_web" = ["static/**/*"]
 
 [tool.pytest.ini_options]
-pythonpath = ["src", "tests/helpers"]
+pythonpath = ["src", "web", "tests/helpers"]
 testpaths = ["tests"]

@@ -1,0 +1,9 @@
+@layer components {
+  .toasts { position: fixed; right: var(--s-4); bottom: var(--s-4); z-index: 95; display: flex; flex-direction: column; gap: var(--s-2); width: min(380px, calc(100vw - 2rem)); pointer-events: none; }
+  .toast { pointer-events: auto; display: flex; align-items: center; gap: var(--s-3); padding: var(--s-3) var(--s-4); border-radius: var(--r-2); background: var(--ink); color: var(--paper); box-shadow: var(--shadow-pop); animation: toast-in var(--dur-panel) var(--ease); }
+  .toast--sage { border-left: 4px solid var(--sage); } .toast--rose { border-left: 4px solid var(--rose); } .toast--amber { border-left: 4px solid var(--amber); }
+  .toast .btn { color: inherit; border-color: currentColor; background: transparent; min-height: 32px; }
+  .toast__text { flex: 1; }
+  @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } }
+  @media (forced-colors: active) { .toast { border: 1px solid CanvasText; background: Canvas; color: CanvasText; } }
+}
