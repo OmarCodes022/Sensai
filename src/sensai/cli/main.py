@@ -28,6 +28,11 @@ from sensai.memory.sqlite_store import StorageError, StorageRepository
 from sensai.core.messages import Message
 from sensai.sandbox import RUN_PYTHON, SandboxLimits, python_tool, remove_stale_folders
 from sensai.tools import CALCULATE, ToolRegistry, calculate, run_with_tools, tool_instructions
+from sensai.rag import (DOCS_PROMPT, SEARCH_DOCS, DocSearch, build_index, docs_command, load_documents,
+                       reindex_command, search_docs_handler)
+from sensai.llm.embeddings import OllamaEmbeddingAdapter, EmbeddingError
+from sensai.memory.vector_index import LocalVectorIndex
+from sensai.core.errors import LLMConnectionError, ModelNotFoundError
 
 DEFAULT_DB_PATH = "sensai.sqlite3"
 MAX_SCRIPT_BYTES = 1024 * 1024
@@ -43,6 +48,30 @@ def _tools(read, approval=None, data_dir=None):
     registry.register(CALCULATE, calculate)
     registry.register(RUN_PYTHON, partial(python_tool, data_dir=data_dir), confirm=True)
     return registry
+
+def _setup_rag(args, settings, tool_registry) -> DocSearch | None:
+    """Index the --docs folder and register search_docs; None (with a warning) if it cannot be."""
+    if not args.docs:
+        return None
+    skipped: list[str] = []
+    try:
+        docs = load_documents(args.docs, skipped)
+        for name in skipped:
+            print(f"warning: skipped {name}: no header between --- lines")
+        if not docs:
+            print(f"warning: no documents found in {args.docs}")
+            return None
+        embedding = OllamaEmbeddingAdapter(settings.embed_model)
+        index = LocalVectorIndex(embedding)
+        total = build_index(docs, embedding, index, args.creator)
+        print(f"Indexed {len(docs)} documents ({total} chunks) with {settings.embed_model}")
+        handler = partial(search_docs_handler, index=index, creator_id=args.creator, docs_meta=docs)
+        tool_registry.register(SEARCH_DOCS, handler, timeout=None)
+        return DocSearch(index, docs, args.docs, args.creator, settings.embed_model)
+    except (LLMConnectionError, ModelNotFoundError, EmbeddingError) as e:
+        print(f"warning: document search is off: {e}")
+        print(f"run: ollama pull {settings.embed_model}")
+        return None
 
 
 def _read_script(path):
@@ -125,6 +154,7 @@ def parse_args(settings: Settings, argv: Sequence[str] | None = None) -> argpars
     p.add_argument("--profile-file", default=settings.profile_file,
                    help="JSON object replacing the stored creator profile")
     p.add_argument("--host", default=settings.host, help="Ollama base URL")
+    p.add_argument("--docs", default=settings.docs_dir, help="folder of brand documents to index")
     def positive_timeout(value):
         try:
             number = float(value)
@@ -166,7 +196,8 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
          operation_timeout: float = 120.0, cancel_requested=None,
          persona_registry: PersonaRegistry | None = None,
          base_prompt: str | None = None, recorder: SessionRecorder | None = None,
-         tool_registry: ToolRegistry | None = None, data_dir: str | None = None) -> None:
+         tool_registry: ToolRegistry | None = None, data_dir: str | None = None,
+         docs: DocSearch | None = None) -> None:
     if base_prompt is None:
         base_prompt = session.messages[0].content
     if tool_registry is None:
@@ -215,6 +246,14 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
                 write("usage: /run <file.py>")
             else:
                 _run_script(command[1], data_dir, token, write)
+            continue
+        if command and command[0] in ("/docs", "/reindex"):
+            if docs is None:
+                write("Document search is off (no --docs folder).")
+            else:
+                lines = reindex_command(docs) if command[0] == "/reindex" else docs_command(docs, text.strip()[5:].strip())
+                for line in lines:
+                    write(line)
             continue
 
         def on_tool(call, result):
@@ -381,6 +420,9 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
         with TerminalInput() as terminal:
             tool_registry = _tools(terminal.read, approval=TerminalApproval(terminal.read_key, print),
                                    data_dir=args.data_dir)
+            docs = _setup_rag(args, settings, tool_registry)
+            if docs is not None:
+                prompt, base_prompt = (f"{part}\n\n{DOCS_PROMPT}" for part in (prompt, base_prompt))
             def titler(first_user: str, first_answer: str) -> str | None:
                 token = CancellationToken(
                     monotonic() + min(saved_sessions.TITLE_TIMEOUT, args.operation_timeout),
@@ -395,7 +437,8 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
                  operation_timeout=args.operation_timeout,
                  cancel_requested=terminal.cancel_requested,
                  persona_registry=registry, base_prompt=base_prompt, recorder=recorder,
-                 tool_registry=tool_registry, data_dir=args.data_dir)
+                 tool_registry=tool_registry, data_dir=args.data_dir,
+                 docs=docs)
     finally:
         try:
             remove_stale_folders()

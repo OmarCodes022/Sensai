@@ -202,3 +202,20 @@ class FakeEventSink:
 
     def emit(self, event: Event) -> None:
         self.events.append(event)
+
+
+class BagOfWordsEmbedding:
+    """Bag of words over a tiny vocabulary: a query is closest to the chunks that share its words."""
+
+    WORDS = ["delivery", "hydrat", "redness", "price", "cruelty", "voice", "cream", "serum"]
+
+    def __init__(self):
+        self.fail: Exception | None = None
+        self.calls = 0
+
+    def embed(self, text):
+        self.calls += 1
+        if self.fail is not None:
+            raise self.fail
+        lowered = text.lower()
+        return [float(lowered.count(word)) for word in self.WORDS] + [0.01]  # Never a zero vector.

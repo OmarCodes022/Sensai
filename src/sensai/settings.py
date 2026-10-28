@@ -23,3 +23,5 @@ class Settings(BaseSettings):
     # Files copied into each run_python folder; empty means unset.
     data_dir: str | None = Field(None, validation_alias="SENSAI_DATA_DIR")
     test_model: str = Field("gemma3:1b", validation_alias="SENSAI_TEST_MODEL")
+    docs_dir: str | None = Field(None, validation_alias="SENSAI_DOCS")
+    embed_model: str = Field("nomic-embed-text", validation_alias="SENSAI_EMBED_MODEL")
