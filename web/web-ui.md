@@ -45,7 +45,9 @@ POST /api/chat {text}     application/x-ndjson stream     POST /api/chat/stop ->
 POST /api/approvals/{id}  {approved}
 GET  /api/tools           {items:[{name,description,parameters,timeout,confirm,max_calls}]}
 POST /api/run {code}      {exit_code,duration_s,timed_out,truncated,stdout,stderr,report,limits?}
-GET  /api/run/data        {dir,files:[{name,bytes}]}
+GET  /api/run/data        {dir,exists,files:[{name,bytes}],limits:{file_mb,total_mb,types}}
+PUT  /api/run/data/{name} {text} -> listing        DELETE /api/run/data/{name} -> listing
+POST /api/run/data/example   adds engagement.csv (409 if present) -> listing
 GET/PUT /api/profile      {id,preferences}; PUT body {preferences}
 POST /api/session/takeover
 ```

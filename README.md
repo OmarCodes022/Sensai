@@ -219,6 +219,7 @@ From the repository root, with Ollama running and the setup above done:
 - If the command is missing, run `.venv/bin/python -m pip install -e .` once to register it.
 - It only listens on `127.0.0.1` (the sandbox is not a security boundary). Stop it with Ctrl+C.
 - For a remote Ollama set `SENSAI_SSH_HOST` as for `sensai-remote`; the tunnel opens and closes with the server.
+- **Your data:** the Python sandbox reads the files in `data/` (at the repository root, from where you launch). The folder is a placeholder in git and its contents are never pushed. In the page, **Tools, then Data files** lets you drag in CSV, TSV, JSON, text or Markdown files (10 MB each, 50 MB in all), remove them, or click **Add example data** for a week of Instagram figures. `SENSAI_DATA_DIR` points elsewhere. The terminal chat uses the same folder.
 - To try the page with scripted demo data, without a model, add `?mock=1` to the address.
 - Code: [web/](web/sensai_web/); page, API and design notes: [web/web-ui.md](web/web-ui.md).
 
