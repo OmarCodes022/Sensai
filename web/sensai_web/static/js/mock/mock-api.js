@@ -5,10 +5,16 @@ import { play, abortError } from './player.js';
 import { SCENARIOS, byId, errorTurn } from './scenarios.js';
 import { turn, say, usage } from './script.js';
 import { PERSONAS, HEALTH, CONFIG, PROFILE, TOOLS, DATA_FILES, ENGAGEMENT_CSV } from './fixtures.js';
+import { DOCS, CHUNKS } from './planned-misc.js';
 
 const state = { scenario: 'happy', turnIdx: 0, speed: 'normal', inject: null, locked: false, offline: false, hideSessions: false, noTools: false };
 const sessions = createSessions();
 let dataFolder = structuredClone(DATA_FILES);
+const docItem = (d) => ({ name: `${d.id}.md`, bytes: d.chunks * 420, state: 'ready', source: d.id, version: d.version, title: d.product, product: d.type === 'Product sheet' ? d.product : '', chunks: d.chunks });
+let docFiles = DOCS.map(docItem);
+const docListing = () => ({ state: 'ready', folder: '/Users/nadia/sensai/data/docs', embed_model: 'nomic-embed-text', documents: docFiles.length, pending: 0, error: null,
+  items: structuredClone(docFiles), limits: { file_mb: 2, total_mb: 20, types: ['.md', '.txt'] } });
+const wordsOf = (s) => s.toLowerCase().match(/[\p{L}\p{N}]+/gu) || [];
 const pending = new Map();
 let active = null, profile = { ...PROFILE, preferences: { ...PROFILE.preferences } }, turnCount = 0, panelReady = false;
 const listeners = new Set();
@@ -107,6 +113,23 @@ const impl = {
     if (!dataFolder.files.some((f) => f.name === name)) throw new ApiError('not_found', `No data file named ${name}.`, { status: 404 });
     dataFolder.files = dataFolder.files.filter((f) => f.name !== name);
     return structuredClone(dataFolder);
+  },
+  docs: async () => docListing(),
+  async putDoc(name, text) {
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/.test(name) || !/\.(md|txt)$/i.test(name)) throw new ApiError('bad_document', 'Only .md and .txt documents can be added (letters, digits, dots, dashes, underscores).', { status: 400 });
+    docFiles = [...docFiles.filter((d) => d.name !== name), { name, bytes: new TextEncoder().encode(text).length, state: 'ready', source: name.replace(/\.[^.]+$/, ''), version: '2026-10-26', title: name, product: '', chunks: Math.max(1, text.split(/\n\n+/).length) }].sort((a, b) => a.name.localeCompare(b.name));
+    return docListing();
+  },
+  async deleteDoc(name) {
+    if (!docFiles.some((d) => d.name === name)) throw new ApiError('bad_document', `No document named ${name}.`, { status: 404 });
+    docFiles = docFiles.filter((d) => d.name !== name);
+    return docListing();
+  },
+  reindexDocs: async () => docListing(),
+  async searchDocs(q) {
+    const qs = new Set(wordsOf(q));
+    const items = CHUNKS.map((c) => ({ source: c.source, score: qs.size ? wordsOf(c.text).filter((w) => qs.has(w)).length / qs.size : 0, text: c.text })).filter((c) => c.score > 0).sort((a, b) => b.score - a.score).slice(0, 3);
+    return { items, state: 'ready' };
   },
   async exampleData() {
     if (dataFolder.files.some((f) => f.name === 'engagement.csv')) throw new ApiError('exists', 'engagement.csv is already in the data folder.', { status: 409 });

@@ -71,4 +71,5 @@
     .toolcard__body[hidden], .toolgroup:not([open]) > :not(summary) { display: block !important; }
     .msg__meta { opacity: 1; }
   }
+  .msg__sources { flex-wrap: wrap; align-items: center; gap: var(--s-2); margin-top: var(--s-2); font-size: var(--fs-12); }
 }
