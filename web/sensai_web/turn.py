@@ -50,8 +50,10 @@ def run_turn(app: WebApp, active: ActiveSession, stop, text: str, emit: Emit) ->
     emit({"type": "turn_start", "turn_id": turn_id, "model": cfg.model, "persona": active.persona_id,
           "number": number, "budget_seconds": cfg.operation_timeout})
     token = CancellationToken(monotonic() + cfg.operation_timeout, stop.is_set)
+    for notice in app.refresh_prompt(active):
+        emit({"type": "warning", "code": "documents", "message": notice})
     approval = WebApproval(app.approvals, emit, stop, turn_id)
-    registry = ObservedRegistry(approval, emit, app.data.path, app.meta_dir)
+    registry = ObservedRegistry(approval, emit, app.data.path, app.meta_dir, app.docs)
     status = None
     stream = run_with_tools(
         session, registry, text, token,

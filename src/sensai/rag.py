@@ -386,23 +386,29 @@ class DocLibrary:
         self.sync(wait=True)
 
 
-def search_docs_handler(arguments: dict, cancellation, *, library: DocLibrary) -> ToolResult:
-    results = library.search(arguments.get("query", ""), 3)
+def search_with_hits(library: DocLibrary, query: str, limit: int = 3) -> tuple[str, list[dict]]:
+    """The tool's answer text, and the hits behind it (source, version, score, outdated)."""
+    results = library.search(query, limit)
     docs = library.metadata()
-    status = library.status()
-    note = f"\n({status['pending']} more document{'s are' if status['pending'] != 1 else ' is'} still being indexed.)" \
-        if status["pending"] else ""
+    pending = library.status()["pending"]
+    note = f"\n({pending} more document{'s are' if pending != 1 else ' is'} still being indexed.)" if pending else ""
     if not results:
-        return ToolResult(output="No relevant documents found" + note)
-    lines = []
-    for hit in results:
+        return "No relevant documents found" + note, []
+    lines, hits = [], []
+    for n, hit in enumerate(results, 1):
         doc = next((d for d in docs if d["source"] == hit.source), None)
         label = f"{hit.source}, {doc['version'] if doc else ''}"
         newer = superseded_by(doc, docs) if doc else None
         if newer:
             label += f", OUTDATED: superseded by {newer['source']} {newer['version']}"
         lines.append(f"[{label}] {hit.text}")
-    return ToolResult(output="\n".join(lines) + note)
+        hits.append({"n": n, "source": hit.source, "version": doc["version"] if doc else "", "score": round(hit.score, 3),
+                     "outdated": newer is not None, "text": hit.text})
+    return "\n".join(lines) + note, hits
+
+
+def search_docs_handler(arguments: dict, cancellation, *, library: DocLibrary) -> ToolResult:
+    return ToolResult(output=search_with_hits(library, arguments.get("query", ""))[0])
 
 
 # The slash commands: each returns the lines to print.
@@ -480,4 +486,4 @@ def reindex_command(library: DocLibrary) -> list[str]:
 
 
 __all__ = ["DOCS_PROMPT", "SEARCH_DOCS", "DocError", "DocLibrary", "add_command", "docs_command", "remove_command",
-           "reindex_command", "search_docs_handler"]
+           "reindex_command", "search_docs_handler", "search_with_hits"]

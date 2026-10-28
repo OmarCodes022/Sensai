@@ -48,6 +48,9 @@ POST /api/run {code}      {exit_code,duration_s,timed_out,truncated,stdout,stder
 GET  /api/run/data        {dir,exists,files:[{name,bytes}],limits:{file_mb,total_mb,types}}
 PUT  /api/run/data/{name} {text} -> listing        DELETE /api/run/data/{name} -> listing
 POST /api/run/data/example   adds engagement.csv (409 if present) -> listing
+GET  /api/docs            {state,folder,embed_model,documents,pending,error,items:[{name,bytes,state,source,version,title,product,chunks}],limits}
+PUT  /api/docs/{name} {text} -> listing     DELETE /api/docs/{name} -> listing     POST /api/docs/reindex -> listing
+GET  /api/docs/search?q=  {items:[{source,score,text}],state}
 GET/PUT /api/profile      {id,preferences}; PUT body {preferences}
 POST /api/session/takeover
 ```
@@ -58,7 +61,7 @@ Added by this round (assumption, not in the original contract): `GET /api/config
 
 Session items: `{kind:"user",n,text,at}`, `{kind:"assistant",text,persona,usage|null,tools,at}`, `{kind:"tool",...}`, `{kind:"event",text}`.
 
-Stream events (one JSON per line): `turn_start`, `text`, `tool_call`, `approval_request`, `approval_result`, `tool_result` (with `meta` for `run_python`), `usage` (any count may be null), `title`, `saved`, `warning`, `done` (`completed|interrupted|timed_out`), `error`. Planned, ignored unless the capability is true: `redacted`, `blocked`, `sources`, `step`. A stream that ends without `done` is a network error.
+Stream events (one JSON per line): `turn_start`, `text`, `tool_call`, `approval_request`, `approval_result`, `tool_result` (with `meta` for `run_python`), `usage` (any count may be null), `title`, `saved`, `warning`, `sources`, `done` (`completed|interrupted|timed_out`), `error`. `sources` (`items:[{n,source,version,score,outdated}]`) follows a `search_docs` result. Planned, ignored unless the capability is true: `redacted`, `blocked`, `step`. A stream that ends without `done` is a network error.
 
 Planned endpoints (documented, never called while the capability is false): `/api/campaign/{week}`, `/api/campaign/{week}/edit`, `/api/campaign/{week}/approve`, `/api/weekly-run`, `/api/brand`, `/api/facts`, `/api/docs`, `/api/docs/search`, `/api/docs/reindex`, `/api/context`, `/api/stats`, `/api/export`, `/api/share`, `/api/schedule`, `/api/safety`, `/api/evals`.
 
