@@ -363,6 +363,22 @@ class DocLibrary:
             raise DocError(f"{path}: {error.strerror or error}") from None
         return name, self.put(name, text)
 
+    def read(self, name: object) -> dict:
+        """One document as it is on disk, with what the index knows about it (when indexed)."""
+        name = self.check_name(name)
+        target = os.path.join(self.folder or DEFAULT_FOLDER, name)
+        if not self.enabled or os.path.islink(target) or not os.path.isfile(target):
+            raise DocError(f"No document named {name}.")
+        try:
+            with open(target, encoding="utf-8") as f:
+                text = f.read(MAX_FILE_BYTES + 1)
+        except (OSError, UnicodeDecodeError):
+            raise DocError(f"{name} is not readable UTF-8 text.") from None
+        with self._lock:
+            doc = self._docs.get(name)
+        return {"name": name, "bytes": len(text.encode("utf-8")), "text": text,
+                **({k: doc[k] for k in ("source", "version", "product", "title", "chunks")} if doc else {})}
+
     def remove(self, name: object) -> None:
         name = self.check_name(name)
         target = os.path.join(self.folder or DEFAULT_FOLDER, name)
