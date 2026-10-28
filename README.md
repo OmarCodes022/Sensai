@@ -18,6 +18,7 @@ Features from the subject catalogue that are implemented in the code:
 | B1 | Functional CLI chatbot (base chat) | Streamed replies, in-session history, clean errors (empty input, missing model, connection failure, timeout), model chosen by argument or `.env`, Ctrl+C/Esc interrupts a reply | [Architecture](docs/developer-guide/architecture.md), [cancellation](docs/architecture/cancellation.md) |
 | A5 | Persona | Built-in and JSON-file personas, chosen at startup or switched with `/persona <id>` without losing history | [Persona guide](docs/user-guide/personas.md) |
 | M1 | Session Persistence & Profiles | Sessions saved after each completed turn, listed and resumed after restart; a creator profile file injected into the system prompt | [Storage](docs/developer-guide/storage.md) |
+| R1 | Brand Document Search (RAG) | Index a folder of brand documents at startup with `--docs`; model calls `search_docs` automatically for product questions; `/docs` lists or searches chunks; `/reindex` picks up changes | [Retrieval](docs/architecture/retrieval.md) |
 
 User stories: see [docs/overview/user-stories.md](docs/overview/user-stories.md). Four
 end-to-end stories cover every feature on `main`.
