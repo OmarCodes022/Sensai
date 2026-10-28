@@ -51,6 +51,7 @@ POST /api/run/data/example   adds engagement.csv (409 if present) -> listing
 GET  /api/docs            {state,folder,embed_model,documents,pending,error,items:[{name,bytes,state,source,version,title,product,chunks}],limits}
 PUT  /api/docs/{name} {text} -> listing     DELETE /api/docs/{name} -> listing     POST /api/docs/reindex -> listing
 GET  /api/docs/search?q=  {items:[{source,score,text}],state}
+GET  /api/docs/{name}     {name,bytes,text,source?,version?,product?,title?,chunks?}  (the viewer; after /search in the route table)
 GET/PUT /api/profile      {id,preferences}; PUT body {preferences}
 POST /api/session/takeover
 ```
@@ -77,7 +78,8 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 - `#/personas`: read-only catalogue, Use button, how-to for a custom catalogue file.
 - `#/profile`: key-value list, JSON editor with live line-level validation, confirm modal, `PUT`. Never auto-saves; success is shown only after the backend answers.
 - `#/tools`: registry, recent calls (built from the stored session items), sandbox runner reusing the `run_python` result card. Cancel only stops waiting: the real `POST /api/run` has no cancel, and the UI says so.
-- `#/documents`: live when `capabilities.documents` is true (otherwise Planned). Status chip and embedding model, a drop area (`.md`, `.txt`, checked in the page before sending), the list with version, chunks and status, a two-step remove, reindex, and a search box that shows what the model would receive (no model call). It polls `GET /api/docs` every 3 s, so files copied into the folder appear by themselves. Replies that used `search_docs` show their sources under them.
+- `#/documents`: live when `capabilities.documents` is true (otherwise Planned). Status chip and embedding model, a drop area (`.md`, `.txt`, checked in the page before sending), the list with version, chunks and status, a viewer (click a name: rendered Markdown and raw text, with source, version and chunks), a two-step remove, reindex, and a search box that shows what the model would receive (no model call). It polls `GET /api/docs` every 3 s, so files copied into the folder appear by themselves. Replies that used `search_docs` show their sources under them.
+- Composer: a **+** button (menu: Add documents, Add data files, each shown when its capability is on) and slash commands with arguments. `/add`, `/remove`, `/docs [text]` and `/reindex` are live when `capabilities.documents` is true and run in the page against `/api/docs` (cards in the transcript, no model call); the other planned commands keep their Planned chip.
 - `#/settings`: effective configuration with source chips, secret-looking keys shown as "hidden", UI preferences, reset, backend card with capability chips.
 - `#/keynote`: launcher plus a presenter bar on `<body>` (body class `keynote`, `keynote-record` for record-friendly). Mock only: scenarios are played by the mock backend. Play, pause, step, restart, speed 0.5x to 3x, beat timeline, notes (`N`).
 - Planned views with mock previews behind a "Preview with mock data" toggle, each card with a MOCK ribbon: campaign (week header, four tabs, command box with before/after card, weekly run), brand, documents (local word-overlap search, no model), insights, safety, schedule. Preview buttons that would change data are inert and say so.
