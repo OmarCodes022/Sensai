@@ -7,6 +7,7 @@ import { createEmpty } from '../chat/empty.js';
 import { createReconnect } from '../chat/reconnect.js';
 import { createRestorer } from '../chat/restore.js';
 import { createMenu } from '../chat/menu.js';
+import { createDocCommands } from '../chat/doc-commands.js';
 import { createEvent } from '../chat/messages.js';
 import { openHistory } from '../chat/history.js';
 import { createPrintHead } from '../chat/print-head.js';
@@ -33,6 +34,7 @@ export function mount(root, ctx) {
   };
   const restorer = createRestorer({ ctx, onReuse: (text) => composer.fill(text) });
 
+  const docCommands = createDocCommands({ api, transcript, router });
   const commands = {
     persona: () => document.querySelector('.persona-pill')?.click(),
     history: () => openHistory(composer.textarea, { api, plannedEdit: !store.get().capabilities.branching, onPick: jump }),
@@ -40,10 +42,14 @@ export function mount(root, ctx) {
     run: () => router.go('#/tools'),
     new: () => actions.newChat(),
     help: () => openShortcuts(),
+    docs: (args) => docCommands.docs(args),
+    add: () => docCommands.add(),
+    remove: (args) => docCommands.remove(args),
+    reindex: () => docCommands.reindex(),
   };
   const composer = createComposer({
     getUserTexts: () => model.items.filter((i) => i.kind === 'user').map((i) => i.text),
-    onSend: (text) => turn.send(text), onStop: () => turn.interrupt(), onCommand: (n) => commands[n]?.(),
+    onSend: (text) => turn.send(text), onStop: () => turn.interrupt(), onCommand: (n, args) => commands[n]?.(args), onAttach: (kind) => docCommands.attach(kind), capabilities: () => store.get().capabilities,
     guardrails: () => !!store.get().capabilities.guardrails,
   });
   const turn = createTurn({ ctx, transcript, composer, model, reconnect, onReuse: (text) => composer.fill(text) });
