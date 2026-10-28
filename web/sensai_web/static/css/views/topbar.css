@@ -1,0 +1,15 @@
+/* Narrow top bar. In the views layer so it wins over the components layer. */
+@layer views {
+  @media (max-width: 1399px) { .topbar .hide-1400 { display: none !important; } }
+  @media (max-width: 767px) {
+    .topbar .btn, .topbar .persona-pill { min-height: 44px; }
+    .topbar .btn--icon { width: 44px; }
+  }
+  @media (max-width: 479px) {
+    .topbar { gap: var(--s-1); padding: 0 var(--s-1); }
+    .brand span:last-child, .status-btn__label, .persona-pill__name, .persona-pill > svg { display: none; }
+    .persona-pill { margin-left: auto; padding: 0; width: 44px; justify-content: center; }
+    .status-btn { width: 44px; padding: 0; }
+  }
+  @media (max-width: 359px) { .topbar { gap: 0; } }
+}

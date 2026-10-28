@@ -1,0 +1,11 @@
+@layer components {
+  .popover { position: fixed; z-index: 70; min-width: 220px; max-width: min(360px, 94vw); max-height: 70dvh; overflow: auto; overscroll-behavior: contain; background: var(--surface); border: var(--bw) solid var(--line-strong); border-radius: var(--r-2); box-shadow: var(--shadow-pop); padding: var(--s-3); animation: pop-in var(--dur-panel) var(--ease); }
+  .popover--menu { padding: var(--s-1); }
+  .popover h3 { font-size: var(--fs-14); margin-bottom: var(--s-2); }
+  @keyframes pop-in { from { opacity: 0; transform: translateY(4px); } }
+  .tooltip { position: fixed; z-index: 90; max-width: 280px; padding: var(--s-1) var(--s-2); border-radius: var(--r-1); background: var(--ink); color: var(--paper); font-size: var(--fs-12); line-height: 1.4; pointer-events: auto; }
+  .menu-item { display: flex; align-items: center; gap: var(--s-2); width: 100%; min-height: var(--target); padding: 0 var(--s-3); border: 0; border-radius: var(--r-1); background: none; text-align: left; }
+  .menu-item:hover, .menu-item:focus-visible { background: var(--surface-2); }
+  .menu-item[aria-disabled="true"] { opacity: .55; }
+  @media (forced-colors: active) { .tooltip { background: Canvas; color: CanvasText; border: 1px solid CanvasText; } }
+}

@@ -1,0 +1,37 @@
+/* Composer, slash menu and the mock dev panel. */
+@layer components {
+  .composer { --cpad: max(var(--s-4), calc((100% - 760px) / 2)); position: relative; flex: none; padding: var(--s-3) var(--cpad) var(--s-4); border-top: var(--bw) solid var(--line); background: var(--paper); }
+  .composer__box { display: flex; gap: var(--s-2); align-items: flex-end; border: var(--bw) solid var(--line-strong); border-radius: 16px; background: var(--surface); padding: 10px 10px 10px 16px; }
+  .composer__box:focus-within { border-color: var(--accent); outline: var(--focus); outline-offset: 1px; }
+  .composer__field { position: relative; flex: 1; min-width: 0; }
+  .composer__ta, .composer__ghost { display: block; width: 100%; padding: 10px 0; font: inherit; font-size: var(--fs-16); line-height: 24px; }
+  .composer__ta { min-height: 44px; border: 0; background: transparent; resize: none; overflow: hidden; position: relative; }
+  .composer__ta:focus, .composer__ta:focus-visible { outline: none; box-shadow: none; }
+  .composer__ta::placeholder { color: var(--ink-3); }
+  .composer__ghost { position: absolute; inset: 0; white-space: pre; color: var(--ink-3); pointer-events: none; overflow: hidden; }
+  .composer__typed { visibility: hidden; }
+  .composer__send, .composer__stop { flex: none; }
+  .composer__stop { border-width: 1.5px; }
+  .composer__stop .ring { width: 22px; height: 22px; background: conic-gradient(var(--rose) calc(var(--v) * 1%), var(--surface-3) 0); }
+  .composer__stop .ring::after { width: 14px; height: 14px; background: var(--surface); }
+  .composer__chips { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+  .composer__chips:not(:empty) { margin-top: var(--s-2); }
+  .chip--wrap { white-space: normal; border-radius: var(--r-2); align-items: flex-start; padding-block: 3px; }
+  .composer__msg:not(:empty) { margin-top: var(--s-2); }
+  .composer__warn { display: inline-flex; gap: var(--s-1); align-items: center; color: var(--amber); font-size: var(--fs-13); font-weight: 500; }
+  .composer__foot { display: flex; justify-content: space-between; gap: var(--s-3); margin-top: var(--s-2); font-size: var(--fs-12); color: var(--ink-3); }
+  @media (max-width: 599px) { .composer__foot .muted { display: none; } .composer .btn__label { display: none; } }
+
+  .slash { position: absolute; left: var(--cpad); bottom: 100%; margin-bottom: var(--s-2); width: min(520px, calc(100% - 2rem)); z-index: 30; background: var(--surface); border: var(--bw) solid var(--line-strong); border-radius: var(--r-2); box-shadow: var(--shadow-pop); overflow: hidden; }
+  .slash__list { max-height: 372px; overflow: auto; padding: 6px; }
+  .slash__opt { display: flex; align-items: center; gap: var(--s-3); min-height: 38px; padding: 0 10px; border-radius: var(--r-1); cursor: pointer; }
+  .slash__opt b { width: 90px; flex: none; font-weight: 600; }
+  .slash__opt[aria-selected="true"] { background: var(--accent-tint); outline: 2px solid var(--accent); outline-offset: -2px; }
+  .slash__opt[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
+  .slash__none { padding: var(--s-3) 10px; }
+  .slash__foot { display: flex; gap: var(--s-4); flex-wrap: wrap; padding: 6px 14px; border-top: var(--bw) solid var(--line); background: var(--paper); font-size: var(--fs-12); color: var(--ink-3); }
+
+  .devpanel { position: fixed; right: var(--s-4); bottom: var(--s-4); z-index: 80; width: min(320px, calc(100vw - 2rem)); max-height: 80dvh; overflow: auto; padding: var(--s-4); display: flex; flex-direction: column; gap: var(--s-3); background: var(--surface); border: var(--bw) solid var(--line-strong); border-radius: var(--r-2); box-shadow: var(--shadow-pop); }
+  .devpanel__prompt { font-size: var(--fs-12); color: var(--ink-2); background: var(--surface-2); padding: var(--s-2); border-radius: var(--r-1); }
+  .devpanel__prompt:empty { display: none; }
+}

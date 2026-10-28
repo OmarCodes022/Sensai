@@ -1,0 +1,8 @@
+@layer components {
+  .st { max-width: 960px; margin: 0 auto; padding: var(--s-6) var(--s-4); display: flex; flex-direction: column; gap: var(--s-4); }
+  #summary[data-fail="0"] { color: var(--sage); font-weight: 600; }
+  #summary:not([data-fail="0"])[data-fail] { color: var(--rose); font-weight: 600; }
+  tr.pass td:first-child { color: var(--sage); font-weight: 600; }
+  tr.fail td { color: var(--rose); }
+  td { padding: var(--s-1) var(--s-2); border-bottom: var(--bw) solid var(--line); vertical-align: top; overflow-wrap: anywhere; }
+}
