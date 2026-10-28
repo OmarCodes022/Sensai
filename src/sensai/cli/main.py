@@ -28,11 +28,9 @@ from sensai.memory.sqlite_store import StorageError, StorageRepository
 from sensai.core.messages import Message
 from sensai.sandbox import RUN_PYTHON, SandboxLimits, python_tool, remove_stale_folders
 from sensai.tools import CALCULATE, ToolRegistry, calculate, run_with_tools, tool_instructions
-from sensai.rag import (DOCS_PROMPT, SEARCH_DOCS, DocSearch, build_index, docs_command, load_documents,
-                       reindex_command, search_docs_handler)
-from sensai.llm.embeddings import OllamaEmbeddingAdapter, EmbeddingError
-from sensai.memory.vector_index import LocalVectorIndex
-from sensai.core.errors import LLMConnectionError, ModelNotFoundError
+from sensai.rag import (DOCS_PROMPT, SEARCH_DOCS, DocLibrary, add_command, docs_command, reindex_command,
+                       remove_command, search_docs_handler)
+from sensai.llm.embeddings import OllamaEmbeddingAdapter
 
 DEFAULT_DB_PATH = "sensai.sqlite3"
 MAX_SCRIPT_BYTES = 1024 * 1024
@@ -49,29 +47,24 @@ def _tools(read, approval=None, data_dir=None):
     registry.register(RUN_PYTHON, partial(python_tool, data_dir=data_dir), confirm=True)
     return registry
 
-def _setup_rag(args, settings, tool_registry) -> DocSearch | None:
-    """Index the --docs folder and register search_docs; None (with a warning) if it cannot be."""
+def _setup_docs(args, settings, tool_registry) -> DocLibrary | None:
+    """The documents folder as a library that indexes itself in the background; None if switched off."""
     if not args.docs:
         return None
-    skipped: list[str] = []
-    try:
-        docs = load_documents(args.docs, skipped)
-        for name in skipped:
-            print(f"warning: skipped {name}: no header between --- lines")
-        if not docs:
-            print(f"warning: no documents found in {args.docs}")
-            return None
-        embedding = OllamaEmbeddingAdapter(settings.embed_model)
-        index = LocalVectorIndex(embedding)
-        total = build_index(docs, embedding, index, args.creator)
-        print(f"Indexed {len(docs)} documents ({total} chunks) with {settings.embed_model}")
-        handler = partial(search_docs_handler, index=index, creator_id=args.creator, docs_meta=docs)
-        tool_registry.register(SEARCH_DOCS, handler, timeout=None)
-        return DocSearch(index, docs, args.docs, args.creator, settings.embed_model)
-    except (LLMConnectionError, ModelNotFoundError, EmbeddingError) as e:
-        print(f"warning: document search is off: {e}")
-        print(f"run: ollama pull {settings.embed_model}")
-        return None
+    embedding = OllamaEmbeddingAdapter(settings.embed_model, host=args.host)
+    library = DocLibrary(args.docs, embedding, args.creator, cache_path=args.db or DEFAULT_DB_PATH,
+                         model=settings.embed_model)
+    tool_registry.register(SEARCH_DOCS, partial(search_docs_handler, library=library), timeout=None)
+    library.sync()
+    return library
+
+
+def _with_docs(prompt: str, on: bool, registry: ToolRegistry) -> str:
+    """The system prompt with the search instructions present exactly while there are documents."""
+    instructions = tool_instructions(registry.definitions())
+    core = prompt.removesuffix(instructions).rstrip()
+    core = core.replace(f"\n\n{DOCS_PROMPT}", "")
+    return _tool_prompt(f"{core}\n\n{DOCS_PROMPT}" if on else core, registry)
 
 
 def _read_script(path):
@@ -154,7 +147,8 @@ def parse_args(settings: Settings, argv: Sequence[str] | None = None) -> argpars
     p.add_argument("--profile-file", default=settings.profile_file,
                    help="JSON object replacing the stored creator profile")
     p.add_argument("--host", default=settings.host, help="Ollama base URL")
-    p.add_argument("--docs", default=settings.docs_dir, help="folder of brand documents to index")
+    p.add_argument("--docs", default=settings.docs_dir,
+                   help="folder of brand documents to search (default: data/docs; empty switches it off)")
     def positive_timeout(value):
         try:
             number = float(value)
@@ -197,14 +191,31 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
          persona_registry: PersonaRegistry | None = None,
          base_prompt: str | None = None, recorder: SessionRecorder | None = None,
          tool_registry: ToolRegistry | None = None, data_dir: str | None = None,
-         docs: DocSearch | None = None) -> None:
+         docs: DocLibrary | None = None) -> None:
     if base_prompt is None:
         base_prompt = session.messages[0].content
     if tool_registry is None:
         tool_registry = _tools(read)
     session.messages[0] = Message(role="system", content=_tool_prompt(
         session.messages[0].content, tool_registry))
+    docs_on = False
+
+    def refresh_docs() -> None:
+        """Notice new, edited and removed documents; show what happened; keep the prompt in step."""
+        nonlocal docs_on
+        if docs is None:
+            return
+        docs.sync()
+        for line in docs.notices():
+            write(line)
+        on = docs.ready_count() > 0
+        if on != docs_on:
+            docs_on = on
+            session.messages[0] = Message(role="system", content=_with_docs(
+                session.messages[0].content, on, tool_registry))
+
     while True:
+        refresh_docs()
         try:
             text = read("\n> ")
         except EOFError:
@@ -231,8 +242,8 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
                 if persona is None:
                     write(f"error: unknown persona: {command[1]}")
                 else:
-                    session.set_system_prompt(_tool_prompt(
-                        f"{base_prompt}\n\n{persona.system_prompt}", tool_registry))
+                    session.set_system_prompt(_with_docs(
+                        _tool_prompt(f"{base_prompt}\n\n{persona.system_prompt}", tool_registry), docs_on, tool_registry))
                     write(f"Persona sélectionnée : {persona.id}")
                     if recorder is not None:
                         recorder.persona_changed(persona.id)
@@ -247,14 +258,25 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
             else:
                 _run_script(command[1], data_dir, token, write)
             continue
-        if command and command[0] in ("/docs", "/reindex"):
+        if command and command[0] in ("/docs", "/reindex", "/add", "/remove"):
             if docs is None:
-                write("Document search is off (no --docs folder).")
+                write("Document search is off (SENSAI_DOCS is empty).")
             else:
-                lines = reindex_command(docs) if command[0] == "/reindex" else docs_command(docs, text.strip()[5:].strip())
+                argument = command[1] if len(command) > 1 else ""
+                if command[0] == "/add":
+                    lines = add_command(docs, argument)
+                elif command[0] == "/remove":
+                    lines = remove_command(docs, argument)
+                elif command[0] == "/reindex":
+                    lines = reindex_command(docs)
+                else:
+                    lines = docs_command(docs, argument)
                 for line in lines:
                     write(line)
+                refresh_docs()
             continue
+
+        refresh_docs()  # A document added a moment ago counts for this very question.
 
         def on_tool(call, result):
             if call.name == RUN_PYTHON.name:
@@ -420,9 +442,7 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
         with TerminalInput() as terminal:
             tool_registry = _tools(terminal.read, approval=TerminalApproval(terminal.read_key, print),
                                    data_dir=args.data_dir)
-            docs = _setup_rag(args, settings, tool_registry)
-            if docs is not None:
-                prompt, base_prompt = (f"{part}\n\n{DOCS_PROMPT}" for part in (prompt, base_prompt))
+            docs = _setup_docs(args, settings, tool_registry)
             def titler(first_user: str, first_answer: str) -> str | None:
                 token = CancellationToken(
                     monotonic() + min(saved_sessions.TITLE_TIMEOUT, args.operation_timeout),

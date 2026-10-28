@@ -14,7 +14,7 @@ Docs: <https://omarcodes022.github.io/Sensai/> (sources in [docs/](docs/README.m
 | Personas | `--persona analyse`, `/persona` to switch mid-chat | [Personas](docs/user-guide/personas.md) |
 | Saved sessions and profile | `--list-sessions`, `--session <id>`, `--profile-file` | [Sessions](docs/user-guide/sessions.md) |
 | Tools | the model calls `calculate` and `run_python` (you approve each run) | [Tools and sandbox](docs/user-guide/tools.md) |
-| Brand document search | `--docs <folder>`, `/docs`, `/reindex` | [below](#brand-document-search) |
+| Brand document search | `/add <file>`, `/docs`; files in `data/docs/` are indexed by themselves | [Document search](docs/user-guide/documents.md) |
 | Web interface | `sensai-web <model>` | [below](#web-interface) |
 
 Planned work and what is not built yet: [product scope](docs/product/scope.md).
@@ -48,7 +48,7 @@ commands (like `sensai-web`) are registered. Full install guide:
 ```
 
 In a chat: `/persona [id]`, `/tools`, `/history`, `/run <file.py>`, `/docs [text]`,
-`/reindex`, and `exit` to leave. Each turn has a 120 s budget.
+`/add`, `/remove`, `/reindex`, and `exit` to leave. Each turn has a 120 s budget.
 Remote Ollama: [SSH setup](docs/operations/remote-ollama.md).
 
 ## Web interface
@@ -78,18 +78,25 @@ can read files by path. Limits and details: [Tools and sandbox](docs/user-guide/
 
 ## Brand document search
 
-Let the model answer from your own product sheets and FAQ instead of inventing claims.
+Put your product sheets, FAQ and brand voice in `data/docs/` and the model searches them
+whenever it needs a fact, instead of inventing one. It is on by itself; no flag.
 
 ```bash
-ollama pull nomic-embed-text
-.venv/bin/sensai qwen2.5 --docs tests/fixtures/docs
+ollama pull nomic-embed-text          # once: the embedding model
+.venv/bin/sensai qwen2.5              # data/docs/ is indexed in the background
 ```
 
-- `--docs` (or `SENSAI_DOCS`) is a folder of Markdown files, each starting with a
-  header between two `---` lines. Format: [tests/fixtures/docs/README.md](tests/fixtures/docs/README.md).
-- The model calls `search_docs` on its own. Older versions of a sheet are marked OUTDATED.
-- `/docs` lists documents, `/docs <text>` shows what a search finds, `/reindex` reloads the folder.
-- Without the embedding model (`SENSAI_EMBED_MODEL`), search is off and chat works normally.
+- **Add documents** from anywhere: `/add <file or folder>` in the chat copies them into
+  `data/docs/`. Or copy files there yourself: new, edited and removed files are noticed
+  and indexed automatically. `/docs` lists them, `/docs <text>` shows what a search finds,
+  `/remove <name>` removes one.
+- `.md` and `.txt` files; a header (`source`, `version`, `product`, `title`) is optional.
+  Older versions of a sheet are marked OUTDATED in the results.
+- `data/docs/` ships with fictional Serein Studio sample sheets: replace them with yours.
+  Your own files stay out of git.
+- `--docs <folder>` or `SENSAI_DOCS` uses another folder; `SENSAI_DOCS=` (empty) switches
+  search off. Without the embedding model, search is off and chat works normally.
+- Details: [Document search](docs/user-guide/documents.md).
 
 ## Configuration
 
@@ -103,7 +110,7 @@ variables win over `.env`, and command-line options win over both.
 | `SENSAI_DB` | session database | `sensai.sqlite3` |
 | `SENSAI_CREATOR` | key that separates creators' sessions and profiles | `default` |
 | `SENSAI_DATA_DIR` | files the sandbox can read | `./data` if it exists |
-| `SENSAI_DOCS`, `SENSAI_EMBED_MODEL` | document folder and embedding model | none, `nomic-embed-text` |
+| `SENSAI_DOCS`, `SENSAI_EMBED_MODEL` | document folder (empty switches search off) and embedding model | `./data/docs`, `nomic-embed-text` |
 | `SENSAI_OPERATION_TIMEOUT` | seconds per turn | `120` |
 | `SENSAI_CONTEXT_LENGTH` | context tokens (more uses more VRAM) | Ollama's default |
 | `SENSAI_SSH_HOST` | SSH alias for a remote Ollama | none |
