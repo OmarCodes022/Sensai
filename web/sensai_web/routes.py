@@ -7,11 +7,14 @@ from time import monotonic
 from urllib.parse import unquote
 
 from sensai.core.cancellation import CancellationToken
+from sensai.core.errors import LLMError
+from sensai.memory.vector_index import VectorIndexError
+from sensai.rag import MAX_FILE_BYTES, MAX_TOTAL_BYTES, TYPES, DocError
 from sensai.sandbox import SandboxLimits
 from sensai.tools import MAX_TOOL_CALLS
 from sensai_web import sandbox, session_view
 from sensai_web.app import WebApp
-from sensai_web.errors import ApiError
+from sensai_web.errors import ApiError, llm_failure
 from sensai_web.tools import tool_list
 from sensai_web.turn import run_turn
 
@@ -53,7 +56,8 @@ def health(app: WebApp, request):
 def config(app: WebApp, request):
     cfg, limits = app.cfg, SandboxLimits()
     return {
-        "capabilities": {name: True for name in CAPABILITIES}, "draft_personas": app.catalogue.drafts(),
+        "capabilities": {name: True for name in (*CAPABILITIES, *(("documents",) if app.docs.enabled else ()))},
+        "draft_personas": app.catalogue.drafts(),
         "context_length": cfg.context_length, "creator": cfg.creator, "model": cfg.model,
         "effective": cfg.effective,
         "limits": {"turn_seconds": cfg.operation_timeout, "tool_rounds": MAX_TOOL_CALLS,
@@ -140,7 +144,7 @@ def approve(app: WebApp, request, id: str):
 
 @route("GET", r"/api/tools")
 def tools(app: WebApp, request):
-    return {"items": tool_list()}
+    return {"items": tool_list(documents=app.docs.enabled)}
 
 
 @route("POST", r"/api/run")
@@ -189,3 +193,59 @@ def put_profile(app: WebApp, request):
 def takeover(app: WebApp, request):
     app.tabs.takeover(request.tab)
     return {"ok": True}
+
+
+def _docs_listing(app: WebApp) -> dict:
+    app.docs.sync()
+    return {**app.docs.status(), "items": app.docs.documents(),
+            "limits": {"file_mb": MAX_FILE_BYTES // 2**20, "total_mb": MAX_TOTAL_BYTES // 2**20, "types": list(TYPES)}}
+
+
+def _doc_error(error: DocError) -> ApiError:
+    return ApiError(413 if "MB" in str(error) else 400, "bad_document", str(error))
+
+
+@route("GET", r"/api/docs")
+def docs(app: WebApp, request):
+    return _docs_listing(app)
+
+
+@route("PUT", r"/api/docs/(?P<name>[^/]+)")
+def put_doc(app: WebApp, request, name: str):
+    try:
+        app.docs.put(unquote(name), request.json().get("text"))
+    except DocError as error:
+        raise _doc_error(error) from None
+    return _docs_listing(app)
+
+
+@route("DELETE", r"/api/docs/(?P<name>[^/]+)")
+def delete_doc(app: WebApp, request, name: str):
+    try:
+        app.docs.remove(unquote(name))
+    except DocError as error:
+        raise ApiError(404 if str(error).startswith("No document") else 400, "bad_document", str(error)) from None
+    return _docs_listing(app)
+
+
+@route("POST", r"/api/docs/reindex")
+def reindex_docs(app: WebApp, request):
+    if not app.docs.enabled:
+        raise ApiError(400, "bad_document", "Document search is switched off (SENSAI_DOCS is empty).")
+    app.docs.reindex()
+    return _docs_listing(app)
+
+
+@route("GET", r"/api/docs/search")
+def search_docs(app: WebApp, request):
+    query = (request.query.get("q") or [""])[0].strip()
+    if not query:
+        raise ApiError(400, "bad_request", "Type something to search for.")
+    try:
+        hits = app.docs.search(query, 5)
+    except LLMError as error:
+        raise ApiError(503, **{k: v for k, v in llm_failure(error, app.docs.model).items()}) from None
+    except VectorIndexError as error:
+        raise ApiError(400, "bad_request", str(error)) from None
+    return {"items": [{"source": h.source, "score": round(h.score, 3), "text": h.text} for h in hits],
+            "state": app.docs.status()["state"]}
