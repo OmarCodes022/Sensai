@@ -11,7 +11,7 @@ import { t } from '../i18n.js';
 function registry(items) {
   if (!items.length) return emptyState({ icon: 'tools', title: t('tools.none') });
   return h('div', { class: 'table-wrap' }, h('table', { class: 'table table--cards' }, h('caption', { class: 'sr-only' }, t('tools.registry')),
-    h('thead', null, h('tr', null, ['name', 'description', 'timeout', 'confirm', 'max'].map((k) => h('th', { scope: 'col' }, t(`tools.col.${k}`))))),
+    h('thead', null, h('tr', null, ['name', 'description', 'timeout', 'confirm', 'max'].map((k) => h('th', { scope: 'col', class: k === 'timeout' || k === 'max' ? 'num' : '' }, t(`tools.col.${k}`))))),
     h('tbody', null, items.map((x) => {
       const [server, short] = x.name.includes('.') ? x.name.split('.', 2) : [null, x.name];
       return h('tr', null,
