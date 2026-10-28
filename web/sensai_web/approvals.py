@@ -82,10 +82,9 @@ class WebApproval:
         self._count += 1
         approval_id = f"{self._turn_id}-a{self._count}"
         done, answer = self._approvals.open(approval_id)
-        reason = ("The model wants to run code on your computer." if request.action == "run_python"
-                  else f"The model wants to use {sanitize(request.action, keep='')}.")
+        # No `reason`: the page words it itself, in the language of its interface.
         self._emit({"type": "approval_request", "id": approval_id, "call_id": self.call_id,
-                    "action": request.action, "reason": reason, "preview": preview(request.resource)})
+                    "action": request.action, "preview": preview(request.resource)})
         started = monotonic()
         approved = False
         try:

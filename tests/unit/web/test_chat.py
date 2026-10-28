@@ -123,6 +123,7 @@ def test_run_python_waits_for_approval_then_runs(web):
         seen.append(event["type"])
         if event["type"] == "approval_request":
             assert event["action"] == "run_python" and event["call_id"] == "c1"
+            assert "reason" not in event  # The page words it in its own language.
             assert event["preview"]["lines"] == [{"header": "code:", "text": "print(6 * 7)"}]
             assert page.call("POST", f"/api/approvals/{event['id']}", {"approved": True}) == (200, {"ok": True})
 
