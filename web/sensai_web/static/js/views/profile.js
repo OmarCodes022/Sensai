@@ -27,7 +27,7 @@ export function mount(root, { api }) {
       h('p', { class: 'muted' }, t('profile.injected')),
       editing ? editor() : h('div', { class: 'card stack' },
         empty ? emptyState({ icon: 'user', title: t('profile.empty'), body: t('profile.emptyBody', { example: EXAMPLE }), h: 'h2' }) : h('dl', { class: 'kv' }, keys.flatMap(([k, v]) => [h('dt', { class: 'mono' }, k), h('dd', { dir: 'auto' }, String(v))])),
-        h('div', null, button(empty ? t('profile.create') : t('profile.edit'), { variant: 'primary', icon: 'edit', onClick: () => { editing = true; show(); box.querySelector('textarea')?.focus(); } }))));
+        h('div', { class: empty ? 'cta-center' : '' }, button(empty ? t('profile.create') : t('profile.edit'), { variant: 'primary', icon: 'edit', onClick: () => { editing = true; show(); box.querySelector('textarea')?.focus(); } }))));
   }
 
   function editor() {
