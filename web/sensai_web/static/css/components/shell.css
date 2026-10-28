@@ -20,7 +20,7 @@
   .persona-pill[disabled] { opacity: .6; cursor: not-allowed; }
   .persona-opt { align-items: flex-start; flex-direction: column; gap: 2px; }
   .sidebar { padding: var(--s-4); gap: var(--s-3); }
-  .sb-list { flex: 1 1 120px; min-height: 96px; overflow: auto; display: flex; flex-direction: column; gap: 2px; margin: 0 calc(var(--s-1) * -1); padding: 0 var(--s-1); }
+  .sb-list { flex: 1 1 120px; min-height: 72px; overflow: auto; display: flex; flex-direction: column; gap: 2px; margin: 0 calc(var(--s-1) * -1); padding: 0 var(--s-1); }
   .sb-group { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); padding: var(--s-3) var(--s-1) var(--s-1); }
   .sess { display: block; padding: var(--s-2) var(--s-3); border-radius: var(--r-2); border: var(--bw) solid transparent; border-left: 3px solid transparent; text-decoration: none; color: var(--ink); }
   .sess:hover { background: var(--surface); color: var(--ink); }
@@ -28,12 +28,14 @@
   .sess__title { font-size: var(--fs-13); font-weight: 500; }
   .sess__title.is-untitled { font-style: italic; color: var(--ink-3); }
   .sess__meta { display: flex; gap: var(--s-2); align-items: center; font-size: var(--fs-12); color: var(--ink-3); margin-top: 2px; }
-  .sb-foot { border-top: var(--bw) solid var(--line); padding-top: var(--s-3); display: flex; flex-direction: column; gap: var(--s-2); font-size: var(--fs-12); }
+  .sb-foot { flex: 0 1 auto; min-height: 0; overflow-y: auto; border-top: var(--bw) solid var(--line); padding-top: var(--s-3); display: flex; flex-direction: column; gap: var(--s-2); font-size: var(--fs-12); }
   .sb-foot details > summary { cursor: pointer; min-height: 32px; display: flex; align-items: center; gap: var(--s-2); color: var(--ink-2); font-weight: 500; }
   .sb-foot nav a { display: flex; align-items: center; gap: var(--s-2); padding: 6px var(--s-2); border-radius: var(--r-1); color: var(--ink-2); text-decoration: none; font-size: var(--fs-13); min-height: 32px; }
   .sb-foot nav a:hover, .sb-foot nav a[aria-current="page"] { background: var(--surface); color: var(--ink); }
   .sb-foot nav a[aria-current="page"] { font-weight: 600; box-shadow: inset 3px 0 0 var(--accent); }
   .sb-foot nav a .chip { margin-left: auto; }
+  /* Short windows (small laptops, browser zoom): tighter links, and the footer scrolls if still too tall. */
+  @media (max-height: 860px) { .sb-foot nav a { min-height: 26px; padding-block: 3px; } .sb-foot details > summary { min-height: 26px; } }
   .inspector .tabs { padding: 0 var(--s-2); flex: none; }
   .inspector .tabpanel { padding: var(--s-4); overflow: auto; flex: 1; }
   .lock { text-align: center; }
