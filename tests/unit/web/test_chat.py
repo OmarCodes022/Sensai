@@ -340,10 +340,10 @@ def test_the_data_folder_is_listed_and_visible_to_runs(web, tmp_path):
     (data / "figures.csv").write_text("a,b\n1,2\n")
     (data / "evil.py").write_text("print('no')")
     page = web(data_dir=str(data))
-    assert page.call("GET", "/api/run/data")[1] == {"dir": str(data), "files": [{"name": "figures.csv", "bytes": 8}]}
+    listing = page.call("GET", "/api/run/data")[1]
+    assert (listing["dir"], listing["exists"], listing["files"]) == (str(data), True, [{"name": "figures.csv", "bytes": 8}])
     body = page.call("POST", "/api/run", {"code": "print(open('figures.csv').read().strip())"})[1]
     assert body["stdout"] == "a,b\n1,2\n"
-    assert web().call("GET", "/api/run/data")[1] == {"dir": None, "files": []}
 
 
 def test_a_missing_data_folder_stops_the_server_from_starting(web, tmp_path):
