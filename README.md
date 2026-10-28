@@ -184,6 +184,20 @@ processes.
 Stronger isolation (for example `docker run --rm --network none`) is not
 implemented.
 
+### Brand document search
+
+Let the model answer from your own product sheets and FAQ instead of inventing claims:
+
+```bash
+ollama pull nomic-embed-text
+.venv/bin/sensai qwen2.5 --docs tests/fixtures/docs
+```
+
+- `--docs` (or `SENSAI_DOCS`) is a folder of Markdown files. Each starts with a header between two `---` lines (`source`, `type`, `version`, `title`, and `product` on product sheets); see [the fixture format](tests/fixtures/docs/README.md). Files without a header are skipped with a warning.
+- The model calls `search_docs` on its own for product questions. An older version of a sheet (same `product`, earlier `version`) is marked OUTDATED in the results.
+- `/docs` lists the indexed documents, `/docs <text>` shows what a search finds without asking the model, and `/reindex` reads the folder again (removed files disappear from the index).
+- If the embedding model (`SENSAI_EMBED_MODEL`, default `nomic-embed-text`) is missing, search is off and the chat works normally.
+
 ### Sessions and creator profile
 
 ```bash
