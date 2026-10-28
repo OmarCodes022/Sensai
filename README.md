@@ -205,6 +205,23 @@ conversation, numbered from 1 and cut to one line each (replies and tool
 results are left out); startup does not print it.
 Storage details: [storage.md](docs/developer-guide/storage.md).
 
+### Web interface
+
+The same assistant in your browser: streaming chat, personas, saved sessions, tool calls with approval, the Python sandbox and your profile. It runs on your computer only and uses the same database, creator and `.env` as the terminal chat.
+
+From the repository root, with Ollama running and the setup above done:
+
+```bash
+.venv/bin/sensai-web gemma3:1b      # then open http://127.0.0.1:8765/
+```
+
+- Same options as the CLI: `--persona`, `--session <id>`, `--db`, `--creator`, `--host`, plus `--port` (default 8765). `.venv/bin/sensai-web --help` lists them all.
+- If the command is missing, run `.venv/bin/python -m pip install -e .` once to register it.
+- It only listens on `127.0.0.1` (the sandbox is not a security boundary). Stop it with Ctrl+C.
+- For a remote Ollama set `SENSAI_SSH_HOST` as for `sensai-remote`; the tunnel opens and closes with the server.
+- To try the page with scripted demo data, without a model, add `?mock=1` to the address.
+- Code: [web/](web/sensai_web/); page, API and design notes: [web/web-ui.md](web/web-ui.md).
+
 ## Tests
 
 Offline unit tests (no Ollama, no network; scripted fakes in
