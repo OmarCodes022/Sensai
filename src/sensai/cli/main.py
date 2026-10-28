@@ -28,7 +28,8 @@ from sensai.memory.sqlite_store import StorageError, StorageRepository
 from sensai.core.messages import Message
 from sensai.sandbox import RUN_PYTHON, SandboxLimits, python_tool, remove_stale_folders
 from sensai.tools import CALCULATE, ToolRegistry, calculate, run_with_tools, tool_instructions
-from sensai.rag import SEARCH_DOCS, load_documents, build_index, search_docs_handler
+from sensai.rag import (DOCS_PROMPT, SEARCH_DOCS, DocSearch, build_index, docs_command, load_documents,
+                       reindex_command, search_docs_handler)
 from sensai.llm.embeddings import OllamaEmbeddingAdapter, EmbeddingError
 from sensai.memory.vector_index import LocalVectorIndex
 from sensai.core.errors import LLMConnectionError, ModelNotFoundError
@@ -48,25 +49,30 @@ def _tools(read, approval=None, data_dir=None):
     registry.register(RUN_PYTHON, partial(python_tool, data_dir=data_dir), confirm=True)
     return registry
 
-def _setup_rag(args, settings, tool_registry):
+def _setup_rag(args, settings, tool_registry) -> DocSearch | None:
+    """Index the --docs folder and register search_docs; None (with a warning) if it cannot be."""
     if not args.docs:
-        return None, None
+        return None
+    skipped: list[str] = []
     try:
-        docs = load_documents(args.docs)
+        docs = load_documents(args.docs, skipped)
+        for name in skipped:
+            print(f"warning: skipped {name}: no header between --- lines")
         if not docs:
             print(f"warning: no documents found in {args.docs}")
-            return None, None
+            return None
         embedding = OllamaEmbeddingAdapter(settings.embed_model)
         index = LocalVectorIndex(embedding)
         total = build_index(docs, embedding, index, args.creator)
         print(f"Indexed {len(docs)} documents ({total} chunks) with {settings.embed_model}")
         handler = partial(search_docs_handler, index=index, creator_id=args.creator, docs_meta=docs)
         tool_registry.register(SEARCH_DOCS, handler, timeout=None)
-        return index, docs
+        return DocSearch(index, docs, args.docs, args.creator, settings.embed_model)
     except (LLMConnectionError, ModelNotFoundError, EmbeddingError) as e:
-        print(f"warning: document search is off — {e}")
+        print(f"warning: document search is off: {e}")
         print(f"run: ollama pull {settings.embed_model}")
-        return None, None
+        return None
+
 
 def _read_script(path):
     try:
@@ -191,8 +197,7 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
          persona_registry: PersonaRegistry | None = None,
          base_prompt: str | None = None, recorder: SessionRecorder | None = None,
          tool_registry: ToolRegistry | None = None, data_dir: str | None = None,
-         index=None, docs_meta=None, docs_dir: str | None = None,
-         creator_id: str = "default") -> None:
+         docs: DocSearch | None = None) -> None:
     if base_prompt is None:
         base_prompt = session.messages[0].content
     if tool_registry is None:
@@ -242,29 +247,13 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
             else:
                 _run_script(command[1], data_dir, token, write)
             continue
-        if command and command[0] == "/docs":
-            if index is None:
-                write("Document search is off (no --docs folder).")
-            elif len(command) == 1:
-                from collections import Counter
-                counts = Counter(e.source for e in index.entries(creator_id))
-                seen = set()
-                for entry in index.entries(creator_id):
-                    if entry.source not in seen:
-                        seen.add(entry.source)
-                        write(f"{entry.source}   {entry.source_version}   {counts[entry.source]} chunks")
-            else:
-                results = index.for_brand(creator_id).search(command[1], 3)
-                for i, hit in enumerate(results, 1):
-                    write(f"[{i}] {hit.source} · score {hit.score:.2f}\n    {hit.text[:120]}")
-            continue
-        if command and command[0] == "/reindex":
-            if index is None or docs_dir is None:
+        if command and command[0] in ("/docs", "/reindex"):
+            if docs is None:
                 write("Document search is off (no --docs folder).")
             else:
-                docs_meta[:] = load_documents(docs_dir)
-                total = build_index(docs_meta, index.embedding, index, creator_id)
-                write(f"Reindexed {len(docs_meta)} documents ({total} chunks).")
+                lines = reindex_command(docs) if command[0] == "/reindex" else docs_command(docs, text.strip()[5:].strip())
+                for line in lines:
+                    write(line)
             continue
 
         def on_tool(call, result):
@@ -431,7 +420,9 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
         with TerminalInput() as terminal:
             tool_registry = _tools(terminal.read, approval=TerminalApproval(terminal.read_key, print),
                                    data_dir=args.data_dir)
-            index, docs_meta = _setup_rag(args, settings, tool_registry)
+            docs = _setup_rag(args, settings, tool_registry)
+            if docs is not None:
+                prompt, base_prompt = (f"{part}\n\n{DOCS_PROMPT}" for part in (prompt, base_prompt))
             def titler(first_user: str, first_answer: str) -> str | None:
                 token = CancellationToken(
                     monotonic() + min(saved_sessions.TITLE_TIMEOUT, args.operation_timeout),
@@ -447,8 +438,7 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
                  cancel_requested=terminal.cancel_requested,
                  persona_registry=registry, base_prompt=base_prompt, recorder=recorder,
                  tool_registry=tool_registry, data_dir=args.data_dir,
-                 index=index, docs_meta=docs_meta, docs_dir=args.docs,
-                 creator_id=args.creator)
+                 docs=docs)
     finally:
         try:
             remove_stale_folders()
