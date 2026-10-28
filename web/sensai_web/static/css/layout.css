@@ -1,5 +1,7 @@
 @layer layout {
   .app { display: grid; grid-template-rows: auto auto minmax(0, 1fr); height: 100dvh; --sb-w: 280px; --in-w: 0px; position: relative; overflow: hidden; }
+  /* Fixed rows: an empty banner strip is display:none, and the body must still take the 1fr row. */
+  .app > .topbar { grid-row: 1; } .app > .banners { grid-row: 2; } .app > .body { grid-row: 3; }
   .app[data-sb="rail"] { --sb-w: 64px; }
   .app[data-sb="closed"] { --sb-w: 0px; }
   .app[data-in="open"] { --in-w: 340px; }
@@ -45,7 +47,7 @@
   @media (max-width: 767px) {
     :root { --target: 44px; }
   }
-  @media (max-width: 479px) { .topbar .hide-narrow { display: none !important; } }
+  @media (max-width: 679px) { .topbar .hide-narrow { display: none !important; } }
   @media (max-width: 1100px) { .topbar .hide-mid { display: none !important; } }
   @media (max-width: 1099px) { .status-cluster { display: none !important; } }
   @media (min-width: 1100px) { .status-btn { display: none !important; } }
