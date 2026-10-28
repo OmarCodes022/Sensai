@@ -16,6 +16,7 @@ KEYS = {
     "creator": ("SENSAI_CREATOR", "creator"), "profile_file": ("SENSAI_PROFILE_FILE", "profile_file"),
     "data_dir": ("SENSAI_DATA_DIR", "data_dir"), "prompt_file": ("SENSAI_PROMPT", "prompt_path"),
     "personas_file": ("SENSAI_PERSONAS_FILE", "personas_file"),
+    "docs_dir": ("SENSAI_DOCS", "docs_dir"), "embed_model": ("SENSAI_EMBED_MODEL", "embed_model"),
 }
 
 
@@ -35,6 +36,8 @@ class WebConfig:
     data_dir: str | None
     session: str | None
     ssh_host: str | None = None
+    docs_dir: str | None = None
+    embed_model: str = "nomic-embed-text"
     bind: str = "127.0.0.1"
     port: int = 8765
     effective: dict = field(default_factory=dict)
@@ -79,6 +82,7 @@ def parser(settings: Settings) -> argparse.ArgumentParser:
     p.add_argument("--persona", help="persona identifier")
     p.add_argument("--personas-file", help="JSON catalogue replacing the built-in personas")
     p.add_argument("--session", help="resume a saved session by ID")
+    p.add_argument("--docs", help="folder of brand documents to search (default: data/docs; empty switches it off)")
     p.add_argument("--db", help=f"SQLite session database (default: {DEFAULT_DB})")
     p.add_argument("--creator", help="creator key scoping sessions and profile (not authentication)")
     p.add_argument("--profile-file", help="JSON object replacing the stored creator profile")
@@ -93,7 +97,7 @@ def resolve(args: argparse.Namespace, settings: Settings, env: Mapping[str, str]
     dotenv = _dotenv_names() if dotenv is None else dotenv
     given = {"ollama_host": args.host, "model": args.model, "turn_budget": args.operation_timeout,
              "database_path": args.db, "creator": args.creator, "profile_file": args.profile_file,
-             "prompt_file": args.prompt, "personas_file": args.personas_file}
+             "prompt_file": args.prompt, "personas_file": args.personas_file, "docs_dir": args.docs}
     values, effective = {}, {}
     for key, (variable, name) in KEYS.items():
         value = given.get(key)
@@ -110,4 +114,5 @@ def resolve(args: argparse.Namespace, settings: Settings, env: Mapping[str, str]
         prompt_path=values["prompt_path"], persona=args.persona or settings.persona,
         personas_file=values["personas_file"], profile_file=values["profile_file"],
         data_dir=values["data_dir"] or None, session=args.session, ssh_host=settings.ssh_host or None,
+        docs_dir=args.docs if args.docs is not None else (values["docs_dir"] or None), embed_model=values["embed_model"],
         bind=args.bind, port=args.port, effective=effective)
