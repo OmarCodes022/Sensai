@@ -6,6 +6,9 @@ import { copyButton } from '../components/copy-button.js';
 import { emptyState } from '../components/state.js';
 import { toast } from '../components/toast.js';
 import { viewShell, section } from '../components/view.js';
+import { openModal } from '../components/modal.js';
+import { tabs } from '../components/tabs.js';
+import { renderInto } from '../markdown.js';
 import { formatBytes } from '../format.js';
 import { announce } from '../a11y.js';
 import { t } from '../i18n.js';
@@ -13,6 +16,24 @@ import { t } from '../i18n.js';
 const TYPES = ['.md', '.txt'];
 const POLL_MS = 3000;
 const extOf = (name) => name.slice(name.lastIndexOf('.')).toLowerCase();
+const HEADER = /^---[ \t]*\r?\n[\s\S]*?\r?\n---[ \t]*(?:\r?\n|$)/;
+
+/** Opens a document in a viewer: rendered Markdown (without its header) and the raw text, with what the index knows. */
+export async function openDocViewer(api, name) {
+  let d;
+  try { d = await api.docView(name); } catch (e) { return toast(e.message, { tone: 'rose' }); }
+  const facts = h('div', { class: 'row' }, chip(formatBytes(d.bytes), { outline: true }),
+    d.source ? chip(`${t('documents.source')}: ${d.source}`, { outline: true, mono: true }) : chip(t('documents.notIndexed'), { tone: 'amber', outline: true }),
+    d.version ? chip(d.version, { outline: true }) : null, d.product ? chip(d.product, { outline: true }) : null,
+    d.chunks != null ? chip(`${d.chunks} ${t('documents.chunks')}`, { outline: true }) : null);
+  const raw = () => h('pre', { class: 'code docview__raw', tabindex: '0', dir: 'auto' }, d.text);
+  const rendered = () => { const el = h('div', { class: 'md docview__md', dir: 'auto' }); renderInto(el, d.text.replace(HEADER, '').trim(), {}); return el; };
+  const isMd = name.toLowerCase().endsWith('.md');
+  const body = h('div', { class: 'stack docview' }, facts,
+    isMd ? tabs({ label: t('documents.viewLabel'), selected: 'rendered', items: [{ id: 'rendered', label: t('documents.rendered'), render: rendered }, { id: 'raw', label: t('documents.raw'), render: raw }] }) : raw());
+  openModal({ title: name, body, wide: true, label: t('documents.viewLabel'), actions: [{ label: t('documents.close'), variant: 'primary' }] });
+}
+
 const TONE = { ready: 'sage', indexing: 'amber', unavailable: 'rose', empty: undefined, off: undefined };
 
 export function mount(root, { api }) {
@@ -54,12 +75,12 @@ export function mount(root, { api }) {
     return h('div', { class: 'table-wrap' }, h('table', { class: 'table table--cards' },
       h('thead', null, h('tr', null, [t('documents.col.name'), t('documents.version'), t('documents.product'), t('documents.chunks'), t('documents.col.state'), ''].map((c, i) => h('th', { scope: 'col', class: i === 3 ? 'num' : '' }, c)))),
       h('tbody', null, items.map((d) => h('tr', null,
-        h('td', { 'data-label': t('documents.col.name') }, h('code', { class: 'chip chip--mono' }, d.name), ' ', h('span', { class: 'muted num' }, formatBytes(d.bytes))),
+        h('td', { 'data-label': t('documents.col.name') }, h('button', { type: 'button', class: 'link-btn mono', 'aria-label': t('documents.view', { name: d.name }), onclick: () => openDocViewer(api, d.name) }, d.name), ' ', h('span', { class: 'muted num' }, formatBytes(d.bytes))),
         h('td', { 'data-label': t('documents.version') }, d.version || t('common.na')),
         h('td', { 'data-label': t('documents.product') }, d.product || t('common.na')),
         h('td', { class: 'num', 'data-label': t('documents.chunks') }, d.chunks ?? t('common.na')),
         h('td', { 'data-label': t('documents.col.state') }, chip(t(d.state === 'ready' ? 'documents.ready' : 'documents.pending'), { tone: d.state === 'ready' ? 'sage' : 'amber', outline: true })),
-        h('td', null, removeButton(d.name)))))));
+        h('td', null, h('span', { class: 'row' }, iconButton('eye', t('documents.view', { name: d.name }), { variant: 'ghost', size: 'sm', onClick: () => openDocViewer(api, d.name) }), removeButton(d.name))))))));
   }
 
   function removeButton(name) {
