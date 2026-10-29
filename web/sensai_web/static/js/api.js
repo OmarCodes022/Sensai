@@ -38,6 +38,8 @@ const real = {
   renameSession: (id, title) => req('PATCH', `/api/sessions/${encodeURIComponent(id)}`, { title }),
   deleteSession: (id) => req('DELETE', `/api/sessions/${encodeURIComponent(id)}`),
   exportSession: (id) => req('GET', `/api/sessions/${encodeURIComponent(id)}/export`),
+  models: () => req('GET', '/api/models'),
+  setModel: (name) => req('POST', '/api/model', { name }),
   history: () => req('GET', '/api/history'),
   async chat(text, { onEvent, signal } = {}) {
     try { await streamNdjson('/api/chat', { body: { text }, signal, onEvent, headers: tabHeader }); }

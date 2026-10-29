@@ -105,7 +105,7 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 - `session` (7): `new`, `id`, `copyId`, `idCopied`, `saved`, `notSaved`, `savedAfter`
 - `creator` (2): `chip`, `tip`
 - `persona` (7): `switcher`, `none`, `details`, `tone`, `toast`, `changed`, `waitTip`
-- `status` (14): `button`, `ollama`, `model`, `ollamaReady`, `checking`, `cannotReach`, `host`, `latency`, `modelAvailable`, `modelMissing`, `modelUnknown`, `modelFixed`, `remote`, `remoteShort`
+- `status` (14): `button`, `ollama`, `model`, `ollamaReady`, `checking`, `cannotReach`, `host`, `latency`, `modelAvailable`, `modelMissing`, `modelUnknown`, `pickModel`, `useModel`, `modelNote`, `modelSet`, `remote`, `remoteShort`
 - `sessions` (26): `title`, `search`, `untitled`, `empty`, `noMatch`, `loadError`, `switchTitle`, `switchMessage`, `stopSwitch`, `stay`, `allPersonas`, `filterPersona`, `col.title`, `col.id`, `col.persona`, `col.messages`, `col.created`, `col.updated`, `dir.asc`, `dir.desc`, `sortedBy`, `tableCaption`, `detail`, `detailNone`, `detailHint`, `open`
 - `time` (7): `justNow`, `minutes`, `hours`, `days`, `today`, `yesterday`, `thisWeek`
 - `usage` (10): `tokens`, `tokensNa`, `inOut`, `latency`, `server`, `turns`, `notReported`, `outputTokens`, `promptTokens`, `reported`

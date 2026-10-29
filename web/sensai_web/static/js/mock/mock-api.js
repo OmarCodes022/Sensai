@@ -120,6 +120,8 @@ const impl = {
     const body = s.items.filter((i) => i.kind === 'user' || i.kind === 'assistant').map((i) => `**${i.kind === 'user' ? 'You' : 'Sensai'}**\n\n${i.text}\n`);
     return { filename: `sensai-${id}.md`, markdown: `# ${s.title}\n\n${body.join('\n')}` };
   },
+  models: async () => ({ current: CONFIG.model, reachable: true, installed: [CONFIG.model, 'qwen2.5:latest', 'llama3.2:latest'] }),
+  async setModel(name) { CONFIG.model = name; HEALTH.model = { ...HEALTH.model, name }; return { model: name }; },
   async readData(name) {
     const f = dataFolder.files.find((x) => x.name === name);
     if (!f) throw new ApiError('not_found', `No data file named ${name}.`, { status: 404 });

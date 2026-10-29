@@ -12,7 +12,7 @@ from sensai.memory.vector_index import VectorIndexError
 from sensai.rag import MAX_FILE_BYTES, MAX_TOTAL_BYTES, TYPES, DocError
 from sensai.sandbox import SandboxLimits
 from sensai.tools import MAX_TOOL_CALLS
-from sensai_web import manage, sandbox, session_view
+from sensai_web import manage, models, sandbox, session_view
 from sensai_web.app import WebApp
 from sensai_web.errors import ApiError, llm_failure
 from sensai_web.tools import tool_list
@@ -58,7 +58,7 @@ def config(app: WebApp, request):
     return {
         "capabilities": {name: True for name in (*CAPABILITIES, *(("documents",) if app.docs.enabled else ()))},
         "draft_personas": app.catalogue.drafts(),
-        "context_length": cfg.context_length, "creator": cfg.creator, "model": cfg.model,
+        "context_length": cfg.context_length, "creator": cfg.creator, "model": app.model,
         "effective": cfg.effective,
         "limits": {"turn_seconds": cfg.operation_timeout, "tool_rounds": MAX_TOOL_CALLS,
                    "sandbox": {"wall_seconds": limits.wall_seconds, "cpu_seconds": limits.cpu_seconds,
@@ -124,6 +124,16 @@ def delete_session(app: WebApp, request, id: str):
 @route("GET", r"/api/sessions/(?P<id>[^/]+)/export")
 def export_session(app: WebApp, request, id: str):
     return manage.export_session(app, unquote(id))
+
+
+@route("GET", r"/api/models")
+def list_models(app: WebApp, request):
+    return models.models(app)
+
+
+@route("POST", r"/api/model")
+def set_model(app: WebApp, request):
+    return {"model": models.set_model(app, request.json().get("name"))}
 
 
 @route("POST", r"/api/sessions/(?P<id>[^/]+)/resume")

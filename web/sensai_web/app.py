@@ -94,6 +94,7 @@ class WebApp:
         self.times = TurnTimes(cfg.db_path, cfg.creator)
         self.data = DataFolder(cfg.data_dir)
         self.docs = DocLibrary(cfg.docs_dir, make_embedding(cfg), cfg.creator, cache_path=cfg.db_path, model=cfg.embed_model)
+        self.model = cfg.model  # the page can change it while running
         self.health = Health(cfg.host, cfg.model)
         self.meta_dir = tempfile.mkdtemp(prefix="sensai-web-")
         settings = (settings or Settings()).model_copy(update={"host": cfg.host})
@@ -182,7 +183,7 @@ class WebApp:
 
     def _active(self, session_id: str, persona_id: str | None, messages=(), title=None, saved=False,
                 created_at: str | None = None, updated_at: str | None = None) -> ActiveSession:
-        session = ChatSession(self.chat_client, self.cfg.model, self.system_prompt(persona_id))
+        session = ChatSession(self.chat_client, self.model, self.system_prompt(persona_id))
         session.messages.extend(messages)
         recorder = SessionRecorder(AppStore(self), session_id, persona_id, title=title, saved=saved,
                                    messages=messages, write=lambda message: None)

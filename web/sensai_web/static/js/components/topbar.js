@@ -7,6 +7,7 @@ import { ollamaState, ollamaPanel, modelPanel, allPanel } from './status.js';
 import { kbd } from './meter.js';
 import { modKey } from '../platform.js';
 import { stripInvisible } from '../safetext.js';
+import { api } from '../api.js';
 import { t } from '../i18n.js';
 
 const THEME_ICON = { system: 'sliders', light: 'sun', dark: 'moon' };
@@ -49,7 +50,7 @@ export function createTopbar({ store, actions, layout, openPalette, openShortcut
   const dot = h('button', { type: 'button', class: 'btn btn--pill btn--sm', 'aria-haspopup': 'dialog', 'aria-expanded': 'false' });
   dot.addEventListener('click', () => openPopover(dot, ollamaPanel(store.get().status), { label: t('status.ollama') }));
   const model = h('button', { type: 'button', class: 'btn btn--sm mono', 'aria-haspopup': 'dialog', 'aria-expanded': 'false' });
-  model.addEventListener('click', () => openPopover(model, modelPanel(store.get().status), { label: t('status.model') }));
+  model.addEventListener('click', () => openPopover(model, modelPanel(store.get().status, { api, actions }), { label: t('status.model') }));
   const remote = h('span', { hidden: true }, chip(t('status.remoteShort'), { tone: 'teal', icon: 'link' }));
   const personaBtn = h('button', { type: 'button', class: 'persona-pill', 'aria-haspopup': 'listbox', 'aria-expanded': 'false' });
   personaBtn.addEventListener('click', () => personaPopover(personaBtn, { store }, actions));
@@ -61,7 +62,7 @@ export function createTopbar({ store, actions, layout, openPalette, openShortcut
     return h('div', { class: 'stack session-summary' }, h('strong', { dir: 'auto' }, sess?.title ? stripInvisible(sess.title) : t('session.new')),
       h('span', { class: 'mono muted' }, sess ? t('session.id', { id: sess.id }) : ''), h('span', { class: 'muted' }, sess?.saved ? t('session.saved') : t('session.notSaved')));
   };
-  statusBtn.addEventListener('click', () => openPopover(statusBtn, [sessionSummary(), allPanel(store.get().status)], { label: t('status.button') }));
+  statusBtn.addEventListener('click', () => openPopover(statusBtn, [sessionSummary(), allPanel(store.get().status, { api, actions })], { label: t('status.button') }));
   const mock = h('span', { class: 'hide-narrow', hidden: true }, chip(t('common.mockData'), { tone: 'amber' }));
   const paletteBtn = h('button', { type: 'button', class: 'btn hide-mid', onclick: openPalette }, t('topbar.search'), ...kbd(`${modKey()} K`));
   const helpBtn = iconButton('keyboard', t('shortcuts.title'), { onClick: openShortcuts });
