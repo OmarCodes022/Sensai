@@ -26,8 +26,8 @@ from sensai.chat.session import ChatSession
 from sensai.settings import Settings
 from sensai.memory.sqlite_store import StorageError, StorageRepository
 from sensai.core.messages import Message
-from sensai.sandbox import (RUN_PYTHON, SandboxError, SandboxLimits, data_file_names, format_run,
-                            python_tool, remove_stale_folders, report_summary)
+from sensai.sandbox import (PYTHON_ATTEMPTS, RUN_PYTHON, SandboxError, SandboxLimits, data_file_names,
+                            data_prompt, format_run, python_tool, remove_stale_folders, report_summary)
 from sensai.tools import CALCULATE, ToolRegistry, calculate, run_with_tools, tool_instructions
 from sensai.rag import (DOCS_PROMPT, SEARCH_DOCS, DocLibrary, add_command, docs_command, reindex_command,
                        remove_command, search_docs_handler)
@@ -35,7 +35,6 @@ from sensai.llm.embeddings import OllamaEmbeddingAdapter
 
 DEFAULT_DB_PATH = "sensai.sqlite3"
 MAX_SCRIPT_BYTES = 1024 * 1024
-PYTHON_ATTEMPTS = 3
 SUMMARY_WIDTH = 160
 
 
@@ -69,12 +68,6 @@ def _with_docs(prompt: str, on: bool, registry: ToolRegistry) -> str:
     core = prompt.removesuffix(instructions).rstrip()
     core = core.replace(f"\n\n{DOCS_PROMPT}", "")
     return _tool_prompt(f"{core}\n\n{DOCS_PROMPT}" if on else core, registry)
-
-
-def _data_prompt(names):
-    if not names:
-        return "The data folder has no files run_python can use."
-    return f"Data files available to run_python: {', '.join(names)}."
 
 
 def _read_script(path):
@@ -420,7 +413,7 @@ def prepare_chat(args: argparse.Namespace) -> PreparedChat | None:
     if args.data_dir:
         # Names only, never contents; T26 will pass its permission policy here.
         try:
-            base_prompt = f"{base_prompt}\n\n{_data_prompt(data_file_names(args.data_dir))}"
+            base_prompt = f"{base_prompt}\n\n{data_prompt(data_file_names(args.data_dir))}"
         except SandboxError as e:
             sys.exit(f"error: {e}")
     preferences = None

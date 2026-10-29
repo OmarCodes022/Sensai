@@ -30,6 +30,7 @@ _OURS = re.compile(re.escape(PREFIX) + r"([0-9]+)-[a-z0-9_]{8}")
 # Data files Python could import instead of the standard library (3.10 has no -P).
 _IMPORTABLE = (".py", ".pyc", ".pyw", ".so", ".pyd")
 _DRAIN_SECONDS = .2
+PYTHON_ATTEMPTS = 3  # run_python calls per question, in the CLI and the web chat.
 MODEL_CHARS = 2000
 FIX_IT = "If it failed, fix the code and call run_python again; otherwise answer using this output."
 _NOT_ALLOWED = "Not available (not allowed): "
@@ -199,6 +200,13 @@ def data_file_names(data_dir: str | os.PathLike | None,
                     permission: PermissionPort | None = None) -> list[str]:
     """Sorted names run_python would copy from data_dir (the size limit is checked per run)."""
     return [entry.name for entry in _listing(data_dir, permission)[0]]
+
+
+def data_prompt(names: list[str]) -> str:
+    """The system prompt line naming the data files (names only, never contents)."""
+    if not names:
+        return "The data folder has no files run_python can use."
+    return f"Data files available to run_python: {', '.join(names)}."
 
 
 def _copy_data(files, target, limit):
