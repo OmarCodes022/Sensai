@@ -86,6 +86,20 @@ const impl = {
     sessions.addEvent(`Persona changed to ${personaName(id)}`);
     return { active: id };
   },
+  async savePersona(id, data) {
+    const i = PERSONAS.findIndex((p) => p.id === id);
+    const entry = { ...(PERSONAS[i] || {}), id, name: data.name, tone: data.tone, role: data.role, response_scope: data.response_scope };
+    if (i < 0) PERSONAS.push(entry); else PERSONAS[i] = entry;
+    return { result: i < 0 ? 'added' : 'updated', active: sessions.current().persona, items: PERSONAS.map((p) => ({ ...p })) };
+  },
+  async deletePersona(id) {
+    const i = PERSONAS.findIndex((p) => p.id === id);
+    if (i < 0) throw new ApiError('persona_unknown', `unknown persona: ${id}`, { status: 404 });
+    if (PERSONAS.length === 1) throw new ApiError('bad_persona', 'Keep at least one persona.', { status: 400 });
+    PERSONAS.splice(i, 1);
+    if (sessions.current().persona === id) sessions.current().persona = PERSONAS[0].id;
+    return { active: sessions.current().persona, items: PERSONAS.map((p) => ({ ...p })) };
+  },
   session: async () => sessions.snapshot(),
   newSession: async () => sessions.snapshot(sessions.fresh()),
   sessions: async () => ({ items: state.hideSessions ? [] : sessions.list() }),

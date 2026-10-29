@@ -1,38 +1,21 @@
-// Personas view (spec 8.1): catalogue cards, read-only. Editing is by file, and the page says so.
+// Personas view (spec 8.1): catalogue cards. Personas are added, edited and removed here and saved to the catalogue file.
 import { h } from '../dom.js';
 import { chip } from '../components/chip.js';
 import { button } from '../components/button.js';
-import { copyButton } from '../components/copy-button.js';
+import { openPersonaEditor } from './persona-editor.js';
 import { viewShell } from '../components/view.js';
 import { emptyState } from '../components/state.js';
 import { personaTone } from '../components/topbar.js';
 import { t } from '../i18n.js';
 
-const SHAPE = `[
-  {
-    "id": "redaction",
-    "name": "Rédaction",
-    "tone": "warm",
-    "role": "Drafts posts and captions for validation.",
-    "response_scope": "Drafts only. Nothing is published."
-  }
-]`;
-const ERRORS = ['missing', 'extra', 'blank', 'duplicate', 'unknown'];
-
 const labelled = (label, text) => h('div', null, h('div', { class: 'label-s' }, label), h('p', null, text || t('common.na')));
 
 export function mount(root, { store, actions }) {
   const custom = store.get().personasSource && store.get().personasSource !== 'builtin';
-  const help = h('details', { class: 'card' }, h('summary', null, t('personas.howTitle')),
-    h('div', { class: 'stack' }, h('p', null, t('personas.howIntro')),
-      h('div', { class: 'row' }, h('strong', null, t('personas.shape')), copyButton(() => SHAPE, { label: t('common.copy') })),
-      h('pre', { class: 'code', tabindex: '0' }, SHAPE),
-      h('p', null, t('personas.required')),
-      h('h3', null, t('personas.errorsTitle')), h('ul', { class: 'bullets' }, ERRORS.map((k) => h('li', null, t(`personas.err.${k}`))))));
   const grid = h('div', { class: 'persona-grid' });
   root.append(viewShell('personas',
     h('div', { class: 'banner banner--info banner--inline', role: 'note' }, h('span', { class: 'banner__text' }, custom ? t('personas.custom', { file: store.get().personasSource }) : t('personas.builtin'))),
-    h('p', { class: 'muted' }, t('personas.readOnly')), help, grid));
+    h('div', { class: 'row' }, h('p', { class: 'muted grow' }, t('personas.editHelp')), button(t('personas.new'), { variant: 'primary', icon: 'plus', onClick: () => openPersonaEditor({ existing: store.get().personas.map((p) => p.id), actions }) })), grid));
 
   function paint() {
     const { personas, activePersona, status } = store.get();
@@ -45,7 +28,8 @@ export function mount(root, { store, actions }) {
           active ? chip(t('personas.active'), { tone: 'sage', icon: 'check' }) : null),
         labelled(t('persona.tone'), p.tone), labelled(t('personas.role'), p.role), labelled(t('personas.scope'), p.response_scope),
         h('p', { class: 'muted persona-card__guard' }, t('personas.guard')),
-        button(active ? t('personas.inUse') : t('personas.use'), { variant: active ? 'secondary' : 'primary', disabled: active || status.streaming, onClick: () => actions.setPersona(p.id), 'data-tip': status.streaming ? t('persona.waitTip') : null }));
+        h('div', { class: 'row' }, button(active ? t('personas.inUse') : t('personas.use'), { variant: active ? 'secondary' : 'primary', disabled: active || status.streaming, onClick: () => actions.setPersona(p.id), 'data-tip': status.streaming ? t('persona.waitTip') : null }),
+          button(t('personas.edit'), { variant: 'ghost', icon: 'edit', disabled: status.streaming, onClick: () => openPersonaEditor({ persona: p, existing: [], actions, canRemove: personas.length > 1 }) })));
     }));
   }
   paint();
