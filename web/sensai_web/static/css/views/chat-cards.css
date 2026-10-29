@@ -8,6 +8,8 @@
   .toolcard__head { display: flex; align-items: center; gap: var(--s-2); width: 100%; padding: var(--s-2) var(--s-3); border: 0; background: var(--teal-tint); color: var(--teal); text-align: left; font-size: var(--fs-13); min-height: var(--target); }
   .toolcard__sum { color: var(--ink); flex: 0 1 auto; }
   .toolcard__status { display: inline-flex; align-items: center; gap: var(--s-2); flex: none; }
+  .toolcard__attempt { flex: none; }
+  .toolcard__attempt:empty { display: none; }
   .toolcard__dur { font-size: var(--fs-12); }
   .toolcard__body { padding: var(--s-4); display: flex; flex-direction: column; gap: var(--s-3); }
   .toolcard__note { color: var(--amber); font-size: var(--fs-13); }

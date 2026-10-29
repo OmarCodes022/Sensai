@@ -148,7 +148,7 @@ def test_a_refused_run_never_executes_and_the_model_is_told(web):
     assert next(e for e in events if e["type"] == "approval_result")["approved"] is False
     result = next(e for e in events if e["type"] == "tool_result")
     assert (result["ok"], result["error"]) == (False, "tool approval refused") and "meta" not in result
-    assert "Tool error from run_python:\ntool approval refused" in page.client.calls[1][-1]
+    assert "Tool error from run_python:\nAttempt 1 of 3 · tool approval refused" in page.client.calls[1][-1]
     item = page.call("GET", "/api/session")[1]["items"][1]
     assert item["tools"][0]["refused"] is True
 

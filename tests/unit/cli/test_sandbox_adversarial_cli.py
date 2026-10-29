@@ -16,7 +16,7 @@ from sensai.chat.session import ChatSession
 from sensai.cli import main as cli
 from sensai.cli.approval import TerminalApproval
 from sensai.core.ports import ApprovalDecision, ApprovalRequest
-from sensai.sandbox import PREFIX, RUN_PYTHON, SandboxLimits, python_tool
+from sensai.sandbox import FIX_IT, MODEL_CHARS, PREFIX, RUN_PYTHON, SandboxLimits, python_tool
 from sensai.tools import ToolRegistry
 
 pytestmark = pytest.mark.usefixtures("isolated_settings")
@@ -125,7 +125,7 @@ def test_model_gets_time_limit_as_tool_error():
     sent, output = sent_to_model("import time\ntime.sleep(100)")
     assert sent.startswith("Tool error from run_python:\nExit code -9 · ")
     assert "time limit reached" in sent.lower()
-    assert "Using tool: run_python · Exit code -9 · " in output
+    assert "Using tool: run_python · Run 1 · Exit code -9 · " in output
 
 
 def test_model_gets_cpu_limit_as_tool_error():
@@ -140,15 +140,15 @@ def test_model_gets_cpu_limit_as_tool_error():
 def test_model_gets_success_with_warnings_as_result_including_stderr():
     sent, _ = sent_to_model("import sys\nprint('42')\nprint('careful', file=sys.stderr)")
     assert sent.startswith("Tool result from run_python:\nExit code 0 · ")
-    assert sent.endswith("stdout:\n42\nstderr:\ncareful")
+    assert sent.endswith(f"stdout:\n42\nstderr:\ncareful\n{FIX_IT}")
 
 
 def test_model_gets_bounded_text_for_huge_output_with_traceback():
     code = "print('x' * 10_000_000)\nimport sys\nsys.stderr.write('e' * 10_000_000)\n{}['reach']"
     sent, _ = sent_to_model(code)
     assert sent.startswith("Tool error from run_python:\nExit code 1 · ")
-    assert "(output truncated)" in sent and sent.endswith("KeyError: 'reach'")
-    assert len(sent) < 21_000
+    assert "(output truncated)" in sent and sent.endswith(f"KeyError: 'reach'\n{FIX_IT}")
+    assert len(sent) < 2 * MODEL_CHARS + 500
 
 
 def test_model_gets_data_folder_problem_as_error_when_folder_vanishes(tmp_path):
@@ -157,8 +157,8 @@ def test_model_gets_data_folder_problem_as_error_when_folder_vanishes(tmp_path):
     registry = cli._tools(None, approval=Approval(True), data_dir=str(data))
     data.rmdir()
     sent, output = sent_to_model("print(1)", registry)
-    assert sent == f"Tool error from run_python:\ndata folder not found: {data}"
-    assert f"Using tool: run_python · data folder not found: {data}" in output
+    assert sent == f"Tool error from run_python:\nAttempt 1 of 3 · data folder not found: {data}"
+    assert f"Using tool: run_python · Run 1 · data folder not found: {data}" in output
 
 
 # --- Ctrl+C through the real worker -------------------------------------------------
@@ -203,10 +203,11 @@ def test_refusal_with_preview_runs_nothing_and_tells_the_model(tmp_path):
     marker = tmp_path / "ran"
     code = f"open({str(marker)!r}, 'w').write('x')\n" + "\n".join(f"x{i} = {i}" for i in range(20))
     lines, sent, output = approve_with(Keys("n"), code)
-    assert sent == "Tool error from run_python:\ntool approval refused" and not marker.exists()
+    assert sent == "Tool error from run_python:\nAttempt 1 of 3 · tool approval refused"
+    assert not marker.exists()
     assert lines[1] == "Run run_python?" and lines[-1] == "    … (+15 more lines)"
     assert "x19 = 19" not in "\n".join(lines)
-    assert "Using tool: run_python · tool approval refused" in output
+    assert "Using tool: run_python · Run 1 · tool approval refused" in output
 
 
 def test_view_all_shows_every_line_then_run(tmp_path):
@@ -216,7 +217,7 @@ def test_view_all_shows_every_line_then_run(tmp_path):
     lines, sent, _ = approve_with(keys, code)
     assert [p for p, _ in keys.prompts] == ["[y] run · [n] refuse · [v] view all ", "[y] run · [n] refuse "]
     assert "    x19 = 19" in lines and marker.exists()
-    assert sent.startswith("Tool result from run_python:\nExit code 0 · ")
+    assert sent.startswith("Tool result from run_python:\nAttempt 1 of 3 · Exit code 0 · ")
 
 
 def test_ctrl_c_at_the_approval_prompt_runs_nothing(tmp_path):
@@ -253,7 +254,8 @@ def test_extra_argument_key_is_rejected_before_any_approval_prompt(tmp_path):
     lines, sent, output = approve_with(keys, f"open({str(marker)!r}, 'w').write('x')",
                                        **{"code ": decoy})
     assert keys.prompts == [] and lines == [] and not marker.exists()
-    assert sent == "Tool error from run_python:\ninvalid arguments: unexpected property code "
+    assert sent == ("Tool error from run_python:\n"
+                    "Attempt 1 of 3 · invalid arguments: unexpected property code ")
 
 
 def test_lone_surrogate_in_code_still_shows_the_approval_prompt():
@@ -267,7 +269,8 @@ def test_lone_surrogate_in_code_still_shows_the_approval_prompt():
                         ["Answer"])
     output, _, _ = chat(["Go"], client, tool_registry=cli._tools(None, approval=approval))
     assert "Please type something." not in output and len(client.requests) == 2
-    assert client.requests[1][1][-1].content == "Tool error from run_python:\ntool approval refused"
+    assert client.requests[1][1][-1].content == (
+        "Tool error from run_python:\nAttempt 1 of 3 · tool approval refused")
     assert any("\\ud83d" in line for line in printed)
 
 

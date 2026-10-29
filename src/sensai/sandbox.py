@@ -19,7 +19,7 @@ import threading
 from time import monotonic, sleep
 
 from sensai.core.cancellation import CancellationToken, OperationCancelled
-from sensai.core.ports import ToolDefinition, ToolResult
+from sensai.core.ports import PermissionPort, PermissionRequest, ToolDefinition, ToolResult
 
 PREFIX = "sensai-sandbox-"
 _MB = 1024 * 1024
@@ -30,6 +30,13 @@ _OURS = re.compile(re.escape(PREFIX) + r"([0-9]+)-[a-z0-9_]{8}")
 # Data files Python could import instead of the standard library (3.10 has no -P).
 _IMPORTABLE = (".py", ".pyc", ".pyw", ".so", ".pyd")
 _DRAIN_SECONDS = .2
+PYTHON_ATTEMPTS = 3  # run_python calls per question, in the CLI and the web chat.
+MODEL_CHARS = 2000
+FIX_IT = "If it failed, fix the code and call run_python again; otherwise answer using this output."
+_NOT_ALLOWED = "Not available (not allowed): "
+_STATUS = re.compile(r"Exit code (-?[0-9]+) · ")
+_LABEL = re.compile(r"(stdout|stderr)(?: \((?:last [0-9]+ characters|characters [0-9]+-[0-9]+; "
+                    r"the rest was not captured)\))?:")
 
 
 class SandboxError(ValueError):
@@ -58,6 +65,7 @@ class SandboxRun:
     duration: float
     timed_out: bool
     truncated: bool
+    denied: tuple[str, ...] = ()
 
 
 RUN_PYTHON = ToolDefinition(
@@ -136,27 +144,69 @@ def remove_stale_folders() -> None:
 
 
 def _wanted(entry):
-    """Visible, non-importable regular file: no .env, no csv.py shadowing the stdlib."""
-    return (not entry.name.startswith(".") and not entry.name.lower().endswith(_IMPORTABLE)
+    """Visible, printable, non-importable regular file: no .env, no csv.py shadowing the stdlib.
+
+    A name with a newline or another non-printable character is skipped, so it
+    can never add a line to the model's prompt or report.
+    """
+    return (not entry.name.startswith(".") and entry.name.isprintable()
+            and not entry.name.lower().endswith(_IMPORTABLE)
             and entry.is_file(follow_symlinks=False))
 
 
-def _data_files(data_dir, limit):
-    """Top-level regular data files of data_dir, sorted, with their total size checked."""
+def _allowed(permission, path):
+    """Fail closed: a refusal, an odd decision or any Exception keeps the file out."""
+    if permission is None:
+        return True
+    try:
+        return permission.check(PermissionRequest("read", path)).allowed is True
+    except Exception:
+        return False
+
+
+def _listing(data_dir, permission):
+    """Top-level regular data files of data_dir the permission allows, and the refused names."""
     if data_dir is None:
-        return []
+        return [], []
     path = os.fspath(data_dir)
     if not os.path.isdir(path):
         raise SandboxError(f"data folder not found: {path}")
+    # One resolved folder to scan, to check and to open: the port sees the copied file.
+    folder = os.path.realpath(path)
     try:
-        with os.scandir(path) as entries:
+        with os.scandir(folder) as entries:
             files = sorted(filter(_wanted, entries), key=lambda e: e.name)
-            total = sum(e.stat(follow_symlinks=False).st_size for e in files)
+    except OSError as exc:
+        raise SandboxError(f"cannot read data folder: {exc}") from exc
+    allowed, denied = [], []
+    for entry in files:
+        (allowed if _allowed(permission, entry.path) else denied).append(entry)
+    return allowed, [e.name for e in denied]
+
+
+def _data_files(data_dir, limit, permission=None):
+    """(path, name) of the files to copy, sorted, with their total size checked; refused names."""
+    files, denied = _listing(data_dir, permission)
+    try:
+        total = sum(e.stat(follow_symlinks=False).st_size for e in files)
     except OSError as exc:
         raise SandboxError(f"cannot read data folder: {exc}") from exc
     if total > limit:
         raise SandboxError(f"data folder is larger than {limit / _MB:g} MB")
-    return [(e.path, e.name) for e in files]
+    return [(e.path, e.name) for e in files], tuple(denied)
+
+
+def data_file_names(data_dir: str | os.PathLike | None,
+                    permission: PermissionPort | None = None) -> list[str]:
+    """Sorted names run_python would copy from data_dir (the size limit is checked per run)."""
+    return [entry.name for entry in _listing(data_dir, permission)[0]]
+
+
+def data_prompt(names: list[str]) -> str:
+    """The system prompt line naming the data files (names only, never contents)."""
+    if not names:
+        return "The data folder has no files run_python can use."
+    return f"Data files available to run_python: {', '.join(names)}."
 
 
 def _copy_data(files, target, limit):
@@ -314,12 +364,20 @@ def _text(data, limit, tail, folder):
 
 def run_python(code: str, data_dir: str | os.PathLike | None = None,
                cancellation: CancellationToken | None = None, *,
-               limits: SandboxLimits = SandboxLimits()) -> SandboxRun:
-    """Run code as main.py in a new temp folder; the folder never outlives the call."""
+               limits: SandboxLimits = SandboxLimits(),
+               permission: PermissionPort | None = None) -> SandboxRun:
+    """Run code as main.py in a new temp folder; the folder never outlives the call.
+
+    With ``permission``, each data file is copied only if
+    ``permission.check(PermissionRequest("read", <path>))`` allows it, where
+    the path is the one opened: the data folder resolved with ``realpath``
+    plus the name. A refusal or an exception from the port leaves the file
+    out, named in ``denied``.
+    """
     if cancellation is not None:
         cancellation.raise_if_cancelled()
     remove_stale_folders()
-    files = _data_files(data_dir, limits.data_bytes)
+    files, denied = _data_files(data_dir, limits.data_bytes, permission)
     libc = _libc()
     with _TermGuard() as guard:
         folder = process = None
@@ -362,10 +420,11 @@ def run_python(code: str, data_dir: str | os.PathLike | None = None,
     stdout, cut_out = _text(output.out, limits.output_chars, False, folder)
     stderr, cut_err = _text(output.err, limits.output_chars, True, folder)
     return SandboxRun(stdout, stderr, process.returncode, duration, timed_out,
-                      output.cut or cut_out or cut_err)
+                      output.cut or cut_out or cut_err, denied)
 
 
-def format_run(run: SandboxRun, limits: SandboxLimits = SandboxLimits()) -> str:
+def _status(run, limits):
+    """The exit line, then the limit or signal that ended the run, if any."""
     lines = [f"Exit code {run.exit_code} · {run.duration:.1f} s"]
     if run.timed_out:
         lines.append(f"Time limit reached ({limits.wall_seconds:g} s)")
@@ -379,6 +438,11 @@ def format_run(run: SandboxRun, limits: SandboxLimits = SandboxLimits()) -> str:
         except ValueError:
             name = str(-run.exit_code)
         lines.append(f"Killed by signal {name}")
+    return lines
+
+
+def format_run(run: SandboxRun, limits: SandboxLimits = SandboxLimits()) -> str:
+    lines = _status(run, limits)
     if run.truncated:
         lines.append("(output truncated)")
     for label, text in (("stdout", run.stdout), ("stderr", run.stderr)):
@@ -387,11 +451,74 @@ def format_run(run: SandboxRun, limits: SandboxLimits = SandboxLimits()) -> str:
     return "\n".join(lines)
 
 
+def model_report(run: SandboxRun, limits: SandboxLimits = SandboxLimits()) -> str:
+    """The tool result for the model: the end of each stream, then the fix-it line."""
+    streams, cut = [], run.truncated
+    # stdout is captured from its start: at the capture limit, its tail is not the end.
+    head = run.truncated and len(run.stdout) >= limits.output_chars
+    for label, text in (("stdout", run.stdout), ("stderr", run.stderr)):
+        text = text.rstrip("\n")
+        shown = text[-MODEL_CHARS:]
+        if label == "stdout" and head and text:
+            streams.append((f"stdout (characters {len(text) - len(shown) + 1}-{len(text)}; "
+                            "the rest was not captured):", shown))
+        elif len(text) > MODEL_CHARS:
+            streams.append((f"{label} (last {MODEL_CHARS} characters):", shown))
+            cut = True
+        elif text:
+            streams.append((f"{label}:", text))
+    lines = _status(run, limits)
+    if cut:
+        lines.append("(output truncated)")
+    for label, text in streams:
+        lines += [label, text]
+    if run.denied:
+        lines.append(_NOT_ALLOWED + ", ".join(run.denied))
+    lines.append(FIX_IT)
+    return "\n".join(lines)
+
+
+def report_summary(text: str) -> tuple[str, str | None]:
+    """(first line, last non-empty stderr line on failure or stdout line on success).
+
+    The second item is None when ``text`` is not a ``model_report`` or the
+    stream is empty. Printed lines that look like stream labels can shift it.
+    """
+    lines = text.splitlines()
+    first = lines[0] if lines else ""
+    status = _STATUS.match(first)
+    if status is None or len(lines) < 2 or lines[-1] != FIX_IT:
+        return first, None
+    body = lines[1:-1]
+    if body and body[-1].startswith(_NOT_ALLOWED):
+        body.pop()
+    labels = [(i, match.group(1)) for i, line in enumerate(body)
+              if (match := _LABEL.fullmatch(line))]
+    # The first label is real, and only stderr text follows the last stderr label.
+    errors = [i for i, name in labels if name == "stderr"]
+    if int(status.group(1)) != 0:
+        section = body[errors[-1] + 1:] if errors else []
+    elif labels and labels[0][1] == "stdout":
+        start = labels[0][0] + 1
+        section = body[start:errors[-1] if errors and errors[-1] > start else len(body)]
+    else:
+        section = []
+    return first, next((line for line in reversed(section) if line.strip()), None)
+
+
 def python_tool(arguments, cancellation=None, *, data_dir=None,
-                limits: SandboxLimits = SandboxLimits()) -> ToolResult:
+                limits: SandboxLimits = SandboxLimits(),
+                permission: PermissionPort | None = None, report=model_report) -> ToolResult:
+    """run_python as a tool: ``report`` text, an error result if the code failed.
+
+    ``report`` is ``model_report`` for the model or ``format_run`` for ``/run``.
+    It and ``permission`` go to the tool's child process with the handler, so
+    they must be pickleable (a module-level function or class instance).
+    """
     try:
-        run = run_python(arguments["code"], data_dir, cancellation, limits=limits)
+        run = run_python(arguments["code"], data_dir, cancellation, limits=limits,
+                         permission=permission)
     except SandboxError as exc:
         return ToolResult("", str(exc))
-    text = format_run(run, limits)
+    text = report(run, limits)
     return ToolResult(text, text if run.exit_code != 0 or run.timed_out else None)

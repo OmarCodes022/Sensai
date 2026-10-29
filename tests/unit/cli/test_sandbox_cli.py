@@ -11,7 +11,7 @@ from fakes import FakeClient, scripted_terminal
 from sensai.chat.session import ChatSession
 from sensai.cli import main as cli
 from sensai.core.ports import ApprovalDecision
-from sensai.sandbox import PREFIX
+from sensai.sandbox import FIX_IT, PREFIX
 from sensai.settings import Settings
 
 pytestmark = pytest.mark.usefixtures("isolated_settings")
@@ -170,13 +170,13 @@ def test_model_call_needs_approval(tmp_path, approved):
         ("run_python", {"code": code})]
     sent = client.requests[1][1][-1].content
     if approved:
-        assert sent.startswith("Tool result from run_python:\nExit code 0 · ")
-        assert sent.endswith("stdout:\n42") and marker.exists()
-        assert "Using tool: run_python · Exit code 0 · " in output
+        assert sent.startswith("Tool result from run_python:\nAttempt 1 of 3 · Exit code 0 · ")
+        assert sent.endswith(f"stdout:\n42\n{FIX_IT}") and marker.exists()
+        assert "Using tool: run_python · Run 1 · Exit code 0 · " in output
     else:
-        assert sent == "Tool error from run_python:\ntool approval refused"
+        assert sent == "Tool error from run_python:\nAttempt 1 of 3 · tool approval refused"
         assert not marker.exists()
-        assert "Using tool: run_python · tool approval refused" in output
+        assert "Using tool: run_python · Run 1 · tool approval refused" in output
     assert code not in output and session.messages[-1].content == "Answer"
 
 
@@ -185,9 +185,10 @@ def test_failed_code_is_sent_to_model_as_error():
     registry = cli._tools(None, approval=Approval(True))
     output, _, _ = chat(["Compute"], client, tool_registry=registry)
     sent = client.requests[1][1][-1].content
-    assert sent.startswith("Tool error from run_python:\nExit code 1 · ")
+    assert sent.startswith("Tool error from run_python:\nAttempt 1 of 3 · Exit code 1 · ")
     assert "ZeroDivisionError" in sent
-    assert "Using tool: run_python · Exit code 1 · " in output
+    assert "Using tool: run_python · Run 1 · Exit code 1 · " in output
+    assert "\nZeroDivisionError: division by zero" in output
 
 
 def test_main_asks_with_single_key_approval_and_uses_data_dir(monkeypatch, capsys):
@@ -198,7 +199,7 @@ def test_main_asks_with_single_key_approval_and_uses_data_dir(monkeypatch, capsy
     cli.main(["model"])
     output = capsys.readouterr().out
     assert "Run run_python?" in output and "    rows = [r for r in csv.DictReader" in output
-    assert client.requests[1][1][-1].content.endswith("stdout:\n1021.4")
+    assert client.requests[1][1][-1].content.endswith(f"stdout:\n1021.4\n{FIX_IT}")
 
 
 @pytest.mark.parametrize("kind", ["missing", "file"])

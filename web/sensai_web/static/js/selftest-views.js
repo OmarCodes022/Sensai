@@ -62,6 +62,17 @@ export const VIEW_TESTS = [
     eq(formatNumber(0), '0');
   }],
   ['sandbox: missing duration is n/a, not 0', () => { const r = toResult({ exit_code: 0, stdout: '' }); eq(r.duration_ms, null); eq(formatDuration(r.duration_ms), 'n/a'); }],
+  ['tool card: run_python shows Run n of 3, says the last one, and a stopped call has no run', () => {
+    const at = (n) => ({ attempt: n, max_attempts: 3 });
+    const runCard = (n, r) => { const c = createToolCard({ id: `c${n}`, name: 'run_python', arguments: { code: 'print(1)' }, round: n, ...at(n) }); c.setResult({ ...r, ...at(n) }); c.expand(); return c; };
+    const ok = { ok: true, error: null, output: '1', duration_ms: 5, meta: { exit_code: 0, stdout: '1\n', stderr: '' } };
+    eq(runCard(2, ok).el.querySelector('.toolcard__attempt').textContent, 'Run 2 of 3');
+    eq(runCard(3, ok).el.querySelector('.toolcard__attempt').textContent, 'Run 3 of 3, the last');
+    const stop = runCard(4, { ok: false, error: 'Stopped after 3 attempts: answer with the last result or error, without calling run_python again.', output: '', duration_ms: 0 });
+    eq([stop.status(), stop.el.querySelector('.toolcard__attempt').textContent], ['stopped', '']);
+    if (!stop.el.textContent.includes('Not run: Sensai stops after 3 runs')) throw new Error('missing stop note');
+    if ([...stop.el.querySelectorAll('[role="tab"]')].some((tab) => /Output|Errors/.test(tab.textContent))) throw new Error('a stopped call shows run tabs');
+  }],
   ['python card: missing exit code shows n/a, not derived from ok', () => {
     const el = pythonBody({ arguments: { code: 'x' } }, { ok: true, output: '', duration_ms: 1, meta: {} });
     const chips = [...el.querySelectorAll('.chip--mono')].map((c) => c.textContent);

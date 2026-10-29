@@ -1,5 +1,8 @@
 """run_python for the page: the CLI tool plus a JSON record of the run next to its text result.
 
+The model gets the short ``model_report``; the record keeps the full captured
+streams for the page, and the Tools page runner keeps ``format_run``.
+
 The handler runs in a child process (as in the CLI), so it hands the structured
 result back through a small file whose path the parent chose.
 """
@@ -14,7 +17,7 @@ from sensai.core.errors import SensaiError
 from sensai.core.ports import ToolCall, ToolResult
 from sensai.sandbox import (
     RUN_PYTHON, SandboxError, SandboxLimits, SandboxRun, _FILE_TOO_LARGE, _MB,
-    format_run, run_python,
+    format_run, model_report, run_python,
 )
 from sensai.tools import ToolRegistry
 from sensai_web.errors import ApiError
@@ -26,7 +29,7 @@ def run_record(run: SandboxRun, limits: SandboxLimits) -> dict:
     """What the page needs to draw a run: exit state, streams, flags and the limits in force."""
     record = {
         "exit_code": run.exit_code, "duration_s": round(run.duration, 3), "timed_out": run.timed_out,
-        "truncated": run.truncated, "stdout": run.stdout, "stderr": run.stderr,
+        "truncated": run.truncated, "stdout": run.stdout, "stderr": run.stderr, "denied": list(run.denied),
         "report": format_run(SandboxRun("", "", run.exit_code, run.duration, run.timed_out, run.truncated), limits),
         "limits": {"wall_seconds": limits.wall_seconds, "cpu_seconds": limits.cpu_seconds,
                    "memory_mb": limits.memory_bytes // _MB, "file_mb": limits.file_bytes // _MB},
@@ -41,11 +44,15 @@ def run_record(run: SandboxRun, limits: SandboxLimits) -> dict:
     return record
 
 
-def web_python_tool(arguments, cancellation=None, *, data_dir=None, meta_path=None) -> ToolResult:
-    """Same result text as the CLI's python_tool; also writes run_record() to meta_path."""
+def web_python_tool(arguments, cancellation=None, *, data_dir=None, meta_path=None, permission=None,
+                    report=model_report) -> ToolResult:
+    """Same result as the CLI's python_tool (``report`` text); also writes run_record() to meta_path.
+
+    ``permission`` and ``report`` travel to the tool's child process: they must be pickleable.
+    """
     limits = SandboxLimits()
     try:
-        run = run_python(arguments["code"], data_dir, cancellation, limits=limits)
+        run = run_python(arguments["code"], data_dir, cancellation, limits=limits, permission=permission)
     except SandboxError as exc:
         return ToolResult("", str(exc))
     if meta_path is not None:
@@ -53,12 +60,12 @@ def web_python_tool(arguments, cancellation=None, *, data_dir=None, meta_path=No
         with open(temporary, "w", encoding="utf-8") as f:
             json.dump(run_record(run, limits), f, ensure_ascii=False)
         os.replace(temporary, meta_path)
-    text = format_run(run, limits)
+    text = report(run, limits)
     return ToolResult(text, text if run.exit_code != 0 or run.timed_out else None)
 
 
-def run_handler(data_dir: str | None, meta_path: str):
-    return partial(web_python_tool, data_dir=data_dir, meta_path=meta_path)
+def run_handler(data_dir: str | None, meta_path: str, *, permission=None, report=model_report):
+    return partial(web_python_tool, data_dir=data_dir, meta_path=meta_path, permission=permission, report=report)
 
 
 def take_record(meta_path: str) -> dict | None:
@@ -86,7 +93,7 @@ def run_code(code: object, data_dir: str | None, token: CancellationToken, meta_
     os.close(fd)
     os.remove(meta_path)
     registry = ToolRegistry()
-    registry.register(RUN_PYTHON, run_handler(data_dir, meta_path))
+    registry.register(RUN_PYTHON, run_handler(data_dir, meta_path, report=format_run))
     try:
         result = registry.execute(ToolCall(RUN_PYTHON.name, {"code": code}), token)
     except SensaiError as exc:

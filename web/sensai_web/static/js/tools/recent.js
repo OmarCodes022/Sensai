@@ -3,10 +3,11 @@ import { h } from '../dom.js';
 import { chip } from '../components/chip.js';
 import { formatDuration, formatClock } from '../format.js';
 import { hrefFor } from '../router.js';
+import { attemptOf } from '../chat/tool-card.js';
 import { t } from '../i18n.js';
 
-const status = (c) => (c.refused ? 'refused' : c.ok === null || c.ok === undefined ? 'cancelled' : c.ok ? 'ok' : c.meta?.timed_out ? 'timeout' : 'error');
-const TONE = { ok: 'sage', error: 'rose', timeout: 'rose', refused: 'amber', cancelled: 'amber' };
+const status = (c) => (c.refused ? 'refused' : c.ok === null || c.ok === undefined ? 'cancelled' : c.ok ? 'ok' : attemptOf(c)?.stopped ? 'stopped' : c.meta?.timed_out ? 'timeout' : 'error');
+const TONE = { ok: 'sage', error: 'rose', timeout: 'rose', refused: 'amber', cancelled: 'amber', stopped: 'rose' };
 
 export function recentCalls(session) {
   const calls = [];
