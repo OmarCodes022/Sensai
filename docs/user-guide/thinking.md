@@ -79,9 +79,8 @@ exactly as before.
 - The `run_python` approval prompt (`Run run_python?`) appears before that
   round's `Act` line, together with any text the model wrote before the call:
   the round is shown once it has run.
-- Tool call limits apply per step: they start over at each draft or revision.
-  For example, a limit on `run_python` attempts counts again from zero in a
-  `Revise` step.
+- Tool call limits (such as the 3 `run_python` attempts) are shared by the whole
+  `/think`: a `Revise` step continues the count of the `Draft` step.
 - The check is a single request whose HTTP timeout is the same per-step limit
   (`--operation-timeout`). When it runs out, Sensai prints
   `error: Ollama at … timed out` and nothing is kept.
