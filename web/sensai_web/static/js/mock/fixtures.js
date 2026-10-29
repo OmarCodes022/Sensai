@@ -46,7 +46,7 @@ print(sum(reach) / len(reach))`;
 
 export const TOOLS = [
   { name: 'calculate', description: 'Evaluate an arithmetic expression.', parameters: { expression: 'string' }, timeout: 30, confirm: false, max_calls: null },
-  { name: 'run_python', description: 'Run model-written Python in a limited sandbox. Always asks first.', parameters: { code: 'string' }, timeout: 30, confirm: true, max_calls: null },
+  { name: 'run_python', description: 'Run model-written Python in a limited sandbox. Always asks first.', parameters: { code: 'string' }, timeout: 30, confirm: true, max_calls: 3 },
 ];
 
 const D = (day, h, m = 0) => new Date(Date.UTC(2026, 9, day, h, m)).toISOString();

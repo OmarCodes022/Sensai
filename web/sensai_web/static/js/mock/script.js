@@ -8,7 +8,7 @@ export function say(text, pace = 1) {
 export const usage = (p = 212, o = 85, latency = 3200, server = 3000) => ({ type: 'usage', prompt_tokens: p, output_tokens: o, latency_ms: latency, server_duration_ms: server });
 export const wait = (ms) => ({ type: 'wait', ms });
 export const title = (text) => ({ type: 'title', title: text });
-export const call = (id, name, args, round = 1) => ({ type: 'tool_call', id, name, arguments: args, round, delay_ms: 350 });
+export const call = (id, name, args, round = 1, extra = {}) => ({ type: 'tool_call', id, name, arguments: args, round, delay_ms: 350, ...extra });
 export const result = (id, name, ok, extra = {}) => ({ type: 'tool_result', id, name, ok, error: null, output: '', duration_ms: 100, delay_ms: 400, ...extra });
 
 export function preview(code, { max = 6 } = {}) {
