@@ -125,6 +125,10 @@ The second line of `Using tool: run_python` is read from the report, so a line
 the code prints itself, such as `stderr:`, can change which line is shown
 there; it is always shown with control characters escaped.
 
+The web page (`sensai-web`) follows the same loop: each run asks for approval,
+its card says `Run 1 of 3`, `Run 2 of 3`, then `Run 3 of 3, the last`, and a
+4th call shows as **Not run**, without a code run.
+
 ## Give the code your data
 
 Set `SENSAI_DATA_DIR` to a folder; without it, Sensai uses `data/` in the
@@ -148,6 +152,8 @@ contents, for example
 `Data files available to run_python: brand.json, dms.json, engagement.csv, posts.json.`
 An empty folder gives `The data folder has no files run_python can use.` The
 names stay in the instructions after `/persona` and when a session is resumed.
+In the web page, the list is read again before each message, so files added or
+removed under **Tools, then Data files** are named from the next message on.
 
 Sensai checks each file before copying it. Today every file is allowed; once
 file permissions exist, a file that is not allowed will not be copied, and the

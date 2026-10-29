@@ -63,6 +63,8 @@ your profile, in a page served from your machine.
 - Same options, database, creator and `.env` as the terminal chat.
 - Listens on `127.0.0.1` only. Add `?mock=1` to the address for a demo without a model.
 - Tool calls (calculator, Python) work best with a larger model such as `qwen2.5`.
+- Python runs follow the terminal's loop: 3 attempts per question to fix failing
+  code, each card showing `Run n of 3`. A refused run also uses one of the 3.
 - Page, API and design notes: [web/web-ui.md](web/web-ui.md).
 
 ## Your data
