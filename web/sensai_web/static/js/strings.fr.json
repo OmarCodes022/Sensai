@@ -822,5 +822,6 @@
  "personas.scopeHelp": "Ce qu'elle peut faire, et ce qu'elle doit refuser.",
  "personas.needId": "Donnez un identifiant à la persona.",
  "personas.idTaken": "Cet identifiant est déjà utilisé.",
- "common.save": "Enregistrer"
+ "common.save": "Enregistrer",
+ "tools.dataBlank": "(fichier vide)"
 }
