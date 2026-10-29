@@ -25,6 +25,8 @@ export function createSessions(persona = 'redaction') {
     get: (id) => (id === current.id ? current : saved.get(id)),
     setCurrent(id) { current = saved.get(id) || current; return current; },
     list: () => [...saved.values()].map((s) => ({ id: s.id, title: s.title, created_at: s.created_at, updated_at: s.updated_at, persona: s.persona, messages: s.items.filter((i) => i.kind === 'user' || i.kind === 'assistant').length })),
+    rename(id, title) { const s = api.get(id); if (!s) return false; s.title = title; return true; },
+    remove(id) { return id !== current.id && saved.delete(id); },
     snapshot: (s = current) => clone(s),
     addEvent(text) { current.items.push({ kind: 'event', text }); },
     history: () => current.items.filter((i) => i.kind === 'user').map((i) => {

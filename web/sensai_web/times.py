@@ -46,3 +46,17 @@ class TurnTimes:
         except sqlite3.Error:
             return {}
         return {turn: (started, finished) for turn, started, finished in rows}
+
+    def forget(self, session_id: str) -> None:
+        """Drop the times of a deleted session."""
+        try:
+            connection = sqlite3.connect(self._path, timeout=5)
+            try:
+                with connection:
+                    connection.execute(SCHEMA)
+                    connection.execute("DELETE FROM web_turn_times WHERE creator_id = ? AND session_id = ?",
+                                       (self._creator, session_id))
+            finally:
+                connection.close()
+        except sqlite3.Error:
+            pass

@@ -7,12 +7,13 @@ import { emptyState, skeletonRows } from '../components/state.js';
 import { formatNumber, formatUtc } from '../format.js';
 import { stripInvisible } from '../safetext.js';
 import { hrefFor } from '../router.js';
+import { sessionButtons } from './manage.js';
 import { t } from '../i18n.js';
 
 const firstLine = (s) => { const l = String(s).split('\n')[0]; return l.length > 100 ? `${l.slice(0, 100)} …` : l; };
 
 /** Returns { el, show(session|null) }. onOpen(id) opens the conversation (the view handles the streaming confirm). */
-export function createDetail({ api, personaName, onOpen }) {
+export function createDetail({ api, store, personaName, onOpen, onChange }) {
   const el = h('aside', { class: 'card stack sess-detail', 'aria-label': t('sessions.detail') });
   let seq = 0;
   const hint = () => el.replaceChildren(emptyState({ icon: 'history', title: t('sessions.detailNone'), body: t('sessions.detailHint'), h: 'h3' }));
@@ -28,6 +29,7 @@ export function createDetail({ api, personaName, onOpen }) {
       h('dl', { class: 'kv' }, h('dt', null, t('sessions.col.messages')), h('dd', { class: 'num' }, formatNumber(s.messages)),
         h('dt', null, t('sessions.col.created')), h('dd', null, formatUtc(s.created_at)), h('dt', null, t('sessions.col.updated')), h('dd', null, formatUtc(s.updated_at))),
       button(t('sessions.open'), { variant: 'primary', icon: 'external-link', onClick: () => onOpen(s.id) }),
+      sessionButtons({ api, store, session: s, done: (kind) => { if (kind === 'delete') hint(); onChange(kind); } }),
       h('h4', null, t('history.title')), list, h('p', { class: 'muted history__note' }, t('history.note')));
     try {
       const full = await api.getSession(s.id);

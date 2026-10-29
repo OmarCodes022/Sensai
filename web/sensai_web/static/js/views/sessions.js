@@ -17,7 +17,12 @@ const LABEL = { title: 'title', id: 'id', persona: 'persona', messages: 'message
 export function mount(root, { store, actions, router, api }) {
   let sort = { key: 'updated_at', dir: 'desc' }, filter = '', selected = null;
   const personaName = (id) => store.get().personas.find((p) => p.id === id)?.name || id;
-  const detail = createDetail({ api, personaName, onOpen: open });
+  const detail = createDetail({ api, store, personaName, onOpen: open, onChange: async (kind) => {
+    if (kind === 'delete') selected = null;
+    await actions.refreshSessions({ silent: true });
+    const s = store.get().sessions.items.find((x) => x.id === selected);
+    if (s) detail.show(s);
+  } });
 
   async function open(id) {
     if (store.get().status.streaming && !(await actions.confirmStop())) return;

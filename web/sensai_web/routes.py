@@ -12,7 +12,7 @@ from sensai.memory.vector_index import VectorIndexError
 from sensai.rag import MAX_FILE_BYTES, MAX_TOTAL_BYTES, TYPES, DocError
 from sensai.sandbox import SandboxLimits
 from sensai.tools import MAX_TOOL_CALLS
-from sensai_web import sandbox, session_view
+from sensai_web import manage, sandbox, session_view
 from sensai_web.app import WebApp
 from sensai_web.errors import ApiError, llm_failure
 from sensai_web.tools import tool_list
@@ -108,6 +108,22 @@ def sessions(app: WebApp, request):
 @route("GET", r"/api/sessions/(?P<id>[^/]+)")
 def get_session(app: WebApp, request, id: str):
     return app.stored_session_json(id)
+
+
+@route("PATCH", r"/api/sessions/(?P<id>[^/]+)")
+def rename_session(app: WebApp, request, id: str):
+    return {"title": manage.rename_session(app, unquote(id), request.json().get("title"))}
+
+
+@route("DELETE", r"/api/sessions/(?P<id>[^/]+)")
+def delete_session(app: WebApp, request, id: str):
+    manage.delete_session(app, unquote(id))
+    return {"items": app.session_list()}
+
+
+@route("GET", r"/api/sessions/(?P<id>[^/]+)/export")
+def export_session(app: WebApp, request, id: str):
+    return manage.export_session(app, unquote(id))
 
 
 @route("POST", r"/api/sessions/(?P<id>[^/]+)/resume")
