@@ -1,0 +1,90 @@
+"""/think over HTTP: the bounded plan, act, draft, check, revise loop as stream events."""
+from time import monotonic
+from uuid import uuid4
+
+from sensai.chat.reasoning import Section, think
+from sensai.core.cancellation import CancellationToken, OperationCancelled, OperationTimedOut
+from sensai.core.errors import LLMError, SensaiError
+from sensai.core.messages import Message
+from sensai.chat.saved_sessions import user_messages
+from sensai.sandbox import remove_stale_folders
+from sensai_web.app import ActiveSession, WebApp, now
+from sensai_web.approvals import WebApproval
+from sensai_web.errors import llm_failure
+from sensai_web.tools import ObservedRegistry
+from sensai_web.turn import Emit, _add, _persist
+
+SKIPPED = ("Act", "Observe")  # Tool rounds already reach the page as tool cards.
+
+
+def _writer(emit: Emit):
+    """Sections become bold headings in the reply text; the tool lines under Act and Observe are dropped."""
+    skip = False
+
+    def write(item) -> None:
+        nonlocal skip
+        if isinstance(item, Section):
+            skip = item.title in SKIPPED
+            if not skip:
+                emit({"type": "text", "delta": f"\n\n**{item.title}**\n\n"})
+        elif skip:
+            skip = False
+        elif item:
+            emit({"type": "text", "delta": item})
+    return write
+
+
+def run_think(app: WebApp, active: ActiveSession, stop, request: str, emit: Emit) -> None:
+    """Answer `request` step by step. Only the request and the final answer join the conversation."""
+    cfg, session = app.cfg, active.session
+    started_at = now()
+    turn_id = f"t{uuid4().hex[:8]}"
+    number = len(user_messages(session.messages)) + 1
+    emit({"type": "turn_start", "turn_id": turn_id, "model": cfg.model, "persona": active.persona_id,
+          "number": number, "budget_seconds": cfg.operation_timeout, "think": True})
+    for notice in app.refresh_prompt(active):
+        emit({"type": "warning", "code": "documents", "message": notice})
+    approval = WebApproval(app.approvals, emit, stop, turn_id)
+    registry = ObservedRegistry(approval, emit, app.data.path, app.meta_dir, app.docs)
+    write = _writer(emit)
+
+    def new_token():  # Each step gets its own deadline; stop cancels them all.
+        return CancellationToken(monotonic() + cfg.operation_timeout, stop.is_set)
+
+    status, result = None, None
+    stream = think(session, registry, request, app.checker, new_token=new_token, emit=write)
+    try:
+        while True:
+            try:
+                write(next(stream))
+            except StopIteration as done:
+                result = done.value
+                break
+        status = "completed"
+    except OperationCancelled:
+        status = "interrupted"
+    except OperationTimedOut:
+        status = "timed_out"
+    except LLMError as exc:
+        emit({"type": "error", **llm_failure(exc, cfg.model)})
+    except SensaiError as exc:
+        emit({"type": "error", "code": "error", "message": str(exc), "hint": None})
+    finally:
+        stream.close()
+        registry.close()
+        remove_stale_folders()
+    if status is None:
+        return
+    if status == "completed":
+        session.messages.append(Message(role="user", content=request))
+        session.messages.append(Message(role="assistant", content=result.answer))
+        usage = app.usage.summary()
+        emit({"type": "usage", **usage})
+        active.prompt_tokens = _add(active.prompt_tokens, usage["prompt_tokens"])
+        active.output_tokens = _add(active.output_tokens, usage["output_tokens"])
+        active.last_prompt_tokens = usage["prompt_tokens"]
+        _persist(app, active, emit, stop, cfg.operation_timeout)
+        active.updated_at = now()
+        if active.recorder.saved:
+            app.times.record(active.recorder.session_id, number, started_at, active.updated_at)
+    emit({"type": "done", "status": status, "turn_id": turn_id})
