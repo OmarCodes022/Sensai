@@ -127,7 +127,8 @@ there; it is always shown with control characters escaped.
 
 ## Give the code your data
 
-Set `SENSAI_DATA_DIR` to a folder. Before each run, Sensai copies the files at
+Set `SENSAI_DATA_DIR` to a folder; without it, Sensai uses `data/` in the
+current folder when it exists. Before each run, Sensai copies the files at
 its top level next to the code, up to 50 MB in total:
 
 ```bash
