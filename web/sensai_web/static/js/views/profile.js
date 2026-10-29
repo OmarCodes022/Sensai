@@ -8,6 +8,7 @@ import { toast } from '../components/toast.js';
 import { emptyState } from '../components/state.js';
 import { viewShell, loadInto } from '../components/view.js';
 import { validateProfile } from '../profile/validate.js';
+import { profileRows } from '../profile/rows.js';
 import { announce } from '../a11y.js';
 import { t } from '../i18n.js';
 
@@ -17,7 +18,7 @@ const pretty = (o) => JSON.stringify(o, null, 2);
 export function mount(root, { api }) {
   const box = h('div', { class: 'stack' });
   root.append(viewShell('profile', box));
-  let profile = null, editing = false;
+  let profile = null, editing = false, asJson = false;
 
   function show() {
     const keys = Object.entries(profile.preferences || {});
@@ -25,9 +26,26 @@ export function mount(root, { api }) {
     box.replaceChildren(
       h('div', { class: 'row' }, chip(t('profile.plaintext'), { tone: 'amber', icon: 'alert-triangle' }), chip(t('profile.creatorKey', { key: profile.id }), { mono: true, outline: true })),
       h('p', { class: 'muted' }, t('profile.injected')),
-      editing ? editor() : h('div', { class: 'card stack' },
+      editing ? (asJson ? editor() : formEditor()) : h('div', { class: 'card stack' },
         empty ? emptyState({ icon: 'user', title: t('profile.empty'), body: t('profile.emptyBody', { example: EXAMPLE }), h: 'h2' }) : h('dl', { class: 'kv' }, keys.flatMap(([k, v]) => [h('dt', { class: 'mono' }, k), h('dd', { dir: 'auto' }, String(v))])),
-        h('div', { class: empty ? 'cta-center' : '' }, button(empty ? t('profile.create') : t('profile.edit'), { variant: 'primary', icon: 'edit', onClick: () => { editing = true; show(); box.querySelector('textarea')?.focus(); } }))));
+        h('div', { class: empty ? 'cta-center' : '' }, button(empty ? t('profile.create') : t('profile.edit'), { variant: 'primary', icon: 'edit', onClick: () => { editing = true; asJson = false; show(); box.querySelector('input')?.focus(); } }))));
+  }
+
+  function formEditor() {
+    const rows = profileRows(profile.preferences || {}, () => check());
+    const save = button(t('profile.replace'), { variant: 'primary' });
+    const status = h('p', { class: 'field__error', role: 'alert', hidden: true });
+    const check = () => { const r = rows.read(); status.hidden = !r.error; if (r.error) status.textContent = t(`profile.err.${r.error}`, r.args); save.disabled = !!r.error; return r; };
+    save.addEventListener('click', async () => {
+      const r = check();
+      if (r.error) return;
+      if (!(await confirmDialog({ title: t('profile.confirmTitle'), message: t('profile.confirmBody'), confirmLabel: t('profile.replace'), danger: true }))) return;
+      try { profile = await api.putProfile(r.value); editing = false; show(); toast(t('profile.saved')); announce(t('profile.saved')); }
+      catch (e) { status.hidden = false; status.textContent = `${t('err.profile_invalid')} ${e.message}`; }
+    });
+    return h('div', { class: 'card stack' }, h('p', { class: 'muted' }, t('profile.formHelp')), rows.el, status,
+      h('div', { class: 'row' }, save, button(t('common.cancel'), { onClick: () => { editing = false; show(); } }),
+        button(t('profile.asJson'), { variant: 'ghost', onClick: () => { asJson = true; show(); } })), h('p', { class: 'muted' }, t('profile.noAuto')));
   }
 
   function editor() {

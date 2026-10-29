@@ -823,5 +823,13 @@
  "personas.needId": "Give the persona an identifier.",
  "personas.idTaken": "This identifier is already used.",
  "common.save": "Save",
- "tools.dataBlank": "(empty file)"
+ "tools.dataBlank": "(empty file)",
+ "profile.key": "Name",
+ "profile.text": "What Sensai should know",
+ "profile.addRow": "Add a line",
+ "profile.removeRow": "Remove this line",
+ "profile.asJson": "Edit as JSON",
+ "profile.formHelp": "One line per thing Sensai should remember, for example voice or audience.",
+ "profile.err.rowBlank": "Fill in both the name and the text of every line.",
+ "profile.err.rowDup": "The name \"{name}\" is used twice."
 }
