@@ -823,5 +823,13 @@
  "personas.needId": "Donnez un identifiant à la persona.",
  "personas.idTaken": "Cet identifiant est déjà utilisé.",
  "common.save": "Enregistrer",
- "tools.dataBlank": "(fichier vide)"
+ "tools.dataBlank": "(fichier vide)",
+ "profile.key": "Nom",
+ "profile.text": "Ce que Sensai doit savoir",
+ "profile.addRow": "Ajouter une ligne",
+ "profile.removeRow": "Supprimer cette ligne",
+ "profile.asJson": "Modifier en JSON",
+ "profile.formHelp": "Une ligne par chose que Sensai doit retenir, par exemple le ton ou le public.",
+ "profile.err.rowBlank": "Renseignez le nom et le texte de chaque ligne.",
+ "profile.err.rowDup": "Le nom « {name} » est utilisé deux fois."
 }
