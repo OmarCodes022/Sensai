@@ -34,6 +34,14 @@ class Health:
         self._at = -CACHE_SECONDS
         self._value: tuple[bool, float, list[str]] = (False, 0.0, [])
 
+    @property
+    def host(self) -> str:
+        return self._host
+
+    def set_model(self, model: str) -> None:
+        with self._lock:
+            self._model = model
+
     def check(self) -> dict:
         with self._lock:
             if self._clock() - self._at >= CACHE_SECONDS:

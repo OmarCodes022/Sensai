@@ -30,7 +30,7 @@ def _persist(app: WebApp, active: ActiveSession, emit: Emit, stop, budget: float
 
     def titler(first_user: str, first_answer: str) -> str | None:
         token = CancellationToken(monotonic() + min(saved_sessions.TITLE_TIMEOUT, budget), stop.is_set)
-        return saved_sessions.generate_title(app.title_client, app.cfg.model, first_user, first_answer, token)
+        return saved_sessions.generate_title(app.title_client, app.model, first_user, first_answer, token)
 
     recorder.titler = titler
     recorder.after_turn(active.session)
@@ -47,7 +47,7 @@ def run_turn(app: WebApp, active: ActiveSession, stop, text: str, emit: Emit) ->
     started_at = now()
     turn_id = f"t{uuid4().hex[:8]}"
     number = len(user_messages(session.messages)) + 1
-    emit({"type": "turn_start", "turn_id": turn_id, "model": cfg.model, "persona": active.persona_id,
+    emit({"type": "turn_start", "turn_id": turn_id, "model": app.model, "persona": active.persona_id,
           "number": number, "budget_seconds": cfg.operation_timeout})
     token = CancellationToken(monotonic() + cfg.operation_timeout, stop.is_set)
     for notice in app.refresh_prompt(active):
@@ -69,7 +69,7 @@ def run_turn(app: WebApp, active: ActiveSession, stop, text: str, emit: Emit) ->
     except ValueError:
         emit({"type": "error", "code": "empty_input", "message": "Please type something.", "hint": None})
     except LLMError as exc:
-        emit({"type": "error", **llm_failure(exc, cfg.model)})
+        emit({"type": "error", **llm_failure(exc, app.model)})
     except SensaiError as exc:
         emit({"type": "error", "code": "error", "message": str(exc), "hint": None})
     finally:
