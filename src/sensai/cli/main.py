@@ -411,6 +411,8 @@ def prepare_chat(args: argparse.Namespace) -> PreparedChat | None:
         recorder, persona = _resume(args, creator, registry, persona)
         if preferences is not None:
             creator.profiles.save(Profile("default", preferences))
+        else:
+            saved_sessions.seed_profile(creator.profiles)
         profile = creator.profiles.load("default")
     except PortError as e:
         repository.close()

@@ -29,8 +29,9 @@ def isolated_session_storage(monkeypatch, tmp_path_factory):
 
 
 @pytest.fixture(autouse=True)
-def no_shared_personas_file(monkeypatch):
-    """The repository's data/personas.json must not leak into tests."""
+def no_shared_sample_files(monkeypatch):
+    """The repository's data/profile.json and data/personas.json must not leak into tests."""
+    monkeypatch.setattr(saved_sessions, "DEFAULT_PROFILE_FILE", "no-such-profile.json")
     monkeypatch.setattr(personas, "DEFAULT_FILE", "no-such-personas.json")
 
 
