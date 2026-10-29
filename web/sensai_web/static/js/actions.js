@@ -41,6 +41,17 @@ export function createActions({ store, api, router }) {
         toast(t('persona.toast', { name })); announce(t('persona.toast', { name }));
       } catch (e) { toast(e.message, { tone: 'rose' }); }
     },
+    /** Create or edit a persona; throws the backend message so the editor can show it. */
+    async savePersona(id, data) {
+      const r = await api.savePersona(id, data);
+      store.set({ personas: r.items, activePersona: r.active ?? store.get().activePersona });
+      toast(t('personas.saved', { name: data.name })); announce(t('personas.saved', { name: data.name }));
+    },
+    async deletePersona(id) {
+      const r = await api.deletePersona(id);
+      store.set({ personas: r.items, activePersona: r.active ?? store.get().activePersona });
+      toast(t('personas.removed')); announce(t('personas.removed'));
+    },
     async copySessionId() {
       const id = store.get().session?.id;
       if (id && await copyText(id)) { toast(t('session.idCopied')); announce(t('session.idCopied')); }

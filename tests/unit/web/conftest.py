@@ -72,6 +72,7 @@ class Page:
 @pytest.fixture
 def web(tmp_path, monkeypatch):
     started = []
+    monkeypatch.chdir(tmp_path)  # personas and data are looked up relative to the working directory
 
     def start(*replies, client=None, **overrides):
         client = client or FakeClient(*replies)
