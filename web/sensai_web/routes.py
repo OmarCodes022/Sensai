@@ -72,6 +72,18 @@ def personas(app: WebApp, request):
     return {"active": app.active.persona_id, "source": app.catalogue.source, "items": app.catalogue.describe()}
 
 
+@route("PUT", r"/api/personas/(?P<id>[^/]+)")
+def save_persona(app: WebApp, request, id: str):
+    result = app.save_persona(unquote(id), request.json())
+    return {"result": result, "active": app.active.persona_id, "items": app.catalogue.describe()}
+
+
+@route("DELETE", r"/api/personas/(?P<id>[^/]+)")
+def delete_persona(app: WebApp, request, id: str):
+    app.delete_persona(unquote(id))
+    return {"active": app.active.persona_id, "items": app.catalogue.describe()}
+
+
 @route("POST", r"/api/persona")
 def set_persona(app: WebApp, request):
     return {"active": app.set_persona(request.json().get("id"))}

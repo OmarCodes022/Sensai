@@ -181,7 +181,7 @@ class WebApp:
         if persona is not None and self.catalogue.registry.get(persona) is None:
             raise StartupError(f"unknown persona: {persona}")
         if self.cfg.session is None:
-            return self.fresh_session(persona)
+            return self.fresh_session(persona or self.catalogue.default_id())
         with self.creator_storage() as creator:
             snapshot = creator.sessions.load(self.cfg.session)
             meta = {s.id: s for s in creator.sessions.list()}.get(self.cfg.session)
@@ -198,6 +198,7 @@ class WebApp:
         if persona_id is None and snapshot.persona_id is not None \
                 and self.catalogue.registry.get(snapshot.persona_id) is not None:
             persona_id = snapshot.persona_id
+        persona_id = persona_id or self.catalogue.default_id()
         messages = [m for m in snapshot.messages if m.role != "system"]
         return self._active(snapshot.id, persona_id, messages, meta.title if meta else None, True,
                             meta.created_at if meta else None, meta.updated_at if meta else None)
@@ -228,6 +229,36 @@ class WebApp:
             self.active.persona_id = persona_id
             self.active.recorder.persona_changed(persona_id)
         return persona_id
+
+    def save_persona(self, persona_id: str, data: object) -> str:
+        """Add or edit a persona (written to the catalogue file); the open chat picks up the new wording."""
+        with self.mutex:
+            self.require_idle()
+            try:
+                result = self.catalogue.upsert(persona_id, data)
+            except ValueError as exc:
+                raise ApiError(400, "bad_persona", str(exc)) from None
+            except OSError as exc:
+                raise ApiError(500, "persona_unsaved", f"Could not save the personas: {exc}") from None
+            self.active.session.set_system_prompt(self.system_prompt(self.active.persona_id))
+        return result
+
+    def delete_persona(self, persona_id: str) -> None:
+        """Remove a persona; a chat that was using it falls back to the default one."""
+        with self.mutex:
+            self.require_idle()
+            try:
+                self.catalogue.remove(persona_id)
+            except KeyError:
+                raise ApiError(404, "persona_unknown", f"unknown persona: {persona_id}") from None
+            except ValueError as exc:
+                raise ApiError(400, "bad_persona", str(exc)) from None
+            except OSError as exc:
+                raise ApiError(500, "persona_unsaved", f"Could not save the personas: {exc}") from None
+            if self.catalogue.registry.get(self.active.persona_id or "") is None:
+                self.active.persona_id = self.catalogue.default_id()
+                self.active.recorder.persona_changed(self.active.persona_id)
+            self.active.session.set_system_prompt(self.system_prompt(self.active.persona_id))
 
     def session_json(self, active: ActiveSession) -> dict:
         messages = [m for m in active.session.messages if m.role != "system"]

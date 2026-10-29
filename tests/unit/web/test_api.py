@@ -1,4 +1,7 @@
 """The JSON endpoints over real HTTP, with a scripted model."""
+import json
+import threading
+
 import pytest
 
 from sensai.core.errors import LLMConnectionError, LLMError, ModelNotFoundError
@@ -39,7 +42,7 @@ def test_config_lists_capabilities_and_limits(web):
 def test_personas_can_be_listed_and_switched(web):
     page = web()
     body = page.call("GET", "/api/personas")[1]
-    assert body["active"] is None and body["source"] == "builtin"
+    assert body["active"] == "redaction" and body["source"] == "builtin"
     assert {p["id"] for p in body["items"]} == {"redaction", "communaute", "analyse"}
     assert body["items"][0]["starters"]
     assert page.call("POST", "/api/persona", {"id": "analyse"}) == (200, {"active": "analyse"})
@@ -149,3 +152,57 @@ def test_model_failures_become_error_events_with_hints(web):
         assert (error["code"], error["hint"]) == (code, hint)
     assert page.call("GET", "/api/session")[1]["items"] == []  # Failed turns leave no trace.
     assert page.call("POST", "/api/chat/stop") == (200, {"stopped": False})  # And the slot is free again.
+
+
+def test_a_new_chat_starts_on_the_first_persona(web):
+    page = web()
+    assert page.call("GET", "/api/session")[1]["persona"] == "redaction"
+    assert "Persona: Rédaction" in page.app.active.session.messages[0].content
+
+
+MINE = {"name": "Support", "tone": "calm", "role": "Answers customers.", "response_scope": "Suggestions only."}
+
+
+def test_personas_are_added_edited_and_saved_to_data_personas(web, tmp_path):
+    page = web()
+    status, body = page.call("PUT", "/api/personas/support", MINE)
+    assert status == 200 and body["result"] == "added" and body["items"][-1]["id"] == "support"
+    assert page.call("PUT", "/api/personas/support", {**MINE, "tone": "warm"})[1]["result"] == "updated"
+    saved = json.loads((tmp_path / "data" / "personas.json").read_text(encoding="utf-8"))
+    assert [p["id"] for p in saved] == ["redaction", "communaute", "analyse", "support"]
+    assert page.call("GET", "/api/personas")[1]["source"] == "data/personas.json"
+    assert page.call("POST", "/api/persona", {"id": "support"})[0] == 200
+    assert "calm" not in page.app.active.session.messages[0].content and "warm" in page.app.active.session.messages[0].content
+
+
+def test_a_bad_persona_is_refused_and_nothing_is_written(web, tmp_path):
+    page = web()
+    for path, data in (("/api/personas/Bad%20Id", MINE), ("/api/personas/x", {**MINE, "tone": " "}),
+                       ("/api/personas/x", {"name": "n"})):
+        status, body = page.call("PUT", path, data)
+        assert status == 400 and body["error"]["code"] == "bad_persona"
+    assert page.call("PUT", "/api/personas/x", [1])[0] == 400
+    assert not (tmp_path / "data" / "personas.json").exists()
+
+
+def test_removing_the_active_persona_falls_back_to_the_first(web):
+    page = web()
+    page.call("POST", "/api/persona", {"id": "analyse"})
+    status, body = page.call("DELETE", "/api/personas/analyse")
+    assert status == 200 and body["active"] == "redaction" and len(body["items"]) == 2
+    assert page.call("DELETE", "/api/personas/analyse")[0] == 404
+
+
+def test_the_last_persona_cannot_be_removed(web):
+    page = web()
+    page.call("DELETE", "/api/personas/analyse")
+    page.call("DELETE", "/api/personas/communaute")
+    status, body = page.call("DELETE", "/api/personas/redaction")
+    assert status == 400 and len(page.call("GET", "/api/personas")[1]["items"]) == 1
+
+
+def test_personas_cannot_change_during_a_reply(web):
+    page = web()
+    page.app.turn = threading.Event()
+    assert page.call("PUT", "/api/personas/support", MINE)[0] == 429
+    assert page.call("DELETE", "/api/personas/analyse")[0] == 429
