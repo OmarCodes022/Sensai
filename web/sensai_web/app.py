@@ -16,6 +16,7 @@ from sensai.core.errors import SensaiError
 from sensai.core.messages import Message
 from sensai.core.ports import PortError, Profile, SessionSnapshot
 from sensai.llm.ollama import OllamaClient
+from sensai.llm.structured import OllamaStructuredClient
 from sensai.memory.sqlite_store import StorageRepository
 from sensai.sandbox import RUN_PYTHON, SandboxError, data_file_names, data_prompt, remove_stale_folders
 from sensai.settings import Settings
@@ -81,6 +82,11 @@ class AppStore:
             creator.sessions.set_title(session_id, title)
 
 
+def make_checker(cfg: WebConfig) -> OllamaStructuredClient:
+    """The client /think uses to check a draft; one step's budget is one request."""
+    return OllamaStructuredClient(cfg.host, cfg.operation_timeout, context_length=cfg.context_length)
+
+
 class WebApp:
     def __init__(self, cfg: WebConfig, settings: Settings | None = None):
         self.cfg = cfg
@@ -95,6 +101,7 @@ class WebApp:
         self.data = DataFolder(cfg.data_dir)
         self.docs = DocLibrary(cfg.docs_dir, make_embedding(cfg), cfg.creator, cache_path=cfg.db_path, model=cfg.embed_model)
         self.model = cfg.model  # the page can change it while running
+        self.checker = make_checker(cfg)
         self.health = Health(cfg.host, cfg.model)
         self.meta_dir = tempfile.mkdtemp(prefix="sensai-web-")
         settings = (settings or Settings()).model_copy(update={"host": cfg.host})

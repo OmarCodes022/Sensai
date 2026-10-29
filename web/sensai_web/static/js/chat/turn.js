@@ -159,7 +159,8 @@ export function createTurn({ ctx, transcript, composer, model, reconnect, onReus
     const timer = setInterval(tick, 250);
     st.dropped = model.dropped;
     try {
-      await api.chat(text, { signal: st.ac.signal, onEvent: handle });
+      const asked = /^\/think\s+([\s\S]+)$/i.exec(text);  // /think <request> runs the step-by-step loop
+      await api.chat(asked ? asked[1] : text, { signal: st.ac.signal, onEvent: handle, think: !!asked });
       if (st.failed) { /* error card already shown */ }
       else if (st.status === 'completed') complete();
       else if (st.status === 'interrupted') interruptedUi(false);

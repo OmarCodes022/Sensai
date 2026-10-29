@@ -16,11 +16,12 @@ from sensai_web import manage, models, sandbox, session_view
 from sensai_web.app import WebApp
 from sensai_web.errors import ApiError, llm_failure
 from sensai_web.tools import tool_list
+from sensai_web.think import run_think
 from sensai_web.turn import run_turn
 
 MAX_TEXT_CHARS = 200_000
 CAPABILITIES = ("chat", "personas", "sessions", "profile", "usage", "tools", "approval", "sandbox",
-                "run_script", "history")
+                "run_script", "history", "think")
 STARTED = monotonic()
 ROUTES: list[tuple[str, re.Pattern, Callable]] = []
 
@@ -159,6 +160,24 @@ def chat(app: WebApp, request):
     def play(emit):
         try:
             run_turn(app, active, stop, text, emit)
+        finally:
+            app.end_turn()
+
+    return Stream(play, stop.set)
+
+
+@route("POST", r"/api/think")
+def think(app: WebApp, request):
+    text = request.json().get("text")
+    if not isinstance(text, str) or not text.strip():
+        raise ApiError(400, "empty_input", "Write what Sensai should think about.")
+    if len(text) > MAX_TEXT_CHARS:
+        raise ApiError(413, "too_large", "The message is too long.")
+    stop, active = app.begin_turn()
+
+    def play(emit):
+        try:
+            run_think(app, active, stop, text, emit)
         finally:
             app.end_turn()
 

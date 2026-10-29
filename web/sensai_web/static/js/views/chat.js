@@ -40,6 +40,7 @@ export function mount(root, ctx) {
     history: () => openHistory(composer.textarea, { api, plannedEdit: !store.get().capabilities.branching, onPick: jump }),
     tools: () => { layout.openInspector(); document.querySelector('.inspector')?.select?.('tools'); },
     run: () => router.go('#/tools'),
+    think: (args) => (args ? turn.send(`/think ${args}`) : toast(t('slash.thinkUsage'))),
     new: () => actions.newChat(),
     help: () => openShortcuts(),
     docs: (args) => docCommands.docs(args),
