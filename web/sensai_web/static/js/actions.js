@@ -52,6 +52,15 @@ export function createActions({ store, api, router }) {
       store.set({ personas: r.items, activePersona: r.active ?? store.get().activePersona });
       toast(t('personas.removed')); announce(t('personas.removed'));
     },
+    async setModel(name) {
+      if (store.get().status.streaming) { toast(t('persona.waitTip'), { tone: 'rose' }); return; }
+      try {
+        const { model } = await api.setModel(name);
+        const s = store.get();
+        store.set({ config: { ...s.config, model }, status: { ...s.status, health: { ...s.status.health, model: { name: model, available: true } } } });
+        toast(t('status.modelSet', { name: model })); announce(t('status.modelSet', { name: model }));
+      } catch (e) { toast(e.message, { tone: 'rose' }); }
+    },
     async copySessionId() {
       const id = store.get().session?.id;
       if (id && await copyText(id)) { toast(t('session.idCopied')); announce(t('session.idCopied')); }

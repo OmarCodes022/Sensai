@@ -3,6 +3,8 @@ import { h } from '../dom.js';
 import { copyButton } from './copy-button.js';
 import { statusDot } from './chip.js';
 import { formatDuration } from '../format.js';
+import { button } from './button.js';
+import { select } from './form.js';
 import { t } from '../i18n.js';
 
 export function ollamaState(status) {
@@ -21,15 +23,24 @@ export function ollamaPanel(status) {
     o?.reachable ? null : hint('ollama serve'));
 }
 
-export function modelPanel(status) {
+/** The model in use, and (given api and actions) a picker over the models Ollama has installed. */
+export function modelPanel(status, { api, actions } = {}) {
   const m = status.health?.model;
   const name = m?.name || t('common.na');
+  const picker = h('div', { class: 'stack' });
+  if (api) api.models().then(({ installed, current }) => {
+    if (!installed.length) return;
+    const sel = select(installed.map((n) => [n, n]), { 'aria-label': t('status.pickModel'), class: 'select mono' });
+    sel.value = installed.includes(current) ? current : (installed.find((n) => n.split(':')[0] === current) || installed[0]);
+    const use = button(t('status.useModel'), { variant: 'primary', size: 'sm', onClick: async () => { use.disabled = true; try { await actions.setModel(sel.value); } finally { use.disabled = false; } } });
+    picker.replaceChildren(h('div', { class: 'row' }, sel, use), h('p', { class: 'muted' }, t('status.modelNote')));
+  }).catch(() => {});
   return h('div', { class: 'stack' }, h('div', { class: 'row' }, statusDot(m?.available ? 'sage' : m ? 'rose' : null), h('strong', { class: 'mono' }, name)),
     h('p', null, m ? (m.available ? t('status.modelAvailable') : t('status.modelMissing')) : t('status.modelUnknown')),
-    m && !m.available ? hint(`ollama pull ${name}`) : null, h('p', { class: 'muted' }, t('status.modelFixed')));
+    m && !m.available ? hint(`ollama pull ${name}`) : null, picker);
 }
 
-export function allPanel(status) {
-  return h('div', { class: 'stack' }, ollamaPanel(status), h('hr', { class: 'divider' }), modelPanel(status),
+export function allPanel(status, tools) {
+  return h('div', { class: 'stack' }, ollamaPanel(status), h('hr', { class: 'divider' }), modelPanel(status, tools),
     status.health?.remote ? h('p', null, t('status.remote')) : null);
 }
