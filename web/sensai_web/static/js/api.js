@@ -35,6 +35,9 @@ const real = {
   sessions: () => req('GET', '/api/sessions'),
   getSession: (id) => req('GET', `/api/sessions/${encodeURIComponent(id)}`),
   resume: (id) => req('POST', `/api/sessions/${encodeURIComponent(id)}/resume`),
+  renameSession: (id, title) => req('PATCH', `/api/sessions/${encodeURIComponent(id)}`, { title }),
+  deleteSession: (id) => req('DELETE', `/api/sessions/${encodeURIComponent(id)}`),
+  exportSession: (id) => req('GET', `/api/sessions/${encodeURIComponent(id)}/export`),
   history: () => req('GET', '/api/history'),
   async chat(text, { onEvent, signal } = {}) {
     try { await streamNdjson('/api/chat', { body: { text }, signal, onEvent, headers: tabHeader }); }

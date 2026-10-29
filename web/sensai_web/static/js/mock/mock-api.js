@@ -105,6 +105,21 @@ const impl = {
   sessions: async () => ({ items: state.hideSessions ? [] : sessions.list() }),
   async getSession(id) { const s = sessions.get(id); if (!s) throw new ApiError('not_found', `unknown session: ${id}`, { status: 404 }); return sessions.snapshot(s); },
   async resume(id) { if (!sessions.get(id)) throw new ApiError('not_found', `unknown session: ${id}`, { status: 404 }); return sessions.snapshot(sessions.setCurrent(id)); },
+  async renameSession(id, title) {
+    if (!sessions.rename(id, title)) throw new ApiError('not_found', `unknown session: ${id}`, { status: 404 });
+    return { title };
+  },
+  async deleteSession(id) {
+    if (id === sessions.current().id) throw new ApiError('session_open', 'Open another conversation (or start a new one) before deleting this one.', { status: 409 });
+    if (!sessions.remove(id)) throw new ApiError('not_found', `unknown session: ${id}`, { status: 404 });
+    return { items: sessions.list() };
+  },
+  async exportSession(id) {
+    const s = sessions.get(id);
+    if (!s) throw new ApiError('not_found', `unknown session: ${id}`, { status: 404 });
+    const body = s.items.filter((i) => i.kind === 'user' || i.kind === 'assistant').map((i) => `**${i.kind === 'user' ? 'You' : 'Sensai'}**\n\n${i.text}\n`);
+    return { filename: `sensai-${id}.md`, markdown: `# ${s.title}\n\n${body.join('\n')}` };
+  },
   async readData(name) {
     const f = dataFolder.files.find((x) => x.name === name);
     if (!f) throw new ApiError('not_found', `No data file named ${name}.`, { status: 404 });
