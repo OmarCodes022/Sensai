@@ -1,0 +1,84 @@
+/* Design tokens. light-dark() keeps one declaration per token. */
+@layer reset, tokens, base, layout, components, views, utilities;
+
+@layer tokens {
+  :root {
+    color-scheme: light dark;
+    --paper: light-dark(#F5F6F8, #0F1217);
+    --surface: light-dark(#FFFFFF, #161A21);
+    --surface-2: light-dark(#ECEEF2, #1C212A);
+    --surface-3: light-dark(#DFE2E8, #242A35);
+    --line: light-dark(#DDE0E6, #2A303A);
+    /* control borders: at least 3:1 on paper, surface and surface-2 (WCAG 1.4.11) */
+    --line-strong: light-dark(#7E8696, #6B7585);
+    --ink: light-dark(#14181F, #E8EBF0);
+    --ink-2: light-dark(#3A414D, #C3C9D4);
+    --ink-3: light-dark(#5C6472, #9AA3B2);
+    --ink-inverse: light-dark(#FFFFFF, #0F1217);
+    --accent: light-dark(#3A4BB5, #8C9CF0);
+    --accent-hover: light-dark(#2B3A94, #A3B0F5);
+    --accent-tint: light-dark(#E6E9F8, #1B2145);
+    /* sage and amber are darkened from the brief to pass AA on their tints */
+    --sage: light-dark(#41694B, #7FB08B);
+    --sage-tint: light-dark(#E7F0E8, #1C2A1F);
+    --amber: light-dark(#945609, #E0A33E);
+    --amber-tint: light-dark(#FBF0DC, #33270F);
+    --rose: light-dark(#B3261E, #F08A82);
+    --rose-tint: light-dark(#FBE5E3, #35191A);
+    --teal: light-dark(#1F6F7A, #5FC0CC);
+    --teal-tint: light-dark(#E1F0F2, #12262A);
+    --plum: light-dark(#6B4A7A, #C29BD3);
+    --plum-tint: light-dark(#F0E8F4, #2A1F30);
+    --scrim: rgb(15 18 23 / .5);
+    --shadow-pop: 0 8px 28px light-dark(rgb(20 24 31 / .14), rgb(0 0 0 / .55));
+
+    --font-display: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --fs-12: .75rem; --fs-13: .8125rem; --fs-14: .875rem; --fs-16: 1rem;
+    --fs-18: 1.125rem; --fs-22: 1.375rem; --fs-28: 1.75rem; --fs-36: 2.25rem; --fs-48: 3rem;
+
+    --s-1: .25rem; --s-2: .5rem; --s-3: .75rem; --s-4: 1rem; --s-5: 1.25rem;
+    --s-6: 1.5rem; --s-8: 2rem; --s-10: 2.5rem; --s-14: 3.5rem; --s-18: 4.5rem;
+    --r-1: 6px; --r-2: 10px; --r-3: 16px; --r-pill: 999px;
+    --bw: 1px;
+    --focus: 2px solid var(--accent);
+
+    --dur-hover: 100ms; --dur-msg: 160ms; --dur-panel: 220ms; --dur-modal: 320ms;
+    --ease: cubic-bezier(.2, .8, .2, 1);
+
+    --topbar-h: 56px;
+    --target: 40px;
+  }
+  :root[data-theme="light"] { color-scheme: light; }
+  :root[data-theme="dark"] { color-scheme: dark; }
+  :root[data-density="compact"] { --target: 32px; --s-4: .875rem; }
+  :root[data-font="small"] { font-size: 90%; }
+  :root[data-font="large"] { font-size: 115%; }
+  :root[data-font="keynote"] { font-size: 140%; }
+
+  @media (hover: none), (pointer: coarse) { :root { --target: 44px; } }
+  @media (max-width: 479px) { :root[data-density="comfortable"] { --s-4: .875rem; } }
+
+  @media (prefers-contrast: more) {
+    :root { --bw: 2px; --line: var(--line-strong); --ink-3: var(--ink-2); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :root { --dur-hover: 1ms; --dur-msg: 1ms; --dur-panel: 1ms; --dur-modal: 1ms; }
+  }
+  :root[data-motion="reduce"] { --dur-hover: 1ms; --dur-msg: 1ms; --dur-panel: 1ms; --dur-modal: 1ms; }
+
+  /* Everything maps to system colors; borders stay on interactive elements. */
+  @media (forced-colors: active) {
+    :root {
+      --paper: Canvas; --surface: Canvas; --surface-2: Canvas; --surface-3: Canvas;
+      --line: CanvasText; --line-strong: CanvasText;
+      --ink: CanvasText; --ink-2: CanvasText; --ink-3: CanvasText; --ink-inverse: HighlightText;
+      --accent: Highlight; --accent-hover: Highlight; --accent-tint: Canvas;
+      --sage: CanvasText; --sage-tint: Canvas; --amber: CanvasText; --amber-tint: Canvas;
+      --rose: CanvasText; --rose-tint: Canvas; --teal: CanvasText; --teal-tint: Canvas;
+      --plum: CanvasText; --plum-tint: Canvas; --scrim: rgb(0 0 0 / .6);
+      --focus: 2px solid Highlight;
+    }
+  }
+}

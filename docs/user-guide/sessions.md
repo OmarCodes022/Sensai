@@ -75,6 +75,10 @@ adds the profile to the model's instructions, even without the option. An
 empty object `{}` clears it. `SENSAI_PROFILE_FILE` does the same as
 `--profile-file`.
 
+A creator with no stored profile starts from `data/profile.json` (a shared sample you can
+edit); it never overwrites a profile that is already stored. `data/brand.json` holds the
+sample brand facts and approved claims the sandbox can read.
+
 ## Creators and database file
 
 | Option | Variable | Default | Effect |

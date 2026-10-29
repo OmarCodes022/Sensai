@@ -1,250 +1,137 @@
 # Sensai
 
-Sensai is a command-line AI assistant for a skincare creator who runs her own
-brand. It talks to a local [Ollama](https://ollama.com) model directly over
-its HTTP API (no LLM framework), streams replies, keeps the conversation
-history, lets the creator switch between drafting, community and analysis
-personas mid-conversation, and saves sessions and a creator profile in a local
-SQLite file. Python 3.10 or newer. The longer-term product goal (four
-reviewable weekly outputs) is described in
-[the product scope](docs/product/scope.md); it is not built yet.
+A local AI assistant for one skincare creator. It chats with an [Ollama](https://ollama.com)
+model over its HTTP API (no LLM framework), in the terminal or in your browser.
+Everything stays on your computer. Python 3.10+.
 
-## Features
+Docs: <https://omarcodes022.github.io/Sensai/> (sources in [docs/](docs/README.md)).
 
-Features from the subject catalogue that are implemented in the code:
+## What it does
 
-| ID | Feature | What works today | Docs |
-| --- | --- | --- | --- |
-| B1 | Functional CLI chatbot (base chat) | Streamed replies, in-session history, clean errors (empty input, missing model, connection failure, timeout), model chosen by argument or `.env`, Ctrl+C/Esc interrupts a reply | [Architecture](docs/developer-guide/architecture.md), [cancellation](docs/architecture/cancellation.md) |
-| A5 | Persona | Built-in and JSON-file personas, chosen at startup or switched with `/persona <id>` without losing history | [Persona guide](docs/user-guide/personas.md) |
-| M1 | Session Persistence & Profiles | Sessions saved after each completed turn, listed and resumed after restart; a creator profile file injected into the system prompt | [Storage](docs/developer-guide/storage.md) |
-| T2 | Sandboxed code execution | Model-written Python runs in a throw-away folder after approval; the output or traceback goes back to the model, which fixes its code and tries again, up to 3 runs per question; the data file names are listed to the model | [Tools and sandbox](docs/user-guide/tools.md) |
+| Feature | How to use it | Guide |
+| --- | --- | --- |
+| Streaming chat | `sensai <model>`; Ctrl+C or Esc stops a reply | [Chatting](docs/user-guide/chatting.md) |
+| Personas | `--persona analyse`, `/persona` to switch mid-chat | [Personas](docs/user-guide/personas.md) |
+| Saved sessions and profile | `--list-sessions`, `--session <id>`, `--profile-file` | [Sessions](docs/user-guide/sessions.md) |
+| Tools | the model calls `calculate` and `run_python` (you approve each run); a failed run goes back to the model, which fixes its code, up to 3 runs per question | [Tools and sandbox](docs/user-guide/tools.md) |
+| Brand document search | `/add <file>`, `/docs`; files in `data/docs/` are indexed by themselves | [Document search](docs/user-guide/documents.md) |
+| Web interface | `sensai-web <model>` | [below](#web-interface) |
 
-User stories: see [docs/overview/user-stories.md](docs/overview/user-stories.md). Six
-end-to-end stories cover every feature on `main`.
+Planned work and what is not built yet: [product scope](docs/product/scope.md).
 
-Foundations that exist in code but are **not** complete features and are not
-used by the CLI: an Ollama embedding adapter and in-memory vector index
-([retrieval foundation](docs/architecture/retrieval.md)), a JSON-schema
-reply adapter ([structured output](docs/architecture/structured-output.md)),
-usage/event hooks ([telemetry](docs/architecture/telemetry.md)), typed policy
-records ([privacy and claims](docs/product/privacy-and-claims.md)) and a manual
-adversarial-test runner ([evals/adversarial](evals/adversarial/README.md)).
+## Quick start
 
-## Setup
-
-Have Ollama running (`ollama serve`) and a model installed (`ollama list`).
-The CLI needs a POSIX system (macOS or Linux): its terminal input uses
-`termios`, which native Windows Python does not provide.
-From the repository root:
+Needs Ollama running (`ollama serve`) and a model (`ollama pull gemma3:1b`).
+The terminal chat needs macOS or Linux.
 
 ```bash
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
-cp .env.example .env   # optional; skip if you already have a .env
+cp .env.example .env                  # optional
+.venv/bin/sensai gemma3:1b            # terminal chat
+.venv/bin/sensai-web gemma3:1b        # browser, then open http://127.0.0.1:8765/
 ```
 
-`requirements.txt` installs this project in editable mode with its test extra;
-the dependencies themselves are listed in `pyproject.toml`. Configuration comes
-from environment variables or `.env` (see [`.env.example`](.env.example));
-real environment variables win over `.env`, and CLI options win over both. The
-default system prompt is packaged with Sensai
-([`src/sensai/chat/system_prompt.txt`](src/sensai/chat/system_prompt.txt)), so
-`sensai` works from any directory; `--prompt` or `SENSAI_PROMPT` selects
-another prompt file (an empty value means the packaged default). **Upgrading:**
-if your `.env` still has `SENSAI_PROMPT=prompts/system.txt`, delete that line;
-that file no longer exists.
+After pulling new code, run `.venv/bin/python -m pip install -e .` again so new
+commands (like `sensai-web`) are registered. Full install guide:
+[Install and configure](docs/user-guide/install.md).
 
-## Usage
-
-### Chat with a local model
+## Terminal chat
 
 ```bash
-.venv/bin/sensai gemma3:1b          # or set SENSAI_MODEL and run .venv/bin/sensai
-.venv/bin/python -m sensai gemma3:1b
+.venv/bin/sensai gemma3:1b                        # or set SENSAI_MODEL and omit the model
+.venv/bin/sensai gemma3:1b --persona redaction    # start as a persona
+.venv/bin/sensai --list-personas                  # no Ollama needed
+.venv/bin/sensai --list-sessions
+.venv/bin/sensai gemma3:1b --session k7f2qa       # resume
+.venv/bin/sensai-remote                           # same, through an SSH tunnel
 ```
 
-Type `exit` or `quit` (or Ctrl+D on empty input) to leave. Ctrl+C or a lone
-Esc interrupts the current reply: the printed text stays on screen but the turn
-is dropped from history. Each turn has a 120-second budget
-(`--operation-timeout` or `SENSAI_OPERATION_TIMEOUT`). For long histories or
-thinking models, set `SENSAI_CONTEXT_LENGTH=8192`. A reply that ends without
-visible text, or stops at the token limit, is reported as an error and not
-kept in history.
+In a chat: `/persona [id]`, `/tools`, `/history`, `/run <file.py>`, `/docs [text]`,
+`/add`, `/remove`, `/reindex`, and `exit` to leave. Each turn has a 120 s budget.
+Remote Ollama: [SSH setup](docs/operations/remote-ollama.md).
 
-### Chat with a remote model over SSH
+## Web interface
 
-`sensai-remote` accepts the same options and opens an SSH tunnel when
-`SENSAI_SSH_HOST` is set (with `OLLAMA_HOST=http://127.0.0.1:11435`); with it
-unset it behaves like `sensai`:
+Streaming chat, personas, saved sessions, tool approval, the Python sandbox and
+your profile, in a page served from your machine.
 
 ```bash
-.venv/bin/sensai-remote --persona redaction
+.venv/bin/sensai-web gemma3:1b      # http://127.0.0.1:8765/ (--port to change)
 ```
 
-See [the SSH setup guide](docs/operations/remote-ollama.md).
+- Same options, database, creator and `.env` as the terminal chat.
+- Listens on `127.0.0.1` only. Add `?mock=1` to the address for a demo without a model.
+- Tool calls (calculator, Python) work best with a larger model such as `qwen2.5`.
+- Page, API and design notes: [web/web-ui.md](web/web-ui.md).
 
-### Personas
+## Your data
+
+The Python sandbox reads the files in `data/` (repository root, relative to where
+you launch). The folder is a placeholder in git: its contents are never pushed.
+Add CSV, TSV, JSON, text or Markdown files there, or in the web page under
+**Tools, then Data files** (drop files, or add example data). `SENSAI_DATA_DIR`
+points elsewhere.
+
+The sandbox stops runaway code, not malicious code: it keeps network access and
+can read files by path. Limits and details: [Tools and sandbox](docs/user-guide/tools.md).
+
+## Brand document search
+
+Put your product sheets, FAQ and brand voice in `data/docs/` and the model searches them
+whenever it needs a fact, instead of inventing one. It is on by itself; no flag.
 
 ```bash
-.venv/bin/sensai --list-personas                 # no model or Ollama needed
-.venv/bin/sensai gemma3:1b --persona analyse
-.venv/bin/sensai gemma3:1b --personas-file personas.local.json --persona editor
+ollama pull nomic-embed-text          # once: the embedding model
+.venv/bin/sensai qwen2.5              # data/docs/ is indexed in the background
 ```
 
-Built-in personas: `redaction` (post and caption drafts), `communaute` (unsent
-reply suggestions) and `analyse` (supplied metrics and weekly
-recommendations). In a chat, `/persona` lists them and `/persona analyse`
-switches before the next message, keeping all completed exchanges. A custom
-JSON file replaces the built-in list; each entry needs exactly `id`, `name`,
-`tone`, `role` and `response_scope`, for example:
+- **Add documents** from anywhere: `/add <file or folder>` in the chat copies them into
+  `data/docs/`. Or copy files there yourself: new, edited and removed files are noticed
+  and indexed automatically. `/docs` lists them, `/docs <text>` shows what a search finds,
+  `/remove <name>` removes one. The web interface has the same on its **Documents** page
+  (drag and drop, list, remove, search preview), and shows the sources under each reply.
+- `.md` and `.txt` files; a header (`source`, `version`, `product`, `title`) is optional.
+  Older versions of a sheet are marked OUTDATED in the results.
+- `data/docs/` ships with fictional Serein Studio sample sheets: replace them with yours.
+  Your own files stay out of git.
+- `--docs <folder>` or `SENSAI_DOCS` uses another folder; `SENSAI_DOCS=` (empty) switches
+  search off. Without the embedding model, search is off and chat works normally.
+- Details: [Document search](docs/user-guide/documents.md).
 
-```json
-[{"id": "editor", "name": "Édition", "tone": "Warm and concise.",
-  "role": "Review supplied caption drafts.",
-  "response_scope": "Suggest two revisions using only supplied approved claims."}]
-```
+## Configuration
 
-Invalid files or unknown IDs fail before the model is contacted. Personas are
-model instructions, not an enforced privacy or fact-checking gate. Details and
-manual checks: [persona guide](docs/user-guide/personas.md).
+Environment variables or `.env` (see [.env.example](.env.example)). Real environment
+variables win over `.env`, and command-line options win over both.
 
-### Tools
+| Variable | Meaning | Default |
+| --- | --- | --- |
+| `SENSAI_MODEL` | model to chat with | none |
+| `OLLAMA_HOST` | Ollama base URL | `http://localhost:11434` |
+| `SENSAI_DB` | session database | `sensai.sqlite3` |
+| `SENSAI_CREATOR` | key that separates creators' sessions and profiles | `default` |
+| `SENSAI_DATA_DIR` | files the sandbox can read | `./data` if it exists |
+| `SENSAI_DOCS`, `SENSAI_EMBED_MODEL` | document folder (empty switches search off) and embedding model | `./data/docs`, `nomic-embed-text` |
+| `SENSAI_OPERATION_TIMEOUT` | seconds per turn | `120` |
+| `SENSAI_CONTEXT_LENGTH` | context tokens (more uses more VRAM) | Ollama's default |
+| `SENSAI_SSH_HOST` | SSH alias for a remote Ollama | none |
 
-`/tools` lists available tools without calling the model. Sensai currently
-includes `calculate` for arithmetic with `+`, `-`, `*`, `/` and parentheses;
-for example, ask it to calculate `(14 + 6) / 100 * 100`, and `run_python`
-(see [Sandbox](#sandbox)). The model chooses
-whether to request a tool, and the CLI prints `Using tool: calculate(...)`
-before using its result. Tool protocol JSON stays hidden.
-
-Each question allows five tool rounds followed by a final answer. Tool
-errors return to the model; cancellation or a failed question drops all its
-rounds from history. Successful rounds are saved together and restored on
-resume. Tools with a numeric timeout run in child processes (30-second
-default limit); custom timed handlers must be importable/pickleable and open
-their resources in the child. Interactive tools and human approval pause the
-question budget. This execution isolation is not a permission sandbox.
-See [the implemented tool contract](docs/developer-guide/extending.md) for limits and
-handler registration.
-
-#### Sandbox
-
-`run_python` lets the model run the Python it writes. Sensai always asks
-first and shows the start of the code: `y` runs it, `n` refuses (the model is
-told), `v` shows all of it. Set `SENSAI_DATA_DIR` to a folder whose top-level
-files are copied next to the code (at most 50 MB in total). Hidden files (such
-as `.env`), files with a non-printable character in their name and files
-Python could import instead of the standard library
-(`.py`, `.pyc`, `.pyw`, `.so`, `.pyd`) are not copied:
-
-```text
-$ SENSAI_DATA_DIR=tests/fixtures .venv/bin/sensai qwen2.5:7b
-> Use Python to print the average daily accounts_reached from 21 to 27 Sep in engagement.csv
-Run run_python?
-  code:
-    import csv
-    reach = []
-    for row in csv.DictReader(open("engagement.csv")):
-        if row["source"] == "instagram_insights_daily":
-            if "2026-09-21" <= row["date"] <= "2026-09-27":
-                reach.append(int(row["accounts_reached"]))
-    … (+1 more line)
-[y] run · [n] refuse · [v] view all y
-Using tool: run_python · Run 1 · Exit code 0 · 0.3 s
-1021.4
-The average daily reach from 21 to 27 Sep was 1021.4 accounts.
-> /run broken.py
-Running in the sandbox (limit 15 s)…
-Exit code 1 · 0.2 s
-stderr:
-Traceback (most recent call last):
-  File "main.py", line 4, in <module>
-KeyError: 'reach'
-```
-
-When the code fails, the model receives the traceback and fixes its code;
-Sensai asks again before each new run. Each question allows 3 runs: a 4th
-call prints `Using tool: run_python · Stopped after 3 attempts` and the model
-answers with the last error. The model receives a short report (exit code,
-the last 2,000 characters of the output and of the errors, and
-`If it failed, fix the code and call run_python again; otherwise answer using this output.`)
-and, at startup, the names (not the contents) of the data files.
-
-`/run <file.py>` runs a local script the same way, without the model or an
-approval, and leaves the chat history untouched. Each run gets a fresh
-temporary folder (deleted afterwards), the code as `main.py`, no keyboard
-input and an almost empty environment: no `.env` values, `SENSAI_*`/`OLLAMA_*`
-variables or API keys. Limits: 15 s of wall-clock time, 10 s of CPU, 512 MB of
-memory, 10 MB per written file, and 10,000 characters each of stdout (the
-start) and stderr (the end, so the traceback survives). Ctrl+C stops the code
-at once. Small models may garble code inside JSON; a larger model such as
-`qwen2.5:7b` works better.
-
-This stops runaway or careless code, **not deliberately malicious code**. The
-code still has network access and can read any file your user can read by
-absolute path. The memory limit only works on Linux (macOS ignores it), and
-fork bombs or processes that leave their process group are not prevented.
-macOS does not enforce the hard CPU limit either: code that ignores SIGXCPU
-runs until the 15 s wall-clock limit. If Sensai's tool process is killed hard
-(`kill -9`, out of memory) while the code runs, processes the code started keep
-running on both systems, and on macOS the code itself does too (on Linux it
-dies with its parent). A later run removes the leftover folder, not the
-processes.
-Stronger isolation (for example `docker run --rm --network none`) is not
-implemented.
-
-### Sessions and creator profile
-
-```bash
-.venv/bin/sensai --list-sessions                 # ID, last update (UTC), title
-.venv/bin/sensai gemma3:1b --session k7f2qa      # resume a saved session
-.venv/bin/sensai gemma3:1b --profile-file profil.local.json
-```
-
-Every chat is saved to `./sensai.sqlite3` (gitignored; change with `--db` or
-`SENSAI_DB`) after its first completed exchange; interrupted, failed or empty
-turns are never saved. A short separate model request names the session; if it
-fails, the start of the first message is used. Resuming restores the exchanges
-and the persona (`--persona` overrides it). The profile file is a JSON object of
-strings, such as `{"ton": "direct", "public": "créatrices beauté"}`; it
-replaces the stored profile, which is then added to the system prompt of every
-chat. `--creator` (or `SENSAI_CREATOR`) keeps sessions and profiles of different
-creators apart; it is a key, not authentication. The database is plaintext.
-Type `/history` in a chat to list your own messages of the saved or current
-conversation, numbered from 1 and cut to one line each (replies and tool
-results are left out); startup does not print it.
-Storage details: [storage.md](docs/developer-guide/storage.md).
+If your `.env` still has `SENSAI_PROMPT=prompts/system.txt`, delete that line: the file no longer exists.
 
 ## Tests
 
-Offline unit tests (no Ollama, no network; scripted fakes in
-`tests/helpers/`):
-
 ```bash
-.venv/bin/python -m pytest -q tests/unit
+.venv/bin/python -m pytest -q tests/unit        # offline, no Ollama needed
+SENSAI_TEST_MODEL=gemma3:1b .venv/bin/python -m pytest tests/integration -v -rs   # live, optional
 ```
 
-GitHub Actions runs the same command on every push and pull request to `main`
-(`.github/workflows/tests.yml`, job **Unit tests**).
+CI runs the unit tests on every push and pull request. Adversarial testing:
+[evals/adversarial](evals/adversarial/README.md). More: [Testing](docs/developer-guide/testing.md).
 
-Optional live tests against a running Ollama and installed model (they skip
-otherwise, and a skip is not a pass):
+## More documentation
 
-```bash
-SENSAI_TEST_MODEL=gemma3:1b .venv/bin/python -m pytest tests/integration -v -rs
-```
-
-Manual adversarial testing: see [evals/adversarial](evals/adversarial/README.md).
-
-## Documentation
-
-Start at the [documentation index](docs/README.md). The same pages are
-published at <https://omarcodes022.github.io/Sensai/>. To preview the site
-locally:
-
-```bash
-python3 -m venv .venv
-.venv/bin/pip install -r requirements-docs.txt
-.venv/bin/mkdocs serve    # http://127.0.0.1:8000
-```
+- [Overview](docs/overview/features.md): features, how a turn works, user stories.
+- [User guide](docs/user-guide/install.md): install, chat, personas, sessions, tools.
+- [Developer guide](docs/developer-guide/architecture.md): architecture, file structure, storage, adding a tool, contributing.
+- [Privacy and product claims](docs/product/privacy-and-claims.md) and [product scope](docs/product/scope.md).
+- Preview the docs site: `.venv/bin/pip install -r requirements-docs.txt && .venv/bin/mkdocs serve`.

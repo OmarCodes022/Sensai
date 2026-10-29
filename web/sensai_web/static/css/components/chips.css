@@ -1,0 +1,20 @@
+@layer components {
+  .chip { --c: var(--ink-2); --t: var(--surface-2); display: inline-flex; align-items: center; gap: var(--s-1); min-height: 22px; padding: 1px var(--s-2); border-radius: var(--r-pill); background: var(--t); color: var(--c); border: var(--bw) solid transparent; font-size: var(--fs-12); font-weight: 500; line-height: 1.4; white-space: nowrap; max-width: 100%; }
+  .chip--accent { --c: var(--accent); --t: var(--accent-tint); }
+  .chip--sage { --c: var(--sage); --t: var(--sage-tint); }
+  .chip--amber { --c: var(--amber); --t: var(--amber-tint); }
+  .chip--rose { --c: var(--rose); --t: var(--rose-tint); }
+  .chip--teal { --c: var(--teal); --t: var(--teal-tint); }
+  .chip--plum { --c: var(--plum); --t: var(--plum-tint); }
+  .chip--outline { background: transparent; border-color: var(--line-strong); }
+  .chip--mono { font-family: var(--font-mono); font-weight: 400; }
+  .chip--sq { border-radius: var(--r-1); }
+  .chip button { display: inline-grid; place-items: center; width: 18px; height: 18px; border: 0; background: none; border-radius: 50%; color: inherit; padding: 0; margin-right: -4px; }
+  .chip button:hover { background: var(--surface-3); }
+  .chip svg { flex: none; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-3); flex: none; display: inline-block; }
+  .dot--sage { background: var(--sage); } .dot--amber { background: var(--amber); } .dot--rose { background: var(--rose); }
+  .dot--pulse { animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .35; } }
+  @media (forced-colors: active) { .chip { border-color: CanvasText; } .dot { background: CanvasText; } }
+}

@@ -882,3 +882,20 @@ def test_title_save_failure_is_reported_without_stopping_chat(
     summaries, sessions, _ = stored(tmp_path)
     assert summaries[0].title == "Q1"
     assert len(sessions["k7f2qa"].messages) == 4
+
+
+def test_the_shared_sample_profile_seeds_only_a_creator_without_one(tmp_path):
+    sample = tmp_path / "profile.json"
+    sample.write_text('{"voice": "warm"}', encoding="utf-8")
+    saved = {}
+
+    class Profiles:
+        load = staticmethod(lambda name: saved.get(name))
+        save = staticmethod(lambda profile: saved.__setitem__(profile.id, profile))
+
+    saved_sessions.seed_profile(Profiles, sample)
+    assert saved["default"].preferences == {"voice": "warm"}
+    saved["default"] = Profile("default", {"voice": "mine"})
+    saved_sessions.seed_profile(Profiles, sample)
+    assert saved["default"].preferences == {"voice": "mine"}
+    saved_sessions.seed_profile(Profiles, tmp_path / "missing.json")

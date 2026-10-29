@@ -41,7 +41,9 @@ conversation, so you can ask the new persona about them.
 
 ## Your own personas
 
-A JSON file can replace the built-in list:
+`data/personas.json` (shared with the team through git) is used when it exists, otherwise
+the built-in list. The web **Personas** page adds, edits and removes personas and saves them
+to that file; the web chat starts on the first persona. Another JSON file can replace the list:
 
 ```bash
 .venv/bin/sensai gemma3:1b --personas-file personas.local.json --persona editor
@@ -67,8 +69,8 @@ ending in `.local.json`.
   a chat, `/persona <id>` prints the same error and changes nothing.
 - The persona instructions are in French. They tell the model to answer in the
   language you ask for, or else in the language of your latest message.
-- `/persona` switches only between the personas loaded at startup. Edit the
-  file and restart Sensai to change them.
+- The terminal's `/persona` switches only between the personas loaded at startup. Edit
+  them in the web page, or edit the file and restart Sensai.
 - A persona is a set of instructions for the model. Small models do not always
   follow them, so check drafts and figures before you use them.
 - A saved session remembers its persona: see
