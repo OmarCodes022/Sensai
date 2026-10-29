@@ -286,3 +286,15 @@ def test_on_tool_observer_sees_every_round():
     run(session_for(client, tools), tools, FakeChecker(Check(ok=True)),
         on_tool=lambda call, result: seen.append((call.name, result.output)))
     assert seen == [("lookup", "7")]
+
+
+def test_a_tool_call_limit_is_shared_by_every_step_of_one_think():
+    tools = ToolRegistry()
+    tools.register(ToolDefinition("lookup", "Look up."), lambda arguments, cancellation: ToolResult("7"),
+                   timeout=None, max_calls=1)
+    client = FakeClient(["1. Look it up"], [LOOKUP], ["First draft."], [LOOKUP], ["Second draft."])
+    checker = FakeChecker(Check(ok=False, problems=["too short"]), Check(ok=True))
+    items, result, _ = run(session_for(client, tools), tools, checker)
+    # The revise step asked for the tool again: past the shared limit it ran nothing.
+    assert "Stopped after 1 attempt" in text(items)
+    assert result.tool_calls == 2

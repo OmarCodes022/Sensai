@@ -118,9 +118,10 @@ def test_max_rounds_is_always_the_steps_left_minus_one(monkeypatch):
     seen = []
     real = reasoning.run_with_tools
 
-    def spy(session, registry, text, token, *, max_rounds, on_tool):
+    def spy(session, registry, text, token, *, max_rounds, on_tool, new_question):
         seen.append((len(client.requests), max_rounds))
-        return real(session, registry, text, token, max_rounds=max_rounds, on_tool=on_tool)
+        return real(session, registry, text, token, max_rounds=max_rounds, on_tool=on_tool,
+                    new_question=new_question)
 
     monkeypatch.setattr(reasoning, "run_with_tools", spy)
     tools = tools_with()

@@ -302,7 +302,7 @@ def parse_tool_call(block: Mapping[str, object]) -> ToolCall:
 def run_with_tools(session: "ChatSession", registry: ToolRegistry, text: str,
                    cancellation: CancellationToken | None = None, *,
                    max_rounds: int = MAX_TOOL_CALLS, on_tool: ToolObserver | None = None,
-                   ) -> Generator[str, None, tuple[str, dict | None]]:
+                   new_question: bool = True) -> Generator[str, None, tuple[str, dict | None]]:
     """Answer ``text``, calling tools as the model asks; yield visible text.
 
     Each reply streams through a ``BlockReader``, so a final tool block is
@@ -319,6 +319,8 @@ def run_with_tools(session: "ChatSession", registry: ToolRegistry, text: str,
     integer >= 1, else ValueError). The message after the last round also asks
     for a final answer without tools, so a question makes at most ``max_rounds + 1``
     model replies; a tool block in that last reply is hidden, not executed.
+    With ``new_question=False`` the per-tool call counts carry on from the previous
+    call: one question made of several steps (``/think``) shares one count.
 
     Returns (via ``yield from``) the last reply's full visible text and its
     non-tool block unchanged, or ``None``. A ``timeout=None`` tool and
@@ -334,7 +336,8 @@ def run_with_tools(session: "ChatSession", registry: ToolRegistry, text: str,
     """
     if type(max_rounds) is not int or max_rounds < 1:
         raise ValueError("max_rounds must be an integer >= 1")
-    registry.start_question()
+    if new_question:
+        registry.start_question()
     original_length = len(session.messages)
     completed = False
     failure = None
