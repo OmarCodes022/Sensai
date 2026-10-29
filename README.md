@@ -18,8 +18,9 @@ Features from the subject catalogue that are implemented in the code:
 | B1 | Functional CLI chatbot (base chat) | Streamed replies, in-session history, clean errors (empty input, missing model, connection failure, timeout), model chosen by argument or `.env`, Ctrl+C/Esc interrupts a reply | [Architecture](docs/developer-guide/architecture.md), [cancellation](docs/architecture/cancellation.md) |
 | A5 | Persona | Built-in and JSON-file personas, chosen at startup or switched with `/persona <id>` without losing history | [Persona guide](docs/user-guide/personas.md) |
 | M1 | Session Persistence & Profiles | Sessions saved after each completed turn, listed and resumed after restart; a creator profile file injected into the system prompt | [Storage](docs/developer-guide/storage.md) |
+| T2 | Sandboxed code execution | Model-written Python runs in a throw-away folder after approval; the output or traceback goes back to the model, which fixes its code and tries again, up to 3 runs per question; the data file names are listed to the model | [Tools and sandbox](docs/user-guide/tools.md) |
 
-User stories: see [docs/overview/user-stories.md](docs/overview/user-stories.md). Four
+User stories: see [docs/overview/user-stories.md](docs/overview/user-stories.md). Six
 end-to-end stories cover every feature on `main`.
 
 Foundations that exist in code but are **not** complete features and are not
@@ -133,7 +134,8 @@ handler registration.
 first and shows the start of the code: `y` runs it, `n` refuses (the model is
 told), `v` shows all of it. Set `SENSAI_DATA_DIR` to a folder whose top-level
 files are copied next to the code (at most 50 MB in total). Hidden files (such
-as `.env`) and files Python could import instead of the standard library
+as `.env`), files with a non-printable character in their name and files
+Python could import instead of the standard library
 (`.py`, `.pyc`, `.pyw`, `.so`, `.pyd`) are not copied:
 
 ```text
@@ -149,7 +151,8 @@ Run run_python?
                 reach.append(int(row["accounts_reached"]))
     … (+1 more line)
 [y] run · [n] refuse · [v] view all y
-Using tool: run_python · Exit code 0 · 0.3 s
+Using tool: run_python · Run 1 · Exit code 0 · 0.3 s
+1021.4
 The average daily reach from 21 to 27 Sep was 1021.4 accounts.
 > /run broken.py
 Running in the sandbox (limit 15 s)…
@@ -159,6 +162,14 @@ Traceback (most recent call last):
   File "main.py", line 4, in <module>
 KeyError: 'reach'
 ```
+
+When the code fails, the model receives the traceback and fixes its code;
+Sensai asks again before each new run. Each question allows 3 runs: a 4th
+call prints `Using tool: run_python · Stopped after 3 attempts` and the model
+answers with the last error. The model receives a short report (exit code,
+the last 2,000 characters of the output and of the errors, and
+`If it failed, fix the code and call run_python again; otherwise answer using this output.`)
+and, at startup, the names (not the contents) of the data files.
 
 `/run <file.py>` runs a local script the same way, without the model or an
 approval, and leaves the chat history untouched. Each run gets a fresh

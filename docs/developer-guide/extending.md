@@ -54,10 +54,11 @@ Then register it where the CLI builds its registry, in `_tools()` in
 `src/sensai/cli/main.py`:
 
 ```python
-def _tools(read, approval=None, data_dir=None):
+def _tools(read, approval=None, data_dir=None, permission=None):
     registry = ToolRegistry(approval, read=read)
     registry.register(CALCULATE, calculate)
-    registry.register(RUN_PYTHON, partial(python_tool, data_dir=data_dir), confirm=True)
+    registry.register(RUN_PYTHON, partial(python_tool, data_dir=data_dir, permission=permission),
+                      confirm=True, max_calls=PYTHON_ATTEMPTS)
     registry.register(WORD_COUNT, word_count)  # the new tool
     return registry
 ```
@@ -69,7 +70,7 @@ takes three settings:
 | --- | --- |
 | `timeout` | Seconds per call, counted after approval. A number runs the handler in a fresh spawned process (`ControlledTool`), so it must be pickleable (a module-level function, or a `partial` of one) and open its own files or connections. `None` runs it in the main process without a limit, for tools that read the terminal or need in-memory state; the question deadline pauses meanwhile. |
 | `confirm` | `True` asks the user before each call through `TerminalApproval`. A refusal returns the error `tool approval refused`. |
-| `max_calls` | Limit of calls to this tool per question; `0` disables it. |
+| `max_calls` | Limit of calls to this tool per question; `0` disables it. Every call counts, refusals and bad arguments included, and `registry.usage(name)` returns `(calls so far, max_calls)`. With a limit of 1 or more, each result the model receives starts with `Attempt n of max_calls · `, the last one ends with the line `This was the last attempt: answer with this result or error, without calling <name> again.`, and a call past the limit gets the error `Stopped after <max_calls> attempts: answer with the last result or error, without calling <name> again.` (`1 attempt` for a limit of 1, `tool call limit reached` with `0`). `run_python` uses 3. |
 
 The new tool then shows in `/tools` and in the model's instructions. Test it
 like `tests/unit/core/test_tools.py`; handlers used in spawned-process tests
