@@ -61,7 +61,7 @@ export function createSidebar({ store, actions, router }) {
 
   function paintNav() {
     const caps = store.get().capabilities, cur = router.current?.name;
-    navLinks.replaceChildren(...ROUTES.map((r) => {
+    navLinks.replaceChildren(...ROUTES.filter((r) => !r.ui || new URLSearchParams(location.search).has('keynote')).map((r) => {
       const live = r.live || r.ui || caps[r.cap];
       return h('a', { href: hrefFor(r.name), 'aria-current': r.name === cur ? 'page' : null }, icon(r.icon, { size: 16 }), t(`nav.${r.name}`),
         live ? null : chip(`${t('common.planned')} ${r.tasks[0]}`, { outline: true }));
