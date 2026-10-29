@@ -1,4 +1,6 @@
 """Configuration from the environment and .env. Real env vars win over .env."""
+import os
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -20,6 +22,11 @@ class Settings(BaseSettings):
     db_path: str | None = Field(None, validation_alias="SENSAI_DB")
     creator: str = Field("default", validation_alias="SENSAI_CREATOR")
     profile_file: str | None = Field(None, validation_alias="SENSAI_PROFILE_FILE")
-    # Files copied into each run_python folder; empty means unset.
-    data_dir: str | None = Field(None, validation_alias="SENSAI_DATA_DIR")
+    # Files copied into each run_python folder. Unset: ./data when that folder exists (the
+    # placeholder in the repository); set but empty: none.
+    data_dir: str | None = Field(default_factory=lambda: "data" if os.path.isdir("data") else None,
+                                 validation_alias="SENSAI_DATA_DIR")
     test_model: str = Field("gemma3:1b", validation_alias="SENSAI_TEST_MODEL")
+    # Brand documents searched by the model. Default ./data/docs (created by /add); empty switches it off.
+    docs_dir: str | None = Field("data/docs", validation_alias="SENSAI_DOCS")
+    embed_model: str = Field("nomic-embed-text", validation_alias="SENSAI_EMBED_MODEL")

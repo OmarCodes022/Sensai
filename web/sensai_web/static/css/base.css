@@ -1,0 +1,49 @@
+@layer reset {
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  body, h1, h2, h3, h4, h5, p, figure, blockquote, dl, dd, ul, ol { margin: 0; }
+  ul, ol { padding: 0; list-style: none; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  img, svg { display: block; max-width: 100%; }
+  table { border-collapse: collapse; }
+}
+@layer base {
+  html { font-size: 100%; }
+  body {
+    background: var(--paper); color: var(--ink);
+    font: 400 var(--fs-14)/1.5 var(--font-ui);
+    -webkit-font-smoothing: antialiased;
+    overflow-wrap: break-word;
+  }
+  h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 600; line-height: 1.3; }
+  h1 { font-size: var(--fs-28); } h2 { font-size: var(--fs-22); }
+  h3 { font-size: var(--fs-18); } h4 { font-size: var(--fs-16); }
+  a { color: var(--accent); text-underline-offset: 2px; }
+  a:hover { color: var(--accent-hover); }
+  code, kbd, pre, samp { font-family: var(--font-mono); font-size: .92em; }
+  :focus-visible { outline: var(--focus); outline-offset: 2px; box-shadow: 0 0 0 4px var(--surface); }
+  ::selection { background: var(--accent-tint); color: var(--ink); }
+  [hidden] { display: none !important; }
+  .num { font-variant-numeric: tabular-nums; }
+  * { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 999px; border: 2px solid transparent; background-clip: content-box; }
+  .skip {
+    position: fixed; top: 8px; left: 8px; z-index: 100; padding: 8px 14px;
+    background: var(--surface); border: var(--bw) solid var(--accent); border-radius: var(--r-1);
+    transform: translateY(-200%);
+  }
+  .skip:focus { transform: none; }
+  @media (forced-colors: active) { button, input, select, textarea { border: 1px solid ButtonText; } }
+}
+@layer utilities {
+  .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  .mono { font-family: var(--font-mono); }
+  .muted { color: var(--ink-3); }
+  .stack { display: flex; flex-direction: column; gap: var(--s-3); }
+  .row { display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap; }
+  .grow { flex: 1; min-width: 0; }
+  .wrap-any { overflow-wrap: anywhere; }
+  .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+}

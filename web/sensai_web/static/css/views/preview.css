@@ -1,0 +1,25 @@
+/* Planned-view previews (mock data). Every card carries the MOCK ribbon from misc.css. */
+@layer views {
+  .cards-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: var(--s-4); }
+  .post__text { font-size: var(--fs-16); line-height: 1.6; }
+  .left-out { color: var(--plum); }
+  .interp { border-left: 3px solid var(--plum); }
+  .na-zero { font-style: italic; color: var(--amber); }
+  .chart { width: 100%; max-width: 520px; height: auto; }
+  .chart__bar { fill: var(--accent); } .chart__zero { fill: none; stroke: var(--amber); stroke-dasharray: 3 3; }
+  .chart__flag { stroke: var(--amber); stroke-width: 3; } .chart__txt { fill: var(--ink-3); font-size: 12px; }
+  .cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--s-2); }
+  .cal__day { border: var(--bw) solid var(--line); border-radius: var(--r-1); min-height: 7.5rem; padding: var(--s-2); display: flex; flex-direction: column; gap: var(--s-1); background: var(--surface-2); font-size: var(--fs-12); }
+  .cal__day.is-empty { background: transparent; border-style: dashed; }
+  .cal__name { color: var(--ink-3); text-align: center; }
+  .cal__entry { display: flex; flex-direction: column; gap: 2px; }
+  @media (max-width: 767px) { .cal { grid-template-columns: minmax(0, 1fr); } .cal__day { min-height: 0; } }
+  .is-locked { opacity: .92; border-left: 3px solid var(--sage); padding-left: var(--s-3); }
+  .diff { border-radius: var(--r-1); padding: var(--s-2) var(--s-3); }
+  .diff--del { background: var(--rose-tint); } .diff--add { background: var(--sage-tint); }
+  .approval-mini { border: 1.5px solid var(--amber); border-radius: var(--r-3); }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: var(--s-3); }
+  .spark { width: 160px; height: 36px; } .spark__line { fill: none; stroke: var(--accent); stroke-width: 2; }
+  .print-doc { display: none; }
+  mark { background: var(--amber-tint); color: var(--ink); }
+}

@@ -1,0 +1,23 @@
+@layer components {
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2); min-height: var(--target); padding: 0 var(--s-4); border: var(--bw) solid var(--line-strong); border-radius: var(--r-1); background: var(--surface); color: var(--ink); font-weight: 500; font-size: var(--fs-14); text-decoration: none; white-space: nowrap; transition: background var(--dur-hover), border-color var(--dur-hover), color var(--dur-hover); position: relative; }
+  .btn:hover { background: var(--surface-2); color: var(--ink); }
+  .btn:active { transform: translateY(1px); }
+  .btn--primary { background: var(--accent); border-color: var(--accent); color: var(--ink-inverse); font-weight: 600; }
+  .btn--primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: var(--ink-inverse); }
+  .btn--ghost { border-color: transparent; background: transparent; }
+  .btn--ghost:hover { background: var(--surface-3); }
+  .btn--danger { border-color: var(--rose); color: var(--rose); background: var(--surface); }
+  .btn--danger:hover { background: var(--rose-tint); color: var(--rose); }
+  .btn--sm { min-height: 32px; padding: 0 var(--s-3); font-size: var(--fs-13); }
+  .btn--lg { min-height: 48px; padding: 0 var(--s-5); font-size: var(--fs-16); }
+  .btn--icon { width: var(--target); padding: 0; }
+  .btn--icon.btn--sm { width: 32px; }
+  .btn--icon.btn--lg { width: 48px; }
+  .btn--pill { border-radius: var(--r-pill); }
+  .btn[disabled], .btn[aria-disabled="true"] { opacity: .5; cursor: not-allowed; transform: none; }
+  .btn[aria-busy="true"] { cursor: progress; }
+  .btn[aria-pressed="true"], .btn[aria-expanded="true"] { background: var(--accent-tint); border-color: var(--accent); }
+  .btn svg { flex: none; }
+  .link-btn { background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+  @media (forced-colors: active) { .btn--primary { background: Highlight; color: HighlightText; } .btn[disabled] { opacity: 1; color: GrayText; border-color: GrayText; } }
+}

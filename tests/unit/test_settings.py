@@ -36,7 +36,8 @@ def test_invalid_context_length_is_rejected(monkeypatch, value):
         Settings(_env_file=None)
 
 
-def test_data_dir_defaults_to_unset(monkeypatch):
+def test_data_dir_defaults_to_unset(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)  # No ./data folder here.
     monkeypatch.delenv("SENSAI_DATA_DIR", raising=False)
     assert Settings(_env_file=None).data_dir is None
 

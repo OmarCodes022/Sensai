@@ -7,12 +7,13 @@ from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 
 from sensai.core.cancellation import CancellationToken
-from sensai.core.ports import PortError, SessionSnapshot
+from sensai.core.ports import PortError, Profile, SessionSnapshot
 from sensai.core.errors import SensaiError
 from sensai.core.messages import Message
 from sensai.llm.client import LLMClient, close_stream
 from sensai.chat.blocks import split_block
 
+DEFAULT_PROFILE_FILE = "data/profile.json"  # sample profile, stored for a creator who has none
 ID_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789"
 PROFILE_HEADER = "Profil de la créatrice (instructions personnalisées) :"
 TITLE_PROMPT = (
@@ -43,6 +44,13 @@ def load_profile_file(path: str | Path) -> dict[str, str]:
             raise ValueError(f"duplicate profile key: {key.strip()}")
         preferences[key.strip()] = value.strip()
     return preferences
+
+
+def seed_profile(profiles, path: str | Path | None = None) -> None:
+    """Store the shared sample profile when this creator has none yet (never overwrites one)."""
+    path = Path(path or DEFAULT_PROFILE_FILE)
+    if path.is_file() and profiles.load("default") is None:
+        profiles.save(Profile("default", load_profile_file(path)))
 
 
 def profile_block(preferences: Mapping[str, str]) -> str:
