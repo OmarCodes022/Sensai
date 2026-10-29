@@ -38,6 +38,7 @@ src/sensai/
 │   ├── prompts.py         loads the system prompt file
 │   ├── system_prompt.txt  the default system prompt
 │   ├── saved_sessions.py  session IDs, profile file, titles, SessionRecorder
+│   ├── reasoning.py       /think: plan, act/observe, draft, check and revise loop with its budget
 │   └── blocks.py          BlockReader: hides the final JSON tool block while streaming
 ├── cli/
 │   ├── __init__.py
@@ -59,7 +60,7 @@ src/sensai/
 │   ├── ollama.py          OllamaClient: streaming /api/chat client
 │   ├── ollama_api.py      Ollama wire format and usage records
 │   ├── embeddings.py      Ollama embedding adapter — not used by the CLI yet
-│   └── structured.py      JSON-schema constrained replies — not used by the CLI yet
+│   └── structured.py      OllamaStructuredClient: JSON-schema replies, used by the /think check
 └── memory/
     ├── __init__.py
     ├── sqlite_store.py    StorageRepository: SQLite sessions, profiles, facts and migrations

@@ -1,8 +1,8 @@
 # Features
 
 The Epitech subject lists optional features in a catalogue where each one has
-an ID, and B1 is the base chat every project must have. Sensai has six
-features; four are catalogue entries: B1, A5, M1 and T2.
+an ID, and B1 is the base chat every project must have. Sensai has seven
+features; five are catalogue entries: B1, A5, M1, T2 and A1.
 
 ## Base chat (B1)
 
@@ -67,3 +67,15 @@ names of her data files, never their contents. The code, the results and the
 answer are saved with the session.
 
 [Tools and sandbox](../user-guide/tools.md)
+
+## Reasoning step by step (A1)
+
+With `/think`, Sensai works through a request in visible steps: it writes a
+plan, computes the figures with its tools, drafts an answer, checks the draft
+against Nadia's request, the tool results and her brand rules, and revises it
+when the check finds a problem such as a claim she may not make. She sees
+every step, so she knows where each figure comes from. The loop stops after a
+fixed number of steps and lists anything still wrong. Only her request and the
+final answer stay in the chat.
+
+[Reasoning step by step](../user-guide/thinking.md)

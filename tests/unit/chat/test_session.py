@@ -116,3 +116,12 @@ def test_current_role_reminder_is_request_only_and_does_not_accumulate():
     assert [message.content for message in session.messages[1:]] == [
         "One", "First", "Two", "Second", "Three", "Third", "Four", "Fourth",
     ]
+
+
+def test_system_prompt_changed_is_a_read_only_flag():
+    session = ChatSession(FakeClient(), "m", "original")
+    assert session.system_prompt_changed is False
+    session.set_system_prompt("replacement")
+    assert session.system_prompt_changed is True
+    with pytest.raises(AttributeError):
+        session.system_prompt_changed = False

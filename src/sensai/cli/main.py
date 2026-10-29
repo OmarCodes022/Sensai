@@ -17,9 +17,11 @@ from sensai.core.cancellation import CancellationToken, OperationCancelled, Oper
 from sensai.core.ports import PortError, Profile, ToolCall
 from sensai.chat import saved_sessions
 from sensai.chat.saved_sessions import SessionRecorder, display_title, profile_block
+from sensai.chat.reasoning import Section, think
 from sensai.cli.approval import TerminalApproval, sanitize
 from sensai.cli.terminal import TerminalInput
 from sensai.llm import create_client
+from sensai.llm.structured import OllamaStructuredClient
 from sensai.chat.prompts import load_system_prompt
 from sensai.chat.personas import PersonaRegistry
 from sensai.chat.session import ChatSession
@@ -124,6 +126,64 @@ def _run_script(path, data_dir, token, write):
         write(result.output or f"error: {result.error}")
 
 
+def _think(session, tool_registry, request, checker, new_token, write, recorder):
+    """/think: show every step; only the request and the final answer join the chat."""
+    tokens = []
+
+    def token():
+        tokens.append(new_token())
+        return tokens[-1]
+
+    tool_text, line_start, result = False, True, None
+
+    def end_line():
+        return "" if line_start else "\n"
+
+    def show(item):
+        nonlocal tool_text, line_start
+        if isinstance(item, Section):
+            write(end_line() + item.title)
+            # Only the call or result line under Act/Observe is tool text, not the narration.
+            tool_text, line_start = item.title in ("Act", "Observe"), True
+            return
+        if tool_text:
+            item = sanitize(item, keep="\t\n")  # Tool output may hold control characters.
+            tool_text = False
+        if item:
+            write(item, end="", flush=True)
+            line_start = item.endswith("\n")
+
+    # Tool rounds arrive through ``emit`` as they finish, before the next model request.
+    stream = think(session, tool_registry, request, checker, new_token=token, emit=show)
+    try:
+        while True:
+            try:
+                show(next(stream))
+            except StopIteration as stop:
+                result = stop.value
+                break
+        if not line_start:
+            write()
+    except (KeyboardInterrupt, OperationCancelled):
+        if tokens:
+            tokens[-1].cancel()
+        _sweep_quietly()  # A killed tool worker may not have removed its folder.
+        write(end_line() + "Réponse interrompue")
+    except OperationTimedOut:
+        _sweep_quietly()
+        write(end_line() + "Délai maximal dépassé")
+    except SensaiError as e:
+        write(f"{end_line()}error: {e}")
+    finally:
+        stream.close()
+    if result is None:
+        return
+    session.messages.append(Message(role="user", content=request))
+    session.messages.append(Message(role="assistant", content=result.answer))
+    if recorder is not None:
+        recorder.after_turn(session)
+
+
 class PreparedChat(NamedTuple):
     prompt: str
     registry: PersonaRegistry
@@ -161,7 +221,8 @@ def parse_args(settings: Settings, argv: Sequence[str] | None = None) -> argpars
             raise argparse.ArgumentTypeError("timeout must be a positive finite number")
         return number
     p.add_argument("--operation-timeout", type=positive_timeout,
-                   default=settings.operation_timeout, help="maximum seconds per complete turn")
+                   default=settings.operation_timeout,
+                   help="maximum seconds per complete turn, and per step of a /think")
     args = p.parse_args(argv)
     args.persona_explicit = args.persona is not None
     args.data_dir = settings.data_dir or None
@@ -194,7 +255,7 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
          persona_registry: PersonaRegistry | None = None,
          base_prompt: str | None = None, recorder: SessionRecorder | None = None,
          tool_registry: ToolRegistry | None = None, data_dir: str | None = None,
-         docs: DocLibrary | None = None) -> None:
+         docs: DocLibrary | None = None, checker=None) -> None:
     if base_prompt is None:
         base_prompt = session.messages[0].content
     if tool_registry is None:
@@ -253,6 +314,18 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
             continue
         if command and command[0] == "/history":
             write(_history(session.messages) if len(command) == 1 else "usage: /history")
+            continue
+        if command and command[0] == "/think":
+            if len(command) == 1:
+                write("usage: /think <request>")
+            elif checker is None:
+                write("error: /think is unavailable")
+            else:
+                # Each model step gets its own deadline; one cancel callback stops them all.
+                def step_token():
+                    return CancellationToken(monotonic() + operation_timeout, cancel_requested)
+
+                _think(session, tool_registry, command[1], checker, step_token, write, recorder)
             continue
         token = CancellationToken(monotonic() + operation_timeout, cancel_requested)
         if command and command[0] == "/run":
@@ -469,6 +542,10 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
                                                     first_answer, token)
 
             recorder.titler = titler
+            # Same host as the chat client, so the SSH tunnel serves the check calls too.
+            # Its HTTP timeout is the per-step budget: a check is one /think step.
+            checker = OllamaStructuredClient(args.host, args.operation_timeout,
+                                             context_length=settings.context_length)
             session = ChatSession(client, args.model, _tool_prompt(prompt, tool_registry))
             session.messages.extend(recorder.messages)
             repl(session, read=terminal.read,
@@ -476,7 +553,7 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
                  cancel_requested=terminal.cancel_requested,
                  persona_registry=registry, base_prompt=base_prompt, recorder=recorder,
                  tool_registry=tool_registry, data_dir=args.data_dir,
-                 docs=docs)
+                 docs=docs, checker=checker)
     finally:
         try:
             remove_stale_folders()
