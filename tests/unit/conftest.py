@@ -9,7 +9,7 @@ import os
 import pytest
 
 from sensai.cli import main as cli
-from sensai.chat import saved_sessions
+from sensai.chat import personas, saved_sessions
 from sensai.settings import Settings
 
 REAL_GENERATE_TITLE = saved_sessions.generate_title
@@ -26,6 +26,12 @@ def isolated_session_storage(monkeypatch, tmp_path_factory):
     # Child interpreters (launcher signal tests) inherit the environment, not patches.
     monkeypatch.setenv("SENSAI_DB", path)
     monkeypatch.setattr(saved_sessions, "generate_title", lambda *args, **kwargs: None)
+
+
+@pytest.fixture(autouse=True)
+def no_shared_personas_file(monkeypatch):
+    """The repository's data/personas.json must not leak into tests."""
+    monkeypatch.setattr(personas, "DEFAULT_FILE", "no-such-personas.json")
 
 
 @pytest.fixture(autouse=True)

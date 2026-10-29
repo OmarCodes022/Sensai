@@ -1,7 +1,8 @@
-# Everything in data/ is yours and stays out of git, except the sample brand documents below.
+# Everything in data/ is yours and stays out of git, except the sample files below.
 *
 !.gitignore
 !.gitkeep
+!personas.json
 !docs/
 docs/*
 !docs/README.md
