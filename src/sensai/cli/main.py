@@ -17,7 +17,7 @@ from sensai.core.cancellation import CancellationToken, OperationCancelled, Oper
 from sensai.core.ports import PortError, Profile, ToolCall
 from sensai.chat import saved_sessions
 from sensai.chat.saved_sessions import SessionRecorder, display_title, profile_block
-from sensai.cli.approval import TerminalApproval
+from sensai.cli.approval import TerminalApproval, sanitize
 from sensai.cli.terminal import TerminalInput
 from sensai.llm import create_client
 from sensai.chat.prompts import load_system_prompt
@@ -26,11 +26,14 @@ from sensai.chat.session import ChatSession
 from sensai.settings import Settings
 from sensai.memory.sqlite_store import StorageError, StorageRepository
 from sensai.core.messages import Message
-from sensai.sandbox import RUN_PYTHON, SandboxLimits, python_tool, remove_stale_folders
+from sensai.sandbox import (RUN_PYTHON, SandboxError, SandboxLimits, data_file_names, format_run,
+                            python_tool, remove_stale_folders, report_summary)
 from sensai.tools import CALCULATE, ToolRegistry, calculate, run_with_tools, tool_instructions
 
 DEFAULT_DB_PATH = "sensai.sqlite3"
 MAX_SCRIPT_BYTES = 1024 * 1024
+PYTHON_ATTEMPTS = 3
+SUMMARY_WIDTH = 160
 
 
 def _tool_prompt(prompt, registry):
@@ -38,11 +41,18 @@ def _tool_prompt(prompt, registry):
     return prompt if prompt.endswith(instructions) else f"{prompt}\n\n{instructions}"
 
 
-def _tools(read, approval=None, data_dir=None):
+def _tools(read, approval=None, data_dir=None, permission=None):
     registry = ToolRegistry(approval, read=read)
     registry.register(CALCULATE, calculate)
-    registry.register(RUN_PYTHON, partial(python_tool, data_dir=data_dir), confirm=True)
+    registry.register(RUN_PYTHON, partial(python_tool, data_dir=data_dir, permission=permission),
+                      confirm=True, max_calls=PYTHON_ATTEMPTS)
     return registry
+
+
+def _data_prompt(names):
+    if not names:
+        return "The data folder has no files run_python can use."
+    return f"Data files available to run_python: {', '.join(names)}."
 
 
 def _read_script(path):
@@ -83,7 +93,7 @@ def _run_script(path, data_dir, token, write):
         return
     write(f"Running in the sandbox (limit {SandboxLimits().wall_seconds:g} s)…")
     registry = ToolRegistry()
-    registry.register(RUN_PYTHON, partial(python_tool, data_dir=data_dir))
+    registry.register(RUN_PYTHON, partial(python_tool, data_dir=data_dir, report=format_run))
     try:
         result = registry.execute(ToolCall(RUN_PYTHON.name, {"code": code}), token)
     except (KeyboardInterrupt, OperationCancelled):
@@ -219,8 +229,15 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
 
         def on_tool(call, result):
             if call.name == RUN_PYTHON.name:
-                summary = result.error if result.error is not None else result.output
-                write(f"Using tool: {call.name} · {(summary.splitlines() or [''])[0]}")
+                calls, limit = tool_registry.usage(call.name)
+                if limit and calls > limit:
+                    write(f"Using tool: {call.name} · Stopped after {limit} attempts")
+                    return
+                first, detail = report_summary(
+                    result.error if result.error is not None else result.output)
+                write(f"Using tool: {call.name} · Run {calls} · {sanitize(first)}")
+                if detail is not None:
+                    write(sanitize(detail)[:SUMMARY_WIDTH])
                 return
             # Visible text before a block always ends a line: no extra newline.
             arguments = json.dumps(dict(call.arguments), ensure_ascii=False)
@@ -339,6 +356,12 @@ def prepare_chat(args: argparse.Namespace) -> PreparedChat | None:
         sys.exit(f"error: cannot read system prompt: {e}")
     if args.data_dir and not os.path.isdir(args.data_dir):
         sys.exit(f"error: data folder not found: {args.data_dir}")
+    if args.data_dir:
+        # Names only, never contents; T26 will pass its permission policy here.
+        try:
+            base_prompt = f"{base_prompt}\n\n{_data_prompt(data_file_names(args.data_dir))}"
+        except SandboxError as e:
+            sys.exit(f"error: {e}")
     preferences = None
     if args.profile_file:
         try:
