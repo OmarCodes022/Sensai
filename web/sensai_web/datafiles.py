@@ -88,6 +88,19 @@ class DataFolder:
         self.path = folder
         return self.listing()
 
+    def read(self, name: object) -> dict:
+        name = self._name(name)
+        target = os.path.join(self.path or DEFAULT_DIR, name)
+        if self.path is None or os.path.islink(target) or not os.path.isfile(target):
+            raise ApiError(404, "not_found", f"No data file named {name}.")
+        try:
+            with open(target, "rb") as f:
+                data = f.read(self._limits.file_bytes + 1)
+            text = data.decode("utf-8")
+        except (OSError, UnicodeDecodeError):
+            raise ApiError(422, "not_text", "That file cannot be shown as text.") from None
+        return {"name": name, "bytes": len(data), "text": text}
+
     def delete(self, name: object) -> dict:
         name = self._name(name)
         target = os.path.join(self.path or DEFAULT_DIR, name)

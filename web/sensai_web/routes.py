@@ -186,6 +186,11 @@ def put_data(app: WebApp, request, name: str):
     return app.data.put(unquote(name), request.json().get("text"))
 
 
+@route("GET", r"/api/run/data/(?P<name>[^/]+)")
+def read_data(app: WebApp, request, name: str):
+    return app.data.read(unquote(name))
+
+
 @route("DELETE", r"/api/run/data/(?P<name>[^/]+)")
 def delete_data(app: WebApp, request, name: str):
     return app.data.delete(unquote(name))
