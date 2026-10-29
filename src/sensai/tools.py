@@ -125,7 +125,12 @@ class ToolRegistry:
         - ``max_calls``: limit for this tool per question (``None``: no own
           limit, ``0``: disabled). Every attempted call counts, including bad
           arguments and refusals, and also counts toward the question's rounds.
-          ``run_with_tools`` resets the counts through ``start_question()``.
+          ``run_with_tools`` resets the counts through ``start_question()``
+          and starts each counted result it sends with ``Attempt n of m · ``;
+          the m-th also ends with ``This was the last attempt: …``. A call
+          past a limit of 1 or more gets the error ``Stopped after m
+          attempts: answer with the last result or error, without calling
+          <name> again.`` (``1 attempt``); with ``0``, ``tool call limit reached``.
         """
         name = definition.name
         if not isinstance(name, str) or not name.strip() or name in self._tools:
@@ -150,6 +155,11 @@ class ToolRegistry:
     def start_question(self):
         for tool in self._tools.values():
             tool.calls = 0
+
+    def usage(self, name: str) -> tuple[int, int | None]:
+        """(calls counted for this question, ``max_calls``); ``(0, None)`` for an unknown name."""
+        tool = self._tools.get(name) if isinstance(name, str) else None
+        return (0, None) if tool is None else (tool.calls, tool.max_calls)
 
     def _approve(self, tool, arguments, token):
         with _pause_deadline(token):
@@ -189,7 +199,11 @@ class ToolRegistry:
         tool = self._tools[call.name]
         tool.calls += 1
         if tool.max_calls is not None and tool.calls > tool.max_calls:
-            return _error("tool call limit reached")
+            if tool.max_calls == 0:
+                return _error("tool call limit reached")
+            attempts = "attempt" if tool.max_calls == 1 else "attempts"
+            return _error(f"Stopped after {tool.max_calls} {attempts}: answer with the last result "
+                          f"or error, without calling {call.name} again.")
         try:
             _validate_arguments(call.arguments, tool.definition.parameters)
         except (ValueError, TypeError, RecursionError) as exc:
@@ -297,9 +311,13 @@ def run_with_tools(session: "ChatSession", registry: ToolRegistry, text: str,
     ``on_tool(call, result)`` if given (a malformed block gives
     ``ToolCall("<invalid>", {})``), then send the result back as a user
     message starting ``Tool result from <name>:`` or ``Tool error from
-    <name>:``. Every round counts toward ``max_rounds`` (an integer >= 1, else
-    ValueError). The message after the last round also asks for a final
-    answer without tools, so a question makes at most ``max_rounds + 1``
+    <name>:``. For a tool with ``max_calls`` >= 1, the text after that line
+    starts with ``Attempt n of max_calls · `` while within the limit, and the
+    last one ends with the line ``This was the last attempt: answer with this
+    result or error, without calling <name> again.``; the observer gets the
+    result without either. Every round counts toward ``max_rounds`` (an
+    integer >= 1, else ValueError). The message after the last round also asks
+    for a final answer without tools, so a question makes at most ``max_rounds + 1``
     model replies; a tool block in that last reply is hidden, not executed.
 
     Returns (via ``yield from``) the last reply's full visible text and its
@@ -343,16 +361,24 @@ def run_with_tools(session: "ChatSession", registry: ToolRegistry, text: str,
                     cancellation.raise_if_cancelled()
                 completed = True
                 return visible, block if block is not None and "tool" not in block else None
+            attempt = last = ""
             try:
                 call = parse_tool_call(block)
             except ValueError as exc:
                 call, result = ToolCall("<invalid>", {}), _error(str(exc))
             else:
                 result = registry.execute(call, cancellation)
+                calls, limit = registry.usage(call.name)
+                if limit is not None and 1 <= calls <= limit:
+                    attempt = f"Attempt {calls} of {limit} · "
+                if limit is not None and 1 <= calls == limit:
+                    last = (f"\nThis was the last attempt: answer with this result or error, "
+                            f"without calling {call.name} again.")
             if on_tool is not None:
                 on_tool(call, result)
             label = "Tool error from" if result.error is not None else "Tool result from"
-            text = f"{label} {call.name}:\n{result.error if result.error is not None else result.output}"
+            body = result.error if result.error is not None else result.output
+            text = f"{label} {call.name}:\n{attempt}{body}{last}"
             if round_number + 1 == max_rounds:
                 text += "\nTool round limit reached. Give a final answer without tools."
     except BaseException as exc:

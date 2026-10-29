@@ -229,10 +229,11 @@ def test_approval_request_refusal_counting_and_zero_calls():
     assert tools.execute(ToolCall("test", {"x": 1})).error
     assert requests[0].action == "test" and requests[0].reason == "Reason"
     assert json.loads(requests[0].resource) == {"x": 1}
-    assert "limit" in tools.execute(ToolCall("test", {})).error
+    assert tools.execute(ToolCall("test", {})).error == (
+        "Stopped after 1 attempt: answer with the last result or error, without calling test again.")
     assert len(requests) == 1
     disabled = registry(max_calls=0)
-    assert "limit" in disabled.execute(ToolCall("test", {})).error
+    assert disabled.execute(ToolCall("test", {})).error == "tool call limit reached"
     refusing = ToolRegistry(read=lambda _: (_ for _ in ()).throw(EOFError()))
     refusing.register(ToolDefinition("test", "Reason"), exercise, confirm=True)
     assert "refused" in refusing.execute(ToolCall("test", {})).error
@@ -262,7 +263,7 @@ def test_per_question_counts_reset_and_bad_arguments_count():
     session = ChatSession(client, "m", "sys")
     seen = []
     collect(run_with_tools(session, tools, "first", on_tool=lambda call, result: seen.append(result)))
-    assert "required" in seen[0].error and "limit" in seen[1].error
+    assert "required" in seen[0].error and seen[1].error.startswith("Stopped after 1 attempt:")
     collect(run_with_tools(session, tools, "second", on_tool=lambda call, result: seen.append(result)))
     assert seen[-1] == ToolResult("4")
 

@@ -49,10 +49,12 @@ def real_setup_docs(monkeypatch):
 
 @pytest.fixture
 def isolated_settings(monkeypatch):
-    """Ignore the developer's SENSAI_*/OLLAMA_HOST environment and .env file in cli.main."""
+    """Ignore the developer's SENSAI_*/OLLAMA_HOST environment, .env file and data/ in cli.main."""
     for name in list(os.environ):
         if name.startswith("SENSAI_") or name == "OLLAMA_HOST":
             monkeypatch.delenv(name, raising=False)
+    # The repository's data/ would otherwise be the default data folder (listed in the prompt).
+    monkeypatch.setenv("SENSAI_DATA_DIR", "")
     monkeypatch.setattr(cli, "Settings", lambda: Settings(_env_file=None))
 
 

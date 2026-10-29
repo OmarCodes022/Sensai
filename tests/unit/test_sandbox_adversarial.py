@@ -330,7 +330,7 @@ def test_child_inherits_no_extra_file_descriptors_even_in_the_worker():
     worker = registry.execute(ToolCall("run_python", {"code": code}))
     # 0-2 plus the descriptor listdir itself opened.
     assert json.loads(direct.stdout)[:3] == [0, 1, 2] and len(json.loads(direct.stdout)) == 4
-    assert worker.output.endswith("stdout:\n[0, 1, 2, 3]")
+    assert worker.output.endswith(f"stdout:\n[0, 1, 2, 3]\n{sandbox.FIX_IT}")
 
 
 def test_cwd_home_and_tempfile_are_the_throwaway_folder():
