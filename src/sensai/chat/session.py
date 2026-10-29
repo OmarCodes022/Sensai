@@ -14,6 +14,11 @@ class ChatSession:
         self.messages: list[Message] = [Message(role="system", content=system_prompt)]
         self._system_prompt_changed = False
 
+    @property
+    def system_prompt_changed(self) -> bool:
+        """True once ``set_system_prompt`` ran: ``send`` re-sends the active prompt."""
+        return self._system_prompt_changed
+
     def set_system_prompt(self, prompt: str) -> None:
         if not isinstance(prompt, str) or not prompt.strip():
             raise ValueError("system prompt must be a nonempty string")
