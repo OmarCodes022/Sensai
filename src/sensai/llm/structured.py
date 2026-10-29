@@ -23,9 +23,16 @@ class StructuredOutputError(LLMError):
 
 
 class OllamaStructuredClient:
-    def __init__(self, host: str = "http://localhost:11434", timeout: float = 60.0):
+    def __init__(self, host: str = "http://localhost:11434", timeout: float = 60.0,
+                 context_length: int | None = None):
+        if context_length is not None and (
+            isinstance(context_length, bool) or not isinstance(context_length, int)
+            or context_length <= 0
+        ):
+            raise ValueError("context_length must be a positive integer")
         self.host = host if "://" in host else f"http://{host}"
         self.timeout = timeout
+        self.context_length = context_length
 
     def complete(
         self, model: str, messages: Sequence[Message], schema: type[T]
@@ -40,6 +47,8 @@ class OllamaStructuredClient:
             "format": schema.model_json_schema(),
             "stream": False,
         }
+        if self.context_length is not None:
+            body["options"] = {"num_ctx": self.context_length}
         try:
             response = requests.post(
                 f"{self.host}/api/chat", json=body, stream=False, timeout=self.timeout
