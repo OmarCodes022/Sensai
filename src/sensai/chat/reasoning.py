@@ -156,7 +156,7 @@ def _act(scratch, registry, text, steps_left, token, observed, on_tool, emit):
 
     calls = len(observed)
     stream = run_with_tools(scratch, registry, text, token, max_rounds=steps_left - 1,
-                            on_tool=observe)
+                            on_tool=observe, new_question=False)
     try:
         while True:
             try:
@@ -218,6 +218,7 @@ def think(session: ChatSession, registry: ToolRegistry, request: str, checker, *
     ``KeyboardInterrupt``) propagates.
     """
     scratch = _scratch(session)
+    registry.start_question()  # One count for the whole /think, not one per step.
     rules = _rules(session, registry)
     tools = ", ".join(definition.name for definition in registry.definitions()) or "no tools"
     yield Section("Plan")
