@@ -42,11 +42,12 @@ including an unknown `/word`, is sent to the model.
 | `/history` | Lists your own messages of this session, one line each |
 | `/tools` | Lists the tools the model can use |
 | `/run <file.py>` | Runs a local Python file in the sandbox, without the model |
+| `/think <request>` | Plans, uses tools, drafts, checks and revises, showing every step |
 | `exit` or `quit` | Leaves Sensai, in any letter case |
 | Ctrl+D on an empty line | Leaves Sensai |
 
-Details: [Personas](personas.md), [Sessions and profile](sessions.md) and
-[Tools and sandbox](tools.md).
+Details: [Personas](personas.md), [Sessions and profile](sessions.md),
+[Tools and sandbox](tools.md) and [Reasoning step by step](thinking.md).
 
 ## Interrupt a reply
 

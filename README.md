@@ -18,15 +18,14 @@ Features from the subject catalogue that are implemented in the code:
 | B1 | Functional CLI chatbot (base chat) | Streamed replies, in-session history, clean errors (empty input, missing model, connection failure, timeout), model chosen by argument or `.env`, Ctrl+C/Esc interrupts a reply | [Architecture](docs/developer-guide/architecture.md), [cancellation](docs/architecture/cancellation.md) |
 | A5 | Persona | Built-in and JSON-file personas, chosen at startup or switched with `/persona <id>` without losing history | [Persona guide](docs/user-guide/personas.md) |
 | M1 | Session Persistence & Profiles | Sessions saved after each completed turn, listed and resumed after restart; a creator profile file injected into the system prompt | [Storage](docs/developer-guide/storage.md) |
+| A1 | Reasoning loops (ReAct) | `/think <request>` plans, calls tools, drafts, checks the draft against the request, tool results and rules, and revises it within 8 model steps and 3 checks; only the request and final answer are kept | [Reasoning guide](docs/user-guide/thinking.md) |
 
-User stories: see [docs/overview/user-stories.md](docs/overview/user-stories.md). Four
+User stories: see [docs/overview/user-stories.md](docs/overview/user-stories.md). The
 end-to-end stories cover every feature on `main`.
 
 Foundations that exist in code but are **not** complete features and are not
 used by the CLI: an Ollama embedding adapter and in-memory vector index
-([retrieval foundation](docs/architecture/retrieval.md)), a JSON-schema
-reply adapter ([structured output](docs/architecture/structured-output.md)),
-usage/event hooks ([telemetry](docs/architecture/telemetry.md)), typed policy
+([retrieval foundation](docs/architecture/retrieval.md)), usage/event hooks ([telemetry](docs/architecture/telemetry.md)), typed policy
 records ([privacy and claims](docs/product/privacy-and-claims.md)) and a manual
 adversarial-test runner ([evals/adversarial](evals/adversarial/README.md)).
 
@@ -182,6 +181,20 @@ dies with its parent). A later run removes the leftover folder, not the
 processes.
 Stronger isolation (for example `docker run --rm --network none`) is not
 implemented.
+
+### Reasoning step by step
+
+`/think <request>` shows how Sensai reaches an answer: a numbered `Plan`, each
+tool call and result (`Act`, `Observe`), a `Draft`, a `Check` that lists
+problems such as an unapproved claim or a number that differs from a tool
+result, and a `Revise` until the check passes. It stops after 8 model replies
+or 3 checks, listing what is still wrong under `Unresolved`, then prints
+`Final answer (<r> rounds, <t> tool calls)` and the answer. Each step has its
+own `--operation-timeout` budget; Ctrl+C or Esc stops the whole loop. The check
+uses the JSON-schema reply adapter
+([structured output](docs/architecture/structured-output.md)). Only the
+request and the final answer are added to the conversation and saved. Details:
+[reasoning guide](docs/user-guide/thinking.md).
 
 ### Sessions and creator profile
 

@@ -1,6 +1,6 @@
 # User stories
 
-Four stories follow Nadia, solo creator of the fictional skincare brand Serein
+These stories follow Nadia, solo creator of the fictional skincare brand Serein
 Studio, through her week. Together they cover every feature. Test files are
 under `tests/unit/`; a criterion without a test file is checked by hand with a
 real command.
@@ -64,12 +64,41 @@ Acceptance criteria:
 - When the code fails, Sensai prints `Using tool: run_python · Exit code 1 · …` and the model receives the traceback (`cli/test_sandbox_cli.py`).
 - The sandbox stops code that runs past its time limit, reports `Time limit reached (15 s)` with the default limit, and leaves no temporary folder (`test_sandbox.py`).
 
+### Story 7: See how Sensai reached its answer
+
+As a skincare creator, I want to see how Sensai planned, which tools it used and how it checked a post, so that I can trust its figures and know it didn't slip in a claim I'm not allowed to make.
+
+Features: Reasoning step by step (A1), Tools
+
+Acceptance criteria:
+- `/think <request>` shows `Plan`, then each tool call under `Act` with its result under `Observe`, then `Draft`, `Check — ok` and `Final answer (<r> rounds, <t> tool calls)` with the answer, in that order (`chat/test_reasoning.py`, `cli/test_think.py`).
+- A request that needs no tool shows `Plan`, `Draft`, the check and the final answer, with no `Act` (`chat/test_reasoning.py`).
+- The check receives the request, the plan, every tool result and the draft; a draft whose number differs from a tool result is flagged (`chat/test_reasoning.py`).
+- A draft with an unapproved claim is listed under `Check — 1 problem`, and the `Revise` step gets the problem back and replaces the draft (`chat/test_reasoning.py`).
+- A tool error is shown under `Observe` and the loop goes on (`chat/test_reasoning.py`).
+- Tool calls and results are shown with control characters escaped (`cli/test_think.py`), and `run_python` still asks before it runs; a refusal is shown as the observation (`cli/test_think_adversarial.py`).
+- Only my request and the final answer join the conversation and the saved session; a follow-up such as `make it shorter` works from the final answer (`cli/test_think.py`).
+
+### Story 8: Never wait forever for a flawed answer
+
+As a creator, I want Sensai to stop after a fixed number of steps and tell me what is still wrong, so that I never wait forever or get a flawed answer presented as final.
+
+Features: Reasoning step by step (A1), Base chat (B1)
+
+Acceptance criteria:
+- One `/think` makes at most 8 model replies and 3 checks; with fewer than 2 replies left, the model answers without tools (`chat/test_reasoning.py`).
+- When the budget runs out, the remaining problems are listed under `Unresolved` and the last draft is the answer (`chat/test_reasoning.py`).
+- A check reply that is not valid JSON shows `Check unavailable`, never `Check — ok` (`chat/test_reasoning.py`).
+- Ctrl+C or Esc during the plan, a tool call or the check prints `Réponse interrompue`; a step past its deadline prints `Délai maximal dépassé`; nothing is added or saved, and the next message works (`cli/test_think.py`).
+- `/think` alone prints `usage: /think <request>`, and messages without `/think` behave as before (`cli/test_think.py`).
+
 ## Coverage
 
 | Feature | Stories |
 | --- | --- |
-| Base chat (B1) | 1, 4 |
+| Base chat (B1) | 1, 4, 8 |
 | Personas (A5) | 1, 2 |
 | Sessions and profile (M1) | 2, 4 |
-| Tools | 3, 4 |
+| Tools | 3, 4, 7 |
 | Python sandbox | 3, 4 |
+| Reasoning step by step (A1) | 7, 8 |
