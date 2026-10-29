@@ -128,6 +128,8 @@ class WebApp:
         with self.creator_storage() as creator:
             if self.cfg.profile_file:
                 creator.profiles.save(Profile("default", saved_sessions.load_profile_file(self.cfg.profile_file)))
+            else:
+                saved_sessions.seed_profile(creator.profiles)
             profile = creator.profiles.load("default")
         self.preferences = dict(profile.preferences) if profile else {}
 

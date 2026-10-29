@@ -3,6 +3,8 @@
 !.gitignore
 !.gitkeep
 !personas.json
+!profile.json
+!brand.json
 !docs/
 docs/*
 !docs/README.md
