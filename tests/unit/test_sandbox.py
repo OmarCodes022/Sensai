@@ -86,7 +86,7 @@ def test_success_prints_and_cleans_up(tmp_path, temp_root):
     assert not os.path.exists(folder) and sandboxes(temp_root) == []
     assert format_run(run, FAST).startswith("Exit code 0 · ")
     result = python_tool({"code": "print(6 * 7)"})
-    assert result.error is None and result.output.endswith("stdout:\n42")
+    assert result.error is None and result.output.endswith(f"stdout:\n42\n{sandbox.FIX_IT}")
 
 
 def test_exception_reports_traceback_line_and_error_text(temp_root):
@@ -336,7 +336,7 @@ def test_tool_through_registry_returns_formatted_result():
     registry = ToolRegistry()
     registry.register(RUN_PYTHON, partial(python_tool, data_dir=None))
     result = registry.execute(ToolCall("run_python", {"code": "print('ok')"}))
-    assert result.error is None and result.output.endswith("stdout:\nok")
+    assert result.error is None and result.output.endswith(f"stdout:\nok\n{sandbox.FIX_IT}")
 
 
 def run_host(tmp_path, body):
