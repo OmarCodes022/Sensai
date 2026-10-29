@@ -57,6 +57,13 @@ A line is cut after 100 characters, and a message of several lines shows its
 first line; both end with ` …`. A session without messages prints
 `Aucun message dans cette session.`
 
+## In the web interface
+
+The **Sessions** page can rename, export (Markdown file) and delete a saved conversation;
+the open conversation cannot be deleted. Click the model name in the top bar to switch to
+another model installed in Ollama. The **Profile** page edits the profile as a list of
+named lines (or as JSON). The Keynote page is hidden unless the address has `?keynote`.
+
 ## Creator profile
 
 A profile is a JSON object whose keys and values are non-empty strings, for
