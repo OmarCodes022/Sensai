@@ -35,7 +35,8 @@ export function createRouter(ctxFactory, root, caps) {
   const router = {
     get current() { return current; },
     go(path) { if (location.hash === path) render(); else location.hash = path; },
-    start() { addEventListener('hashchange', render); render(); },
+    // A language change repaints the whole page, not just the shell. The chat repaints itself (and waits for a reply in progress).
+    start() { addEventListener('hashchange', render); document.addEventListener('sensai:lang', () => { if (current?.name !== 'chat') render(); }); render(); },
     refresh: render,
   };
 
