@@ -822,5 +822,6 @@
  "personas.scopeHelp": "What it may do, and what it must refuse.",
  "personas.needId": "Give the persona an identifier.",
  "personas.idTaken": "This identifier is already used.",
- "common.save": "Save"
+ "common.save": "Save",
+ "tools.dataBlank": "(empty file)"
 }

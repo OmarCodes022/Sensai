@@ -45,6 +45,7 @@ const real = {
   tools: () => req('GET', '/api/tools'),
   run: (code) => req('POST', '/api/run', { code }),
   runData: () => req('GET', '/api/run/data'),
+  readData: (name) => req('GET', `/api/run/data/${encodeURIComponent(name)}`),
   putData: (name, text) => req('PUT', `/api/run/data/${encodeURIComponent(name)}`, { text }),
   deleteData: (name) => req('DELETE', `/api/run/data/${encodeURIComponent(name)}`),
   exampleData: () => req('POST', '/api/run/data/example'),

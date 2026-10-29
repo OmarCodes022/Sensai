@@ -105,6 +105,11 @@ const impl = {
   sessions: async () => ({ items: state.hideSessions ? [] : sessions.list() }),
   async getSession(id) { const s = sessions.get(id); if (!s) throw new ApiError('not_found', `unknown session: ${id}`, { status: 404 }); return sessions.snapshot(s); },
   async resume(id) { if (!sessions.get(id)) throw new ApiError('not_found', `unknown session: ${id}`, { status: 404 }); return sessions.snapshot(sessions.setCurrent(id)); },
+  async readData(name) {
+    const f = dataFolder.files.find((x) => x.name === name);
+    if (!f) throw new ApiError('not_found', `No data file named ${name}.`, { status: 404 });
+    return { name, bytes: f.bytes, text: name === 'engagement.csv' ? ENGAGEMENT_CSV : '' };
+  },
   history: async () => ({ items: sessions.history() }),
   chat,
   async approve(id, approved) { const r = pending.get(id); if (!r) throw new ApiError('not_found', 'no pending approval', { status: 404 }); pending.delete(id); r(!!approved); return { ok: true }; },

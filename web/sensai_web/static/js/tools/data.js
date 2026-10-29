@@ -4,6 +4,7 @@ import { button, iconButton } from '../components/button.js';
 import { toast } from '../components/toast.js';
 import { formatBytes } from '../format.js';
 import { announce } from '../a11y.js';
+import { openModal } from '../components/modal.js';
 import { t } from '../i18n.js';
 
 const TYPES = ['.csv', '.tsv', '.json', '.txt', '.md'];
@@ -47,7 +48,15 @@ export function createDataCard({ api }) {
       try { render(await api.deleteData(file.name)); clear(); toast(t('tools.dataRemoved', { name: file.name })); announce(t('tools.dataRemoved', { name: file.name })); }
       catch (e) { disarm(); fail(e.message); }
     });
-    return h('li', { class: 'datafiles__row' }, h('span', { class: 'mono' }, file.name), h('span', { class: 'muted num' }, formatBytes(file.bytes)), h('span', { class: 'grow' }), remove, sure);
+    const view = h('button', { type: 'button', class: 'link-btn mono', onclick: () => preview(file.name) }, file.name);
+    return h('li', { class: 'datafiles__row' }, view, h('span', { class: 'muted num' }, formatBytes(file.bytes)), h('span', { class: 'grow' }), remove, sure);
+  }
+
+  async function preview(name) {
+    try {
+      const { text } = await api.readData(name);
+      openModal({ title: name, wide: true, body: h('pre', { class: 'code', tabindex: '0' }, text || t('tools.dataBlank')), actions: [{ label: t('common.close'), onClick: (c) => c() }] });
+    } catch (e) { fail(e.message); }
   }
 
   async function addFiles(files) {

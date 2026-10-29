@@ -121,3 +121,12 @@ def test_the_data_folder_defaults_to_the_repository_placeholder(tmp_path, monkey
     assert Settings(_env_file=None).data_dir == "data"
     monkeypatch.setenv("SENSAI_DATA_DIR", "")
     assert not Settings(_env_file=None).data_dir  # Set but empty: the folder is switched off.
+
+
+def test_a_data_file_can_be_read_back(web, folder):
+    folder.mkdir()
+    page = web(data_dir=str(folder))
+    page.call("PUT", "/api/run/data/notes.md", {"text": "# Hi\nthere"})
+    assert page.call("GET", "/api/run/data/notes.md")[1] == {"name": "notes.md", "bytes": 10, "text": "# Hi\nthere"}
+    assert page.call("GET", "/api/run/data/gone.md")[0] == 404
+    assert page.call("GET", "/api/run/data/x.exe")[0] == 400
