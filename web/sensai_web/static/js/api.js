@@ -47,6 +47,7 @@ const real = {
   deleteData: (name) => req('DELETE', `/api/run/data/${encodeURIComponent(name)}`),
   exampleData: () => req('POST', '/api/run/data/example'),
   docs: () => req('GET', '/api/docs'),
+  docView: (name) => req('GET', `/api/docs/${encodeURIComponent(name)}`),
   putDoc: (name, text) => req('PUT', `/api/docs/${encodeURIComponent(name)}`, { text }),
   deleteDoc: (name) => req('DELETE', `/api/docs/${encodeURIComponent(name)}`),
   reindexDocs: () => req('POST', '/api/docs/reindex'),

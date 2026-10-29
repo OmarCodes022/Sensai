@@ -249,3 +249,12 @@ def search_docs(app: WebApp, request):
         raise ApiError(400, "bad_request", str(error)) from None
     return {"items": [{"source": h.source, "score": round(h.score, 3), "text": h.text} for h in hits],
             "state": app.docs.status()["state"]}
+
+
+@route("GET", r"/api/docs/(?P<name>[^/]+)")
+def get_doc(app: WebApp, request, name: str):
+    """One document's text for the page's viewer (registered after /api/docs/search, which it would shadow)."""
+    try:
+        return app.docs.read(unquote(name))
+    except DocError as error:
+        raise ApiError(404 if str(error).startswith("No document") else 400, "bad_document", str(error)) from None

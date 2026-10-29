@@ -4,6 +4,7 @@ import { icon } from '../icons.js';
 import { progressRing } from '../components/meter.js';
 import { announce } from '../a11y.js';
 import { createSlash } from './slash.js';
+import { openPopover } from '../components/popover.js';
 import { looksPersonal, privacyChip, pasteChip, LARGE_PASTE } from './hints.js';
 import { t } from '../i18n.js';
 
@@ -16,6 +17,15 @@ export function createComposer(deps) {
   const ghostText = h('span'), typed = h('span', { class: 'composer__typed' });
   const ghost = h('div', { class: 'composer__ghost', 'aria-hidden': 'true' }, typed, ghostText);
   const send = h('button', { type: 'submit', class: 'btn btn--primary btn--lg composer__send' }, icon('send', { size: 18 }), h('span', { class: 'btn__label' }, t('common.send')));
+  const plus = h('button', { type: 'button', class: 'btn btn--ghost btn--icon composer__plus', 'aria-label': t('composer.attach'), 'data-tip': t('composer.attach'), 'aria-haspopup': 'menu', 'aria-expanded': 'false' }, icon('plus', { size: 20 }));
+  let pop;
+  plus.addEventListener('click', () => {
+    const caps = deps.capabilities?.() || {};
+    const item = (key, kind, ic) => h('button', { type: 'button', class: 'menu-item', role: 'menuitem', onclick: () => { pop.close(); deps.onAttach?.(kind); } }, icon(ic, { size: 16 }), h('span', { class: 'grow' }, t(key)));
+    const items = [caps.documents ? item('composer.addDocs', 'docs', 'file') : null, (caps.sandbox || caps.run_script) ? item('composer.addData', 'data', 'upload') : null].filter(Boolean);
+    if (items.length) pop = openPopover(plus, items, { menu: true, label: t('composer.attach') });
+    else flash(t('composer.nothingToAdd'));
+  });
   const ring = progressRing(0, t('chat.budget'));
   const stop = h('button', { type: 'button', class: 'btn btn--danger btn--lg composer__stop', hidden: true, onclick: () => deps.onStop() }, ring, icon('stop', { size: 16 }), h('span', { class: 'btn__label' }, t('common.stop')));
   const chips = h('div', { class: 'composer__chips' });
@@ -23,11 +33,12 @@ export function createComposer(deps) {
   const status = h('span', { class: 'composer__hint' }, t('chat.hint'));
   const slash = createSlash({
     textarea: ta, setGhost: (g) => { ghostText.textContent = g; }, setValue: (v) => { ta.value = v; sync(); ta.focus(); },
-    run: (name) => { clear(); deps.onCommand(name); }, planned: (c) => flash(t('slash.plannedMsg', { name: c.name, task: c.task })),
+    caps: () => deps.capabilities?.() || {},
+    run: (name, args) => { clear(); deps.onCommand(name, args); }, planned: (c) => flash(t('slash.plannedMsg', { name: c.name, task: c.task })),
   });
   ta.setAttribute('aria-controls', slash.el.querySelector('[role=listbox]').id);
   const root = h('form', { class: 'composer', role: 'form', 'aria-label': t('chat.composerLabel'), novalidate: true },
-    slash.el, h('div', { class: 'composer__box' }, h('div', { class: 'composer__field' }, ghost, ta), stop, send), chips, msg,
+    slash.el, h('div', { class: 'composer__box' }, plus, h('div', { class: 'composer__field' }, ghost, ta), stop, send), chips, msg,
     h('div', { class: 'composer__foot' }, status, h('span', { class: 'muted' }, t('everything.local'))));
 
   function flash(text) {
@@ -90,7 +101,7 @@ export function createComposer(deps) {
     setRing(pct) { ring.style.setProperty('--v', String(Math.min(100, Math.max(0, pct)))); ring.setAttribute('aria-valuenow', String(Math.round(pct))); },
     /** reason: null | offline | locked | approval | resuming. */
     setLock(reason) {
-      locked = reason; ta.disabled = !!reason; send.disabled = !!reason;
+      locked = reason; ta.disabled = !!reason; send.disabled = !!reason; plus.disabled = !!reason;
       ta.placeholder = reason ? t(`chat.disabled.${reason}`) : t('chat.placeholder');
     },
     flash,

@@ -34,4 +34,6 @@
   .devpanel { position: fixed; right: var(--s-4); bottom: var(--s-4); z-index: 80; width: min(320px, calc(100vw - 2rem)); max-height: 80dvh; overflow: auto; padding: var(--s-4); display: flex; flex-direction: column; gap: var(--s-3); background: var(--surface); border: var(--bw) solid var(--line-strong); border-radius: var(--r-2); box-shadow: var(--shadow-pop); }
   .devpanel__prompt { font-size: var(--fs-12); color: var(--ink-2); background: var(--surface-2); padding: var(--s-2); border-radius: var(--r-1); }
   .devpanel__prompt:empty { display: none; }
+  .composer__plus { flex: none; align-self: flex-end; border-radius: 50%; width: 40px; height: 40px; border: var(--bw) solid var(--line-strong); }
+  .composer__plus:disabled { opacity: .5; }
 }

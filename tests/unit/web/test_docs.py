@@ -186,3 +186,21 @@ def test_a_failing_search_inside_a_turn_is_a_tool_error_not_a_crash(web, docs_di
     result = next(e for e in events if e["type"] == "tool_result")
     assert result["ok"] is False and "cannot reach Ollama" in result["error"]
     assert "sources" not in kinds(events) and events[-1]["status"] == "completed"
+
+
+def test_a_document_can_be_read_for_the_viewer(web, docs_dir):
+    page = ready(web(docs_dir=docs_dir))
+    status, body = page.call("GET", "/api/docs/faq.md")
+    assert status == 200 and body["name"] == "faq.md" and "Delivery takes 2 or 3 business days" in body["text"]
+    assert (body["source"], body["version"]) == ("faq", "2026-09-01") and body["chunks"] > 0 and body["bytes"] == len(body["text"].encode())
+    assert page.call("GET", "/api/docs/search?q=delivery")[0] == 200  # Not shadowed by the name route.
+    assert page.call("GET", "/api/docs/nope.md")[0] == 404
+    assert page.call("GET", "/api/docs/evil.py")[0] == 400
+    assert page.call("GET", f"/api/docs/{quote('../x.md', safe='')}")[0] == 400
+
+
+def test_a_document_not_yet_indexed_can_still_be_read(web, docs_dir):
+    page = ready(web(docs_dir=docs_dir))
+    (Path(docs_dir) / "fresh.md").write_text("A fresh note about price", encoding="utf-8")
+    status, body = page.call("GET", "/api/docs/fresh.md")
+    assert status == 200 and body["text"] == "A fresh note about price" and "chunks" not in body

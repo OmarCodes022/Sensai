@@ -5,7 +5,7 @@ import { matchCommands, findCommand } from './commands.js';
 import { t } from '../i18n.js';
 
 /** deps: { textarea, run(name), planned(cmd), setGhost(text), setValue(v) }. */
-export function createSlash({ textarea, run, planned, setGhost, setValue }) {
+export function createSlash({ textarea, run, planned, setGhost, setValue, caps = () => ({}) }) {
   const id = nextId('slash');
   const list = h('div', { class: 'slash__list', role: 'listbox', id, 'aria-label': t('slash.label') });
   const el = h('div', { class: 'slash', hidden: true }, list, h('div', { class: 'slash__foot' }, ...['move', 'complete', 'pick', 'close'].map((k) => h('span', null, t(`slash.foot.${k}`)))));
@@ -25,10 +25,10 @@ export function createSlash({ textarea, run, planned, setGhost, setValue }) {
     const c = shown[active];
     setGhost(c && c.name.startsWith(typed.toLowerCase()) && typed ? c.name.slice(typed.length) : (c && !typed ? c.name : ''));
   };
-  const pick = (c) => {
+  const pick = (c, args = '') => {
     if (!c) return;
     if (!c.live) return planned(c);
-    setOpen(false); run(c.name);
+    setOpen(false); run(c.name, args);
   };
   const move = (dir) => {
     const live = shown.map((c, i) => i).filter(selectable);
@@ -48,7 +48,7 @@ export function createSlash({ textarea, run, planned, setGhost, setValue }) {
       const v = textarea.value;
       if (!/^\/[a-z]*$/i.test(v)) { dismissed = false; return setOpen(false); }
       if (dismissed) return;
-      shown = matchCommands(v.slice(1));
+      shown = matchCommands(v.slice(1), caps());
       active = shown.findIndex((c) => c.live);
       setOpen(true); paint();
     },
@@ -68,11 +68,11 @@ export function createSlash({ textarea, run, planned, setGhost, setValue }) {
     },
     /** Enter on a typed command with arguments, e.g. "/persona analyse". Returns true if handled. */
     tryRun(text) {
-      const m = text.match(/^\/([a-z]+)(?:\s|$)/i);
+      const m = text.match(/^\/([a-z]+)(?:\s+([\s\S]*))?$/i);
       if (!m || dismissed) return false;
-      const c = findCommand(m[1]);
+      const c = findCommand(m[1], caps());
       if (!c) return false;
-      pick(c);
+      pick(c, (m[2] || '').trim());
       return true;
     },
   };

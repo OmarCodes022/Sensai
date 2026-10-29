@@ -31,4 +31,7 @@
   .dropzone { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); padding: var(--s-4); border: 2px dashed var(--line-strong); border-radius: var(--r-3); }
   .cta-center { display: flex; justify-content: center; }
   .dropzone--over { border-color: var(--accent); background: var(--accent-tint); }
+  .doccmd { max-width: min(720px, 100%); margin: var(--s-3) auto; }
+  .docview__raw { max-height: 60vh; overflow: auto; white-space: pre-wrap; }
+  .docview__md { max-height: 60vh; overflow: auto; }
 }

@@ -125,6 +125,12 @@ const impl = {
     docFiles = docFiles.filter((d) => d.name !== name);
     return docListing();
   },
+  async docView(name) {
+    const d = docFiles.find((x) => x.name === name);
+    if (!d) throw new ApiError('bad_document', `No document named ${name}.`, { status: 404 });
+    const text = `---\nsource: ${d.source}\nversion: ${d.version}\n---\n\n# ${d.title}\n\n${CHUNKS.filter((c) => c.source === d.source).map((c) => c.text).join('\n\n') || 'Sample document (mock).'}\n`;
+    return { name, bytes: text.length, text, source: d.source, version: d.version, product: d.product, title: d.title, chunks: d.chunks };
+  },
   reindexDocs: async () => docListing(),
   async searchDocs(q) {
     const qs = new Set(wordsOf(q));
