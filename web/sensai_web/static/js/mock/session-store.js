@@ -34,7 +34,7 @@ export function createSessions(persona = 'redaction') {
       return { n: i.n, text: line.length > 100 ? `${line.slice(0, 100)} …` : line };
     }),
     /** Folds the stream events of a completed turn into display items and saves the session. */
-    commit(text, events) {
+    commit(text, events, answer) {
       const s = current;
       const at = now();
       const tools = [], a = { kind: 'assistant', text: '', persona: s.persona, usage: null, tools, at };
@@ -46,6 +46,7 @@ export function createSessions(persona = 'redaction') {
         else if (ev.type === 'usage') a.usage = { prompt_tokens: ev.prompt_tokens, output_tokens: ev.output_tokens, latency_ms: ev.latency_ms, server_duration_ms: ev.server_duration_ms };
         else if (ev.type === 'title') s.title = ev.title;
       }
+      if (answer !== undefined) { a.text = answer; a.tools = []; } // /think keeps only the request and the final answer.
       const n = s.items.filter((i) => i.kind === 'user').length + 1;
       s.items.push({ kind: 'user', n, text, at }, a);
       s.usage = { prompt_tokens: sum(s.usage.prompt_tokens, a.usage?.prompt_tokens), output_tokens: sum(s.usage.output_tokens, a.usage?.output_tokens), turns: s.usage.turns + 1, last_prompt_tokens: a.usage?.prompt_tokens ?? null };

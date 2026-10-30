@@ -21,8 +21,8 @@ export const approval = (id, callId, code, on_approve, on_refuse, extra = {}) =>
 });
 
 /** Wraps parts in turn_start ... done. Placeholders ($id, $persona, $n, $sid) are filled by the player. */
-export function turn(persona, parts, { status = 'completed', budget, errorOnly = false } = {}) {
-  const start = { type: 'turn_start', turn_id: '$id', model: 'gemma3:1b', persona: persona || '$persona', number: '$n', ...(budget ? { budget_seconds: budget } : {}) };
+export function turn(persona, parts, { status = 'completed', budget, errorOnly = false, think = false } = {}) {
+  const start = { type: 'turn_start', turn_id: '$id', model: 'gemma3:1b', persona: persona || '$persona', number: '$n', ...(budget ? { budget_seconds: budget } : {}), ...(think ? { think: true } : {}) };
   const tail = errorOnly || status === 'dropped' ? [] : [...(status === 'completed' ? [{ type: '$saved' }] : []), { type: 'done', status, turn_id: '$id' }];
   return [start, wait(700), ...parts.flat(Infinity), ...tail];
 }

@@ -7,6 +7,7 @@ import { toResult } from './tools/sandbox.js';
 import { effectiveRows, SECRET } from './settings/config-rows.js';
 import { stripInvisible, visibleEscapes } from './safetext.js';
 import { createToolCard } from './chat/tool-card.js';
+import { mockApi, control } from './mock/mock-api.js';
 import { pythonBody } from './chat/py-card.js';
 import { parseHash } from './router.js';
 import { formatNumber, formatDuration, formatPercent } from './format.js';
@@ -77,5 +78,25 @@ export const VIEW_TESTS = [
     const el = pythonBody({ arguments: { code: 'x' } }, { ok: true, output: '', duration_ms: 1, meta: {} });
     const chips = [...el.querySelectorAll('.chip--mono')].map((c) => c.textContent);
     if (!chips.some((c) => c.includes('n/a')) || chips.some((c) => c === 'Exit code 0')) throw new Error(`chips: ${chips}`);
+  }],
+  ['tool card: without a max (think) the round shows alone', () => {
+    const text = createToolCard({ id: 'c6', name: 'calculate', arguments: { expression: '1+1' }, round: 6 }, { max: null }).el.textContent;
+    if (!text.includes('Round 6') || text.includes('Round 6 of')) throw new Error(text);
+    if (!createToolCard({ id: 'c2', name: 'calculate', arguments: {}, round: 2 }, { max: 5 }).el.textContent.includes('Round 2 of 5')) throw new Error('normal card lost its max');
+  }],
+  ['mock: a /think turn thinks in any scenario and keeps only the request and the answer', async () => {
+    const before = { ...control.state };
+    const run = async (text, think) => { const got = []; await mockApi.chat(text, { think, onEvent: (e) => got.push(e) }); return got; };
+    const thinks = (events) => events[0].think === true && events.some((e) => e.type === 'text' && e.delta.includes('**Plan**'));
+    try {
+      control.select('think'); control.set({ speed: 'instant' });
+      if (thinks(await run('plain', false))) throw new Error('a normal message played think events');
+      for (const _ of [1, 2]) if (!thinks(await run('again', true))) throw new Error('no think turn in scenario 24');
+      control.select('happy'); control.set({ speed: 'instant' });
+      if (!thinks(await run('x', true))) throw new Error('no think turn in another scenario');
+      const items = (await mockApi.session()).items;
+      const last = items[items.length - 1];
+      if (last.text.includes('**') || last.tools.length) throw new Error(`saved more than the answer: ${last.text}`);
+    } finally { control.select(before.scenario); control.set({ speed: before.speed }); document.querySelector('.devpanel')?.remove(); }
   }],
 ];

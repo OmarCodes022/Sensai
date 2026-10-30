@@ -6,6 +6,7 @@ import { SCENARIOS, byId, errorTurn } from './scenarios.js';
 import { turn, say, usage } from './script.js';
 import { PERSONAS, HEALTH, CONFIG, PROFILE, TOOLS, DATA_FILES, ENGAGEMENT_CSV } from './fixtures.js';
 import { DOCS, CHUNKS } from './planned-misc.js';
+import { thinkTurn, THINK_ANSWER } from './scen-think.js';
 
 const state = { scenario: 'happy', turnIdx: 0, speed: 'normal', inject: null, locked: false, offline: false, hideSessions: false, noTools: false };
 const sessions = createSessions();
@@ -52,11 +53,12 @@ const guard = (fn) => async (...a) => {
   return fn(...a);
 };
 
-async function chat(text, { onEvent, signal } = {}) {
+async function chat(text, { onEvent, signal, think = false } = {}) {
   const s = sessions.current();
   const sc = byId(state.scenario);
   let script;
   if (state.inject) { script = errorTurn(state.inject, s.persona); state.inject = null; }
+  else if (think) script = thinkTurn(); // Any scenario, any number of times, as POST /api/think.
   else { const t = sc.turns[state.turnIdx++]; script = t ? (typeof t === 'function' ? t(text) : t) : generic(text); }
   notify();
   const ctx = { sid: s.id, persona: s.persona, number: s.usage.turns + 1, turnId: `t_${++turnCount}`, saved: s.saved, skipSave: false };
@@ -68,7 +70,7 @@ async function chat(text, { onEvent, signal } = {}) {
   try {
     const status = await play(script, { ctx, speed: state.speed, signal: sig, onEvent: (ev) => { played.push(ev); onEvent?.(ev); },
       awaitApproval: (id, sg) => new Promise((resolve, reject) => { pending.set(id, resolve); sg.addEventListener('abort', () => { pending.delete(id); reject(abortError()); }, { once: true }); }) });
-    if (status === 'completed' && !ctx.skipSave) sessions.commit(text, played);
+    if (status === 'completed' && !ctx.skipSave) sessions.commit(text, played, think ? THINK_ANSWER : undefined);
     else if (status === 'completed') s.usage = { ...s.usage, turns: s.usage.turns + 1 };
   } catch (e) {
     if (e.code === 'network') { state.offline = true; notify(); setTimeout(() => { state.offline = false; notify(); }, 4500); }
