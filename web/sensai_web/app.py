@@ -18,7 +18,7 @@ from sensai.core.ports import PortError, Profile, SessionSnapshot
 from sensai.llm.ollama import OllamaClient
 from sensai.llm.structured import OllamaStructuredClient
 from sensai.memory.sqlite_store import StorageRepository
-from sensai.sandbox import RUN_PYTHON, remove_stale_folders
+from sensai.sandbox import RUN_PYTHON, SandboxError, data_file_names, data_prompt, remove_stale_folders
 from sensai.settings import Settings
 from sensai.llm.embeddings import OllamaEmbeddingAdapter
 from sensai.rag import DOCS_PROMPT, SEARCH_DOCS, DocLibrary
@@ -158,17 +158,28 @@ class WebApp:
     def tools_text(self) -> str:
         return tool_instructions((CALCULATE, RUN_PYTHON, *((SEARCH_DOCS,) if self.docs.enabled else ())))
 
+    def data_text(self) -> str:
+        """The data file names for the model (as in the CLI), or "" without a readable data folder."""
+        path = self.data.path
+        if path is None or not os.path.isdir(path):
+            return ""
+        try:
+            return data_prompt(data_file_names(path))
+        except (SandboxError, OSError):
+            return ""  # An unreadable folder never breaks a turn; the run itself reports it.
+
     def system_prompt(self, persona_id: str | None) -> str:
-        """Shared rules, profile, persona, the search instructions while documents exist, then the tools."""
+        """Shared rules, data file names, profile, persona, the search instructions while documents exist, then the tools."""
         prompt, block = self.base_prompt, profile_block(self.preferences)
         persona = self.catalogue.registry.get(persona_id) if persona_id else None
         docs = DOCS_PROMPT if self.docs.ready_count() > 0 else ""
-        prompt = "\n\n".join(part for part in (prompt, block, persona.system_prompt if persona else "", docs) if part)
+        parts = (prompt, self.data_text(), block, persona.system_prompt if persona else "", docs)
+        prompt = "\n\n".join(part for part in parts if part)
         tools = self.tools_text()
         return prompt if prompt.endswith(tools) else f"{prompt}\n\n{tools}"
 
     def refresh_prompt(self, active: "ActiveSession") -> list[str]:
-        """Before a turn: notice document changes, keep the prompt in step, return news to show."""
+        """Before a turn: notice document and data file changes, keep the prompt in step, return news to show."""
         self.docs.sync()
         notices = self.docs.notices()
         prompt = self.system_prompt(active.persona_id)

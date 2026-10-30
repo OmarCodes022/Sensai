@@ -44,7 +44,7 @@ GET  /api/history         {items:[{n,text}]}
 POST /api/chat {text, mode?}  application/x-ndjson stream (mode "think" runs /think)     POST /api/chat/stop -> {stopped}
 POST /api/approvals/{id}  {approved}
 GET  /api/tools           {items:[{name,description,parameters,timeout,confirm,max_calls}]}
-POST /api/run {code}      {exit_code,duration_s,timed_out,truncated,stdout,stderr,report,limits?}
+POST /api/run {code}      {exit_code,duration_s,timed_out,truncated,stdout,stderr,denied,report,limits?}
 GET  /api/run/data        {dir,exists,files:[{name,bytes}],limits:{file_mb,total_mb,types}}
 PUT  /api/run/data/{name} {text} -> listing        DELETE /api/run/data/{name} -> listing
 POST /api/run/data/example   adds engagement.csv (409 if present) -> listing
@@ -62,7 +62,7 @@ Added by this round (assumption, not in the original contract): `GET /api/config
 
 Session items: `{kind:"user",n,text,at}`, `{kind:"assistant",text,persona,usage|null,tools,at}`, `{kind:"tool",...}`, `{kind:"event",text}`.
 
-Stream events (one JSON per line): `turn_start`, `text`, `tool_call`, `approval_request`, `approval_result`, `tool_result` (with `meta` for `run_python`), `usage` (any count may be null), `title`, `saved`, `warning`, `sources`, `done` (`completed|interrupted|timed_out`), `error`. `sources` (`items:[{n,source,version,score,outdated}]`) follows a `search_docs` result. A `"mode": "think"` turn adds `think_section` and `think_done` (below). Planned, ignored unless the capability is true: `redacted`, `blocked`, `step`. A stream that ends without `done` is a network error.
+Stream events (one JSON per line): `turn_start`, `text`, `tool_call`, `approval_request`, `approval_result`, `tool_result` (with `meta` for `run_python`), `usage` (any count may be null), `title`, `saved`, `warning`, `sources`, `done` (`completed|interrupted|timed_out`), `error`. `sources` (`items:[{n,source,version,score,outdated}]`) follows a `search_docs` result. `tool_call` and `tool_result` of a tool with a call limit (`run_python`, `max_calls: 3` in `/api/tools`) carry `attempt` (this call's number in the question, from 1) and `max_attempts`; `attempt > max_attempts` marks the call Sensai stopped before running (error `Stopped after 3 attempts: …`, no approval, no `meta`). The `run_python` card shows `Run n of 3` (`Run 3 of 3, the last`) and a stopped call as **Not run**. `output`/`error` hold the short report the model received (`model_report`, the CLI's) without its last line, the fix-it instruction meant for the model; `meta` keeps the full streams and `denied` (data files the permission check refused, always empty until T26). Restored sessions read `attempt` back from the stored `Attempt n of m · ` prefix (a stopped call keeps its place: the 5th call of a question restores as 5) and drop the fix-it line too. The system prompt names the data files after the shared rules (as in the CLI), read again before each turn, so files added or removed on the Data card are named from the next turn; an unreadable folder leaves the line out. A `"mode": "think"` turn adds `think_section` and `think_done` (below). Planned, ignored unless the capability is true: `redacted`, `blocked`, `step`. A stream that ends without `done` is a network error.
 
 Planned endpoints (documented, never called while the capability is false): `/api/campaign/{week}`, `/api/campaign/{week}/edit`, `/api/campaign/{week}/approve`, `/api/weekly-run`, `/api/brand`, `/api/facts`, `/api/docs`, `/api/docs/search`, `/api/docs/reindex`, `/api/context`, `/api/stats`, `/api/export`, `/api/share`, `/api/schedule`, `/api/safety`, `/api/evals`.
 
@@ -107,7 +107,7 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 4. Add strings to BOTH `strings.en.json` and `strings.fr.json` with identical keys, and a nav key `nav.<name>`.
 5. Keep files under 300 lines; build DOM with `h()` (never `innerHTML`).
 
-## String keys (845 per language, identical in en and fr)
+## String keys (849 per language, identical in en and fr)
 
 - `common` (24): `na`, `planned`, `mockData`, `cancel`, `confirm`, `close`, `copy`, `copied`, `copyFailed`, `copyCommand`, `retry`, `clear`, `loading`, `remove`, `copyDetails`, `stop`, `send`, `run`, `refuse`, `viewAll`, `saved`, `nothingSent`, `dismiss`, `loadError`
 - `nav` (14): `chat`, `sessions`, `personas`, `profile`, `tools`, `settings`, `campaign`, `brand`, `documents`, `insights`, `safety`, `schedule`, `keynote`, `views`
@@ -152,7 +152,7 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 - `reconnect` (2): `done`, `text`
 - `slash` (27): `label`, `none`, `plannedMsg`, `foot.move`, `foot.complete`, `foot.pick`, `foot.close`, `persona`, `history`, `tools`, `run`, `new`, `help`, `read`, `save`, `docs`, `reindex`, `search`, `facts`, `context`, `campaign`, `export`, `share`, `unshare`, `think`, `team`, `edit`
 - `starter` (9): `redaction.1`, `redaction.2`, `redaction.3`, `communaute.1`, `communaute.2`, `communaute.3`, `analyse.1`, `analyse.2`, `analyse.3`
-- `tool` (15): `arguments`, `finished`, `label`, `round`, `roundN`, `started`, `timedOut`, `using`, `status.running`, `status.waiting`, `status.ok`, `status.error`, `status.refused`, `status.timeout`, `status.cancelled`
+- `tool` (21): `arguments`, `finished`, `label`, `round`, `roundN`, `started`, `timedOut`, `using`, `status.running`, `status.waiting`, `status.ok`, `status.error`, `status.refused`, `status.timeout`, `status.cancelled`, `status.stopped`, `attempt`, `attemptLast`, `stopped`, `desc.calculate`, `desc.run_python`
 - `personas` (20): `builtin`, `custom`, `readOnly`, `howTitle`, `howIntro`, `shape`, `required`, `errorsTitle`, `err.missing`, `err.extra`, `err.blank`, `err.duplicate`, `err.unknown`, `none`, `active`, `use`, `inUse`, `role`, `scope`, `guard`
 - `profile` (19): `plaintext`, `creatorKey`, `injected`, `empty`, `emptyBody`, `create`, `edit`, `editor`, `line`, `err.empty`, `err.syntax`, `err.notObject`, `err.notString`, `valid`, `replace`, `confirmTitle`, `confirmBody`, `saved`, `noAuto`
 - `settings` (49): `effective`, `prefs`, `backend`, `k.ollama_host`, `k.model`, `k.request_timeout`, `k.turn_budget`, `k.context_length`, `k.database_path`, `k.creator`, `k.profile_file`, `k.data_dir`, `k.prompt_file`, `k.personas_file`, `packaged`, `builtin`, `none`, `hidden`, `source`, `sourceNa`, `dataNote`, `noSources`, `prefsNote`, `theme`, `density`, `comfortable`, `compact`, `fontSize`, `small`, `default`, `large`, `motion`, `reduce`, `lang`, `showTokens`, `showTools`, `showNumbers`, `draftLabel`, `reset`, `resetBody`, `resetDone`, `version`, `uptime`, `mode`, `live`, `capCount`, `caps`, `capOn`, `capOff`
@@ -245,7 +245,7 @@ M1 hidden-character coverage, M2 tool-card text escaped, M3 and M4 top bar layou
 
 ## What works / current limits / what I would do differently
 
-Works: all live views load without console errors in mock mode (14 routes including a bad route, checked by script), the sessions table sorts and opens its detail panel, the profile editor validates and enables replace only for an object of strings, the sandbox runner returns the mock result in the shared card, the keynote starts, steps a scenario and shows notes, and all planned views render their Planned state and populated mock preview. `selftest.html`: 57 passed, 0 failed.
+Works: all live views load without console errors in mock mode (14 routes including a bad route, checked by script), the sessions table sorts and opens its detail panel, the profile editor validates and enables replace only for an object of strings, the sandbox runner returns the mock result in the shared card, the keynote starts, steps a scenario and shows notes, and all planned views render their Planned state and populated mock preview. `selftest.html`: 66 passed, 0 failed (after T21, run in headless Chrome).
 
 Current limits: see the accessibility table and the list above. Responsive layouts, print output, keyboard-only and screen reader behavior were not tested.
 

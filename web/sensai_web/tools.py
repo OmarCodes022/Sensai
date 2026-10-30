@@ -7,24 +7,30 @@ from time import monotonic
 
 from sensai.core.ports import ToolCall, ToolResult
 from sensai.rag import SEARCH_DOCS, DocLibrary, search_with_hits
-from sensai.sandbox import RUN_PYTHON
+from sensai.sandbox import PYTHON_ATTEMPTS, RUN_PYTHON
 from sensai.tools import CALCULATE, ToolRegistry, calculate
 from sensai_web.approvals import WebApproval
 from sensai_web.sandbox import run_handler, take_record
+from sensai_web.session_view import for_page
 
-# What the page's Tools view lists: name -> (timeout seconds, needs approval).
-TOOL_TABLE = {CALCULATE.name: (30, False), RUN_PYTHON.name: (30, True), SEARCH_DOCS.name: (None, False)}
+# What the page's Tools view lists: name -> (timeout seconds, needs approval, calls per question).
+TOOL_TABLE = {CALCULATE.name: (30, False, None), RUN_PYTHON.name: (30, True, PYTHON_ATTEMPTS),
+              SEARCH_DOCS.name: (None, False, None)}
 INVALID = "<invalid>"
 
 
 def tool_list(documents: bool = False) -> list[dict]:
     return [{"name": d.name, "description": d.description, "parameters": d.parameters,
-             "timeout": TOOL_TABLE[d.name][0], "confirm": TOOL_TABLE[d.name][1], "max_calls": None}
+             "timeout": TOOL_TABLE[d.name][0], "confirm": TOOL_TABLE[d.name][1], "max_calls": TOOL_TABLE[d.name][2]}
             for d in (CALCULATE, RUN_PYTHON, *((SEARCH_DOCS,) if documents else ()))]
 
 
 class ObservedRegistry(ToolRegistry):
-    """Emits tool_call before and tool_result after every call (approvals emit their own events)."""
+    """Emits tool_call before and tool_result after every call (approvals emit their own events).
+
+    For a tool with a call limit, both events carry ``attempt`` (this call's number in the
+    question) and ``max_attempts``; the call refused after the limit has ``attempt > max_attempts``.
+    """
 
     def __init__(self, approval: WebApproval, emit: Callable[[dict], None], data_dir: str | None,
                  meta_dir: str, library: DocLibrary | None = None):
@@ -36,7 +42,8 @@ class ObservedRegistry(ToolRegistry):
         os.close(fd)
         os.remove(self._meta_path)
         self.register(CALCULATE, calculate)
-        self.register(RUN_PYTHON, run_handler(data_dir, self._meta_path), confirm=True)
+        self.register(RUN_PYTHON, run_handler(data_dir, self._meta_path, permission=None), confirm=True,
+                      max_calls=PYTHON_ATTEMPTS)  # No permission policy yet (T26).
         self._hits: list[dict] = []
         if library is not None and library.enabled:
             self.register(SEARCH_DOCS, partial(self._search, library), timeout=None)  # In this process: the index is here.
@@ -58,16 +65,24 @@ class ObservedRegistry(ToolRegistry):
         """A tool block the loop could not parse or run still shows as a failed call."""
         self._report(self._announce(call), call, result, 0)
 
+    def _attempt(self, event: dict, name: str, ahead: int) -> dict:
+        calls, limit = self.usage(name)
+        if limit:  # A limit of 0 never runs, so there is nothing to number.
+            event.update(attempt=calls + ahead, max_attempts=limit)
+        return event
+
     def _announce(self, call: ToolCall) -> str:
         self._round += 1
         call_id = f"c{self._round}"
-        self._emit({"type": "tool_call", "id": call_id, "name": call.name,
-                    "arguments": dict(call.arguments), "round": self._round})
+        self._emit(self._attempt({"type": "tool_call", "id": call_id, "name": call.name,
+                                  "arguments": dict(call.arguments), "round": self._round}, call.name, 1))
         return call_id
 
     def _report(self, call_id: str, call: ToolCall, result: ToolResult, duration_ms: int) -> None:
-        event = {"type": "tool_result", "id": call_id, "name": call.name, "ok": result.error is None,
-                 "error": result.error, "output": result.output, "duration_ms": duration_ms}
+        # The model already got the whole report; the page shows it without the line meant for the model.
+        event = self._attempt({"type": "tool_result", "id": call_id, "name": call.name, "ok": result.error is None,
+                               "error": for_page(call.name, result.error), "output": for_page(call.name, result.output),
+                               "duration_ms": duration_ms}, call.name, 0)
         record = take_record(self._meta_path) if call.name == RUN_PYTHON.name else None
         if record is not None:
             event["duration_ms"] = int(record["duration_s"] * 1000)

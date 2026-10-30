@@ -1,8 +1,8 @@
 # Features
 
 The Epitech subject lists optional features in a catalogue where each one has
-an ID, and B1 is the base chat every project must have. Sensai has six
-features; four are catalogue entries: B1, A5, M1 and A1.
+an ID, and B1 is the base chat every project must have. Sensai has seven
+features; five are catalogue entries: B1, A5, M1, T2 and A1.
 
 ## Base chat (B1)
 
@@ -53,6 +53,18 @@ code first and runs it only if she agrees. The code runs in a temporary folder
 with a copy of her data files and strict limits on time, memory and output, and
 the folder is deleted afterwards. She can run her own Python files the same
 way, without the model.
+
+[Tools and sandbox](../user-guide/tools.md)
+
+## Self-correcting code (T2)
+
+When a figure must be computed, the model writes Python and Sensai runs it in
+the sandbox, after Nadia agrees. If the code fails, the traceback goes back to
+the model, which fixes its code; Sensai asks her again before each new try.
+The model gets 3 runs per question, then must report the last error instead
+of guessing, and its answer quotes the number the code printed. It knows the
+names of her data files, never their contents. The code, the results and the
+answer are saved with the session.
 
 [Tools and sandbox](../user-guide/tools.md)
 

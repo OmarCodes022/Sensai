@@ -3,6 +3,7 @@ import { NdjsonParser, streamNdjson } from './stream.js';
 import { formatNumber, formatPercent, formatTokens, formatDuration, truncateMiddle, wordCount, formatUtc, relativeTime } from './format.js';
 import { stripInvisible } from './safetext.js';
 import { setLang } from './i18n.js';
+import { attemptOf } from './chat/tool-card.js';
 
 const eq = (a, b, msg = '') => { if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${msg} expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`); };
 const throwsCode = (fn, code) => { try { fn(); } catch (e) { eq(e.code, code, 'error code'); return; } throw new Error('did not throw'); };
@@ -36,4 +37,10 @@ export const PURE_TESTS = [
   ['format: truncateMiddle, wordCount, formatUtc', () => { eq(truncateMiddle('abcdefghij', 5), 'ab…ij'); eq(wordCount('  two words\nhere '), 3); eq(formatUtc('2026-10-20T14:02:00Z'), '2026-10-20 14:02 UTC'); eq(formatUtc('bad'), 'n/a'); }],
   ['format: relativeTime', () => { eq(relativeTime('2026-10-20T10:00:00Z', Date.parse('2026-10-20T10:00:20Z')), 'just now'); }],
   ['safetext: invisible and bidi controls stripped from titles', () => { eq(stripInvisible('  a‮b​c\x1b '), 'abc'); }],
+  ['tool card: attempt fields of a limited tool', () => {
+    eq(attemptOf({ attempt: 2, max_attempts: 3 }), { n: 2, max: 3, last: false, stopped: false });
+    eq(attemptOf(null, { attempt: 3, max_attempts: 3 }).last, true);
+    eq(attemptOf({ attempt: 4, max_attempts: 3 }).stopped, true);
+    eq([attemptOf({}), attemptOf({ attempt: '1', max_attempts: 3 }), attemptOf({ attempt: 1, max_attempts: 0 })], [null, null, null]);
+  }],
 ];

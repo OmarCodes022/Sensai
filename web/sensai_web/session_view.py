@@ -1,18 +1,50 @@
 """Turn stored messages into the display items the page renders (pure functions)."""
+import re
 from collections.abc import Mapping, Sequence
 
 from sensai.chat.blocks import split_block
 from sensai.chat.saved_sessions import TOOL_PROTOCOL_PREFIXES, user_messages
 from sensai.core.messages import Message
+from sensai.sandbox import FIX_IT, RUN_PYTHON
 
 HISTORY_WIDTH = 100
 ROUND_LIMIT_NOTE = "\nTool round limit reached. Give a final answer without tools."
 REFUSED = "tool approval refused"
+# What run_with_tools adds around the result of a tool with a call limit (T21).
+ATTEMPT = re.compile(r"Attempt ([0-9]+) of ([0-9]+) · ")
+LAST_ATTEMPT = re.compile(r"\nThis was the last attempt: answer with this result or error, without calling \S+ again\.\Z")
+STOPPED = re.compile(r"Stopped after ([0-9]+) attempts?: ")
 
 
-def _tool_result(entry: dict, content: str) -> None:
+def for_page(name: str, text: str | None) -> str | None:
+    """A tool's result as the creator sees it: run_python's report without the line meant for the model."""
+    if name != RUN_PYTHON.name or text is None:
+        return text
+    return "" if text == FIX_IT else text.removesuffix(f"\n{FIX_IT}")
+
+
+def _attempts(entry: dict, body: str, stopped_before: int) -> str:
+    """Moves the attempt number of a limited tool's result into the entry; returns the bare result.
+
+    A stopped call is numbered by its place in the question: after the limit, plus earlier stopped calls.
+    """
+    if (match := ATTEMPT.match(body)) is not None:
+        entry["attempt"], entry["max_attempts"] = int(match.group(1)), int(match.group(2))
+        return LAST_ATTEMPT.sub("", body[match.end():])
+    if (match := STOPPED.match(body)) is not None:
+        limit = int(match.group(1))
+        entry["attempt"], entry["max_attempts"] = limit + stopped_before + 1, limit
+    return body
+
+
+def _stopped(entry: dict) -> bool:
+    return "attempt" in entry and entry["attempt"] > entry["max_attempts"]
+
+
+def _tool_result(entry: dict, content: str, earlier: Sequence[dict] = ()) -> None:
     head, _, body = content.partition(":\n")
-    body = body.removesuffix(ROUND_LIMIT_NOTE)
+    stopped_before = sum(1 for other in earlier if other["name"] == entry["name"] and _stopped(other))
+    body = for_page(entry["name"], _attempts(entry, body.removesuffix(ROUND_LIMIT_NOTE), stopped_before))
     entry["ok"] = head.startswith("Tool result from ")
     if entry["ok"]:
         entry["output"] = body
@@ -35,7 +67,7 @@ def display_items(messages: Sequence[Message], persona: str | None,
     for message in messages:
         if message.role == "user" and message.content.startswith(TOOL_PROTOCOL_PREFIXES):
             if pending is not None:
-                _tool_result(pending, message.content)
+                _tool_result(pending, message.content, reply["tools"][:-1] if reply else ())
                 pending = None
         elif message.role == "user":
             number += 1

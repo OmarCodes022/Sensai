@@ -1,6 +1,6 @@
 # User stories
 
-These stories follow Nadia, solo creator of the fictional skincare brand Serein
+Eight stories follow Nadia, solo creator of the fictional skincare brand Serein
 Studio, through her week. Together they cover every feature. Test files are
 under `tests/unit/`; a criterion without a test file is checked by hand with a
 real command.
@@ -60,9 +60,35 @@ Acceptance criteria:
 - Ctrl+C or Esc during a reply stops it and prints `Réponse interrompue`; the text already printed stays on screen (`cli/test_terminal.py`, `cli/test_personas.py`).
 - A turn that runs past the `--operation-timeout` limit prints `Délai maximal dépassé`; the text already printed stays and the exchange is dropped (`cli/test_main.py`).
 - An interrupted or failed exchange is neither kept in the conversation nor saved (`cli/test_sessions.py`).
-- Answering `n` to `Run run_python?` runs nothing and prints `Using tool: run_python · tool approval refused` (`cli/test_sandbox_cli.py`).
-- When the code fails, Sensai prints `Using tool: run_python · Exit code 1 · …` and the model receives the traceback (`cli/test_sandbox_cli.py`).
+- Answering `n` to `Run run_python?` runs nothing and prints `Using tool: run_python · Run 1 · tool approval refused` (`cli/test_sandbox_cli.py`).
+- When the code fails, Sensai prints `Using tool: run_python · Run 1 · Exit code 1 · …` and the model receives the traceback (`cli/test_sandbox_cli.py`).
 - The sandbox stops code that runs past its time limit, reports `Time limit reached (15 s)` with the default limit, and leaves no temporary folder (`test_sandbox.py`).
+
+### Story 5: Get real numbers even when the first try fails
+
+As a skincare creator, I want Sensai to compute my engagement figures with code and fix its own mistakes, so that my weekly report uses real numbers without me debugging Python.
+
+Features: Python sandbox, Self-correcting code (T2)
+
+Acceptance criteria:
+- When the code fails, Sensai prints `Using tool: run_python · Run 1 · Exit code 1 · …` and the last error line, such as `KeyError: 'engaged'`; the model receives the traceback, and its fixed code runs as `Run 2` (`cli/test_self_correcting_cli.py`).
+- The model receives the exit code and only the last 2,000 characters of the output and of the errors, with the line `If it failed, fix the code and call run_python again; otherwise answer using this output.` (`test_sandbox_report.py`).
+- With `SENSAI_DATA_DIR=tests/fixtures`, asking for the average engagement rate from 21 to 27 Sep "computed with Python" gives an answer that quotes `11.7`, the number the code printed.
+- After 3 runs in one question, a 4th call runs nothing and prints `Using tool: run_python · Stopped after 3 attempts`; the model answers with the last error and the chat goes on (`cli/test_self_correcting_cli.py`).
+- The model knows the names of the data files, never their contents, and still knows them after `/persona` and `--session` (`cli/test_self_correcting_cli.py`).
+
+### Story 6: Approve every run and choose what the code sees
+
+As a creator, I want to approve code before it runs and control which files it sees, so that nothing runs on my computer without my say.
+
+Features: Python sandbox, Self-correcting code (T2), Sessions and profile (M1)
+
+Acceptance criteria:
+- Sensai asks before each run, fixes included; `n` runs nothing and prints `Using tool: run_python · Run 1 · tool approval refused` (`cli/test_self_correcting_cli.py`).
+- A question that needs no computation runs no code and asks nothing (`cli/test_self_correcting_cli.py`).
+- Each data file is checked before it is copied: a file that is not allowed, or whose check fails, is not copied, and the model reads `Not available (not allowed): <names>` (`test_sandbox_report.py`). Until file permissions exist, every file is allowed.
+- Ctrl+C during a run or a fix stops the loop, prints `Réponse interrompue` and leaves no process or temporary folder (`cli/test_self_correcting_cli.py`).
+- The code, its results and the answer are saved with the session and come back with `--session <id>` (`cli/test_self_correcting_cli.py`).
 
 ### Story 7: See how Sensai reached its answer
 
@@ -98,7 +124,8 @@ Acceptance criteria:
 | --- | --- |
 | Base chat (B1) | 1, 4, 8 |
 | Personas (A5) | 1, 2 |
-| Sessions and profile (M1) | 2, 4 |
+| Sessions and profile (M1) | 2, 4, 6 |
 | Tools | 3, 4, 7 |
-| Python sandbox | 3, 4 |
+| Python sandbox | 3, 4, 5, 6 |
+| Self-correcting code (T2) | 5, 6 |
 | Reasoning step by step (A1) | 7, 8 |

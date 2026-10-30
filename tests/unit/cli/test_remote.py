@@ -355,7 +355,7 @@ def test_launcher_switches_with_context_loaded_once_before_tunnel(
     registry = PersonaRegistry(profiles)
     settings = Settings(
         _env_file=None, SENSAI_MODEL="fake-model", SENSAI_PERSONA="editor",
-        SENSAI_PERSONAS_FILE=str(catalogue), SENSAI_PROMPT=str(prompt),
+        SENSAI_PERSONAS_FILE=str(catalogue), SENSAI_PROMPT=str(prompt), SENSAI_DATA_DIR="",
         SENSAI_SSH_HOST="alias" if over_ssh else None,
         OLLAMA_HOST="http://127.0.0.1:11435" if over_ssh else "http://127.0.0.1:11434",
     )
