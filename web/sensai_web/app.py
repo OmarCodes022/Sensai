@@ -16,6 +16,7 @@ from sensai.core.errors import SensaiError
 from sensai.core.messages import Message
 from sensai.core.ports import PortError, Profile, SessionSnapshot
 from sensai.llm.ollama import OllamaClient
+from sensai.llm.structured import OllamaStructuredClient
 from sensai.memory.sqlite_store import StorageRepository
 from sensai.sandbox import RUN_PYTHON, remove_stale_folders
 from sensai.settings import Settings
@@ -40,6 +41,11 @@ LIST_LIMIT = 200
 def make_client(settings: Settings, usage_sink=None) -> OllamaClient:
     return OllamaClient(settings.host, settings.timeout, usage_sink=usage_sink,
                         context_length=settings.context_length)
+
+
+def make_checker(cfg: WebConfig) -> OllamaStructuredClient:
+    """The /think check client: the chat's host (so the SSH tunnel serves it) and the per-step budget."""
+    return OllamaStructuredClient(cfg.host, cfg.operation_timeout, context_length=cfg.context_length)
 
 
 def make_embedding(cfg: WebConfig) -> OllamaEmbeddingAdapter:
@@ -99,6 +105,7 @@ class WebApp:
         settings = (settings or Settings()).model_copy(update={"host": cfg.host})
         self.chat_client = make_client(settings, self.usage.add)
         self.title_client = make_client(settings)
+        self.checker = make_checker(cfg)
         try:
             self.catalogue = Catalogue(cfg.personas_file)
             self.base_prompt = load_system_prompt(cfg.prompt_path)
