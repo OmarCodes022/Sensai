@@ -16,6 +16,10 @@ from sensai.core.messages import Message
 from sensai.llm.client import LLMClient, close_stream
 from sensai.llm.ollama_api import OllamaUsage, UsageError
 
+# How long a stopped worker gets after SIGTERM to clean up (the sandbox kills its code and
+# removes its folder) before SIGKILL; a worker that exits at once returns sooner. Stays
+# well under the 1 s a cancelled worker must take to stop (test_isolation.py).
+STOP_GRACE_SECONDS = 0.5
 
 _ERRORS = {cls.__name__: cls for cls in (
     LLMError, LLMConnectionError, ModelNotFoundError, PortError, PolicyDenied,
@@ -108,7 +112,7 @@ def _stop(process):
         kill_group(signal.SIGTERM)
     finally:
         try:
-            process.join(.2)
+            process.join(STOP_GRACE_SECONDS)
             # Also kill descendants whose parent already exited normally.
             kill_group(signal.SIGKILL)
             process.join()
