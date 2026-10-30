@@ -98,7 +98,12 @@ export function createComposer(deps) {
       status.textContent = on ? '' : t('chat.hint'); if (!on) api.setRing(0);
     },
     setElapsed(text) { if (streaming) status.textContent = text; },
-    setRing(pct) { ring.style.setProperty('--v', String(Math.min(100, Math.max(0, pct)))); ring.setAttribute('aria-valuenow', String(Math.round(pct))); },
+    setRing(pct) {
+      const v = Math.min(100, Math.max(0, Number.isFinite(pct) ? pct : 0));
+      ring.style.setProperty('--v', String(v)); ring.setAttribute('aria-valuenow', String(Math.round(v)));
+    },
+    /** /think hides the budget ring: its budget is per step, not per turn. */
+    showRing(on) { ring.hidden = !on; },
     /** reason: null | offline | locked | approval | resuming. */
     setLock(reason) {
       locked = reason; ta.disabled = !!reason; send.disabled = !!reason; plus.disabled = !!reason;

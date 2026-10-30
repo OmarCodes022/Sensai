@@ -3,6 +3,7 @@ import { h } from '../dom.js';
 import { createUser, createEvent } from './messages.js';
 import { createAssistant } from './assistant.js';
 import { createToolCard } from './tool-card.js';
+import { createReasoning, counted } from './reasoning.js';
 import { createApproval } from './approval.js';
 import { createErrorCard } from './error-card.js';
 import { assistantOptions } from './shared.js';
@@ -40,11 +41,15 @@ export function createTurn({ ctx, transcript, composer, model, reconnect, onReus
     addNode(st.block.el, new Date().toISOString());
     return st.block;
   }
+  function ensureThink() {
+    if (!st.think) { st.think = createReasoning(); ensureBlock().addReasoning(st.think.el); }
+    return st.think;
+  }
 
   function tick() {
     if (!st.paused) st.elapsed += 0.25;
     const s = Math.floor(st.elapsed);
-    composer.setRing((st.elapsed / st.budget) * 100);
+    if (st.mode !== 'think') composer.setRing((st.elapsed / st.budget) * 100); // /think: the budget is per step, so elapsed time only.
     st.block?.setElapsed(s);
     composer.setElapsed(st.block?.hasContent() ? t('chat.replying', { s }) : t('chat.thinkingS', { s }));
   }
@@ -63,16 +68,23 @@ export function createTurn({ ctx, transcript, composer, model, reconnect, onReus
   function handle(ev) {
     switch (ev.type) {
       case 'turn_start': st.budget = ev.budget_seconds || limits().turn_seconds || 120; ensureBlock(ev.persona); break;
-      case 'text': ensureBlock().appendText(ev.delta); break;
+      case 'text': if (!st.think?.text(ev.delta)) ensureBlock().appendText(ev.delta); break;
+      case 'think_section': ensureThink().section(ev.title); break;
+      case 'think_done': thought(ev); break;
       case 'tool_call': {
-        const card = createToolCard(ev, { max: limits().tool_rounds ?? 5, showJson: store.get().prefs.showToolJson });
-        st.calls.set(ev.id, ev); st.cards.set(ev.id, card); st.item.tools.push({ name: ev.name, arguments: ev.arguments });
-        ensureBlock().addTool(card.el); announce(t('tool.started', { name: ev.name })); break;
+        // A /think turn has no single round limit (it starts over at each step): show the round alone.
+        const card = createToolCard(ev, { max: st.mode === 'think' ? null : limits().tool_rounds ?? 5, showJson: store.get().prefs.showToolJson });
+        st.calls.set(ev.id, ev); st.cards.set(ev.id, card);
+        // A /think turn keeps only the final answer: its cards live in the Act steps.
+        if (st.mode === 'think') ensureThink().addTool(card);
+        else { st.item.tools.push({ name: ev.name, arguments: ev.arguments }); ensureBlock().addTool(card.el); }
+        announce(t('tool.started', { name: ev.name })); break;
       }
       case 'approval_request': {
         const ap = createApproval(ev, { getCall: (id) => st.calls.get(id), onDecide: async (ok) => { await api.approve(ev.id, ok); setTimeout(() => resolveApproval(ev.id, ok), 0); } });
         ap.callId = ev.call_id; st.approvals.set(ev.id, ap); st.cards.get(ev.call_id)?.setStatus('waiting');
-        ensureBlock().addTool(ap.el); st.paused = true; refreshLock();
+        if (st.mode === 'think') ensureThink().addApproval(ap.el); else ensureBlock().addTool(ap.el);
+        st.paused = true; refreshLock();
         announce(t('approval.title', { action: ev.action }));
         requestAnimationFrame(() => { ap.el.scrollIntoView({ block: 'nearest' }); ap.focus(); }); break;
       }
@@ -90,6 +102,16 @@ export function createTurn({ ctx, transcript, composer, model, reconnect, onReus
       case 'error': st.failed = true; fail(ev); break;
       default: break;
     }
+  }
+
+  /** think_done: the steps fold away and the final answer is the reply; unresolved or unchecked answers say so. */
+  function thought(ev) {
+    const block = ensureBlock();
+    st.think?.done(ev);
+    block.setText(String(ev.answer ?? ''));
+    const unresolved = Array.isArray(ev.unresolved) ? ev.unresolved.length : 0;
+    if (unresolved) block.addTag(chip(counted(unresolved, 'unresolved'), { tone: 'amber', icon: 'alert-triangle' }));
+    if (ev.checked === false) block.addTag(chip(t('think.unchecked'), { tone: 'amber', icon: 'alert-triangle' }));
   }
 
   function warn(ev) {
@@ -111,7 +133,7 @@ export function createTurn({ ctx, transcript, composer, model, reconnect, onReus
     const b = st.block;
     if (b && !b.hasContent()) { b.discard(); model.items = model.items.filter((i) => i !== st.item); } else if (b) { b.markInterrupted(); st.item.interrupted = true; st.dropped.push(b); }
     if (!st.blocked) st.user.markNotSent(true);
-    st.cards.forEach((c) => c.cancel());
+    st.cards.forEach((c) => c.cancel()); st.think?.stop();
     const locked = LOCK_CODES.includes(err.code) || err.status === 409;
     addError(err, { noRetry: locked });
     if (locked) showLockOverlay();
@@ -123,7 +145,7 @@ export function createTurn({ ctx, transcript, composer, model, reconnect, onReus
     if (st?.busy) return;
     [me.userEl, ...me.errEls].forEach((n) => n.remove());
     model.items = model.items.filter((i) => i.kind !== 'user' || i.n);
-    send(me.text);
+    send(me.text, { mode: me.mode });
   }
 
   function complete() {
@@ -138,28 +160,32 @@ export function createTurn({ ctx, transcript, composer, model, reconnect, onReus
 
   function interruptedUi(timedOut) {
     st.block?.markInterrupted(); if (st.item) st.item.interrupted = true; if (st.block) st.dropped.push(st.block);
-    st.user.markNotSent(timedOut); st.cards.forEach((c) => c.cancel());
+    st.user.markNotSent(timedOut); st.cards.forEach((c) => c.cancel()); st.think?.stop();
     st.approvals.forEach((a) => a.dispose());
     addNode(createEvent(timedOut ? t('chat.timedOutDivider') : t('chat.interruptedDivider')));
     if (timedOut) addError({ code: 'turn_timeout', message: '', seconds: st.budget });
     else { toast(t('chat.interruptedToast')); announce(t('chat.interruptedToast')); }
   }
 
-  async function send(text) {
+  /** mode: 'think' for /think <request> (text is the request alone, as it is saved). */
+  async function send(text, { mode } = {}) {
     if (st?.busy) return;
     const at = new Date().toISOString();
     const me = {};
-    const user = createUser({ kind: 'user', text, at }, { onReuse, onRetry: () => retry(me) });
+    // A live /think request is reused or recalled as "/think <request>", so sending it again thinks again.
+    const again = mode === 'think' ? `/think ${text}` : text;
+    const user = createUser({ kind: 'user', text, at, ...(mode === 'think' ? { think: true } : {}) }, { onReuse: () => onReuse(again), onRetry: () => retry(me) });
+    if (mode === 'think') user.addNote(chip(t('think.chip'), { outline: true }));
     const item = user.item;
     model.items.push(item);
     st = me;
-    Object.assign(me, { busy: true, text, user, userEl: user.el, errEls: [], ac: new AbortController(), elapsed: 0, paused: false, budget: limits().turn_seconds || 120, calls: new Map(), cards: new Map(), approvals: new Map(), resolved: new Set(), dropped: [], block: null, item: null, status: null, failed: false, interrupted: false, blocked: false, usage: undefined });
+    Object.assign(me, { busy: true, text, mode, think: null, user, userEl: user.el, errEls: [], ac: new AbortController(), elapsed: 0, paused: false, budget: limits().turn_seconds || 120, calls: new Map(), cards: new Map(), approvals: new Map(), resolved: new Set(), dropped: [], block: null, item: null, status: null, failed: false, interrupted: false, blocked: false, usage: undefined });
     addNode(user.el, at);
-    actions.setStatus({ streaming: true }); composer.setStreaming(true); composer.setElapsed(t('chat.thinkingS', { s: 0 }));
+    actions.setStatus({ streaming: true }); composer.setStreaming(true); composer.showRing(mode !== 'think'); composer.setElapsed(t('chat.thinkingS', { s: 0 }));
     const timer = setInterval(tick, 250);
     st.dropped = model.dropped;
     try {
-      await api.chat(text, { signal: st.ac.signal, onEvent: handle });
+      await api.chat(text, { signal: st.ac.signal, onEvent: handle, mode });
       if (st.failed) { /* error card already shown */ }
       else if (st.status === 'completed') complete();
       else if (st.status === 'interrupted') interruptedUi(false);

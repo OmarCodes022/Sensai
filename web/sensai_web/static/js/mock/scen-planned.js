@@ -1,4 +1,4 @@
-// Scenarios 21-28 (planned features, compact scripts). Events follow spec 12.3 planned types.
+// Scenarios 21-23 and 25-28 (planned features, compact scripts). Events follow spec 12.3 planned types.
 import { say, usage, turn, call, result } from './script.js';
 
 const step = (s, text) => ({ type: 'step', step: s, text, delay_ms: 400 });
@@ -22,8 +22,6 @@ export const PLANNED = [
       t([call('c1', 'search_docs', { query: 'hydration claim' }), result('c1', 'search_docs', true, { output: 'hydra-glow-serum (2026-09-01): Hydrates skin for up to 8 hours.' }),
         say('According to the product sheet, the serum hydrates skin for up to 8 hours [1].'), { type: 'sources', items: [{ n: 1, source: 'hydra-glow-serum', version: '2026-09-01', score: 0.82 }] }, usage(420, 60)]),
       t([call('c2', 'search_docs', { query: 'vegan certification' }), result('c2', 'search_docs', true, { output: 'No matching passages.' }), say('That is not in the documents, so I cannot answer it.'), usage(380, 20)])] },
-  { id: 'think', n: 24, title: '/think (planned)', planned: true, persona: 'analyse', prompt: '/think What should we test next week?',
-    turns: [t([step('plan', 'Compare formats by engagement'), step('act', 'Read weekly figures'), step('check', 'Zero-reach day excluded'), say('Test carousel against reel for the same claim, one variable at a time.'), usage(300, 60)])] },
   { id: 'team', n: 25, title: '/team (planned)', planned: true, persona: 'redaction', prompt: '/team Plan the launch post',
     turns: [t([step('plan', 'Rédaction drafts, Analyse checks figures, Communauté checks tone'), step('draft', 'Rédaction: draft ready'), step('check', 'Analyse: no figures invented'), say('Draft agreed by all three roles. Review it before use.'), usage(500, 90)])] },
   { id: 'ask-user', n: 26, title: 'ask_user form (planned)', planned: true, persona: 'redaction', prompt: 'Plan a post',

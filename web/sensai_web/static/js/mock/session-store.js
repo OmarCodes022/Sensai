@@ -36,7 +36,11 @@ export function createSessions(persona = 'redaction') {
       const s = current;
       const at = now();
       const tools = [], a = { kind: 'assistant', text: '', persona: s.persona, usage: null, tools, at };
-      for (const ev of events) {
+      // A /think turn keeps only the request and the final answer, as the backend saves it.
+      const thought = events.find((ev) => ev.type === 'think_done');
+      const kept = thought ? events.filter((ev) => !['text', 'tool_call', 'tool_result', 'approval_result'].includes(ev.type)) : events;
+      if (thought) a.text = String(thought.answer ?? '');
+      for (const ev of kept) {
         if (ev.type === 'text') a.text += ev.delta;
         else if (ev.type === 'tool_call') tools.push({ kind: 'tool', id: ev.id, name: ev.name, arguments: ev.arguments, round: ev.round, ok: null });
         else if (ev.type === 'tool_result') Object.assign(tools.find((x) => x.id === ev.id) || {}, { ok: ev.ok, error: ev.error, output: ev.output, duration_ms: ev.duration_ms, meta: ev.meta });

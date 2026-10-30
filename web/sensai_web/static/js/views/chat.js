@@ -46,9 +46,10 @@ export function mount(root, ctx) {
     add: () => docCommands.add(),
     remove: (args) => docCommands.remove(args),
     reindex: () => docCommands.reindex(),
+    think: (args) => (args ? turn.send(args, { mode: 'think' }) : composer.flash(t('think.usage'))),
   };
   const composer = createComposer({
-    getUserTexts: () => model.items.filter((i) => i.kind === 'user').map((i) => i.text),
+    getUserTexts: () => model.items.filter((i) => i.kind === 'user').map((i) => (i.think ? `/think ${i.text}` : i.text)),
     onSend: (text) => turn.send(text), onStop: () => turn.interrupt(), onCommand: (n, args) => commands[n]?.(args), onAttach: (kind) => docCommands.attach(kind), capabilities: () => store.get().capabilities,
     guardrails: () => !!store.get().capabilities.guardrails,
   });

@@ -3,6 +3,7 @@ import { ApiError } from '../errors.js';
 import { createSessions } from './session-store.js';
 import { play, abortError } from './player.js';
 import { SCENARIOS, byId, errorTurn } from './scenarios.js';
+import { thinkTurn } from './scen-think.js';
 import { turn, say, usage } from './script.js';
 import { PERSONAS, HEALTH, CONFIG, PROFILE, TOOLS, DATA_FILES, ENGAGEMENT_CSV } from './fixtures.js';
 import { DOCS, CHUNKS } from './planned-misc.js';
@@ -52,11 +53,13 @@ const guard = (fn) => async (...a) => {
   return fn(...a);
 };
 
-async function chat(text, { onEvent, signal } = {}) {
+async function chat(text, { onEvent, signal, mode } = {}) {
   const s = sessions.current();
   const sc = byId(state.scenario);
   let script;
   if (state.inject) { script = errorTurn(state.inject, s.persona); state.inject = null; }
+  else if (mode === 'think') script = thinkTurn(); // Any scenario, any number of times.
+  else if (sc.think) script = generic(text); // A normal message never plays think events.
   else { const t = sc.turns[state.turnIdx++]; script = t ? (typeof t === 'function' ? t(text) : t) : generic(text); }
   notify();
   const ctx = { sid: s.id, persona: s.persona, number: s.usage.turns + 1, turnId: `t_${++turnCount}`, saved: s.saved, skipSave: false };

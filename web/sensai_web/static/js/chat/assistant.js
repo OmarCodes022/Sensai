@@ -27,10 +27,11 @@ export function createAssistant(opts) {
   const foot = h('footer', { class: 'msg__foot', hidden: true });
   const cited = h('div', { class: 'msg__sources row', hidden: true });
   const steps = h('ol', { class: 'steps', hidden: true });
+  const reasoning = h('div', { class: 'msg__reasoning', hidden: true });
   body.addEventListener('click', (e) => { const b = e.target.closest('.md-cite'); if (b) opts.onCite?.(Number(b.dataset.cite), sources); });
   const el = h('article', { class: 'msg msg--assistant', 'aria-busy': 'true', 'aria-label': t('msg.assistantLabel', { name }), tabindex: '-1' },
     h('header', { class: 'msg__head' }, h('span', { class: 'avatar', dataset: { tone: opts.tone || 'accent' }, 'aria-hidden': 'true' }, (name[0] || '?').toUpperCase()), h('span', { class: 'msg__who' }, name), think),
-    group.el, steps, body, cited, tags, foot);
+    group.el, reasoning, steps, body, cited, tags, foot);
   group.el.hidden = true;
 
   const caret = () => {
@@ -50,12 +51,15 @@ export function createAssistant(opts) {
   const settled = () => { think.hidden = true; };
 
   const api = {
-    el, state: () => state, text: () => text, usage: () => usage, hasContent: () => !!text || group.count() > 0,
+    el, state: () => state, text: () => text, usage: () => usage, hasContent: () => !!text || group.count() > 0 || reasoning.hasChildNodes(),
     appendText(d) { settled(); text += d; schedule(); },
     setText(s) { text = s; paint(); },
     setElapsed(s) { think.lastChild.textContent = ` ${s} s`; },
     addNote(node) { settled(); group.el.hidden = false; group.el.append(node); },
     addTool(node) { settled(); group.el.hidden = false; group.add(node); },
+    /** The /think steps (reasoning.js), above the reply text. */
+    addReasoning(node) { settled(); reasoning.hidden = false; reasoning.append(node); },
+    addTag(node) { tags.append(node); },
     addStep(step, line) { settled(); steps.hidden = false; steps.append(h('li', null, h('span', { class: 'chip chip--outline' }, step), ' ', line)); },
     setSources(items) {
       sources = items;

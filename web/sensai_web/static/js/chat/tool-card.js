@@ -17,7 +17,7 @@ function summary(call) {
   return first(JSON.stringify(call.arguments ?? {}));
 }
 
-/** opts: { max: tool round limit, showJson: boolean } */
+/** opts: { max: tool round limit (null: no limit shown, as in /think), showJson: boolean } */
 export function createToolCard(call, opts = {}) {
   let status = 'running', result = null, started = performance.now(), tick = null;
   const statusEl = h('span', { class: 'toolcard__status' });
@@ -48,7 +48,7 @@ export function createToolCard(call, opts = {}) {
     else if (status === 'timeout' && call.name !== 'run_python') kids.push(h('p', { class: 'toolcard__note' }, t('tool.timedOut', { s: 30 })));
     else if (status === 'error' && result?.error && call.name !== 'run_python') kids.push(h('p', { class: 'toolcard__note toolcard__note--err mono' }, visibleEscapes(String(result.error))));
     else if (status === 'error' && result?.error) kids.push(h('p', { class: 'muted mono' }, visibleEscapes(String(result.error))));
-    kids.push(h('p', { class: 'muted toolcard__meta' }, t('tool.round', { n: call.round ?? 1, max: opts.max ?? 5 }), result ? ` · ${formatDuration(result.duration_ms)}` : ''));
+    kids.push(h('p', { class: 'muted toolcard__meta' }, opts.max === null ? t('tool.roundN', { n: call.round ?? 1 }) : t('tool.round', { n: call.round ?? 1, max: opts.max ?? 5 }), result ? ` · ${formatDuration(result.duration_ms)}` : ''));
     body.replaceChildren(...kids);
   };
   const render = () => { paintStatus(); paintBody(); };

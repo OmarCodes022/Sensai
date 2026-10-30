@@ -36,8 +36,8 @@ const real = {
   getSession: (id) => req('GET', `/api/sessions/${encodeURIComponent(id)}`),
   resume: (id) => req('POST', `/api/sessions/${encodeURIComponent(id)}/resume`),
   history: () => req('GET', '/api/history'),
-  async chat(text, { onEvent, signal } = {}) {
-    try { await streamNdjson('/api/chat', { body: { text }, signal, onEvent, headers: tabHeader }); }
+  async chat(text, { onEvent, signal, mode } = {}) {
+    try { await streamNdjson('/api/chat', { body: mode ? { text, mode } : { text }, signal, onEvent, headers: tabHeader }); }
     catch (e) { if (e.status === 409) lockedHandler(); throw e; }
   },
   stopChat: () => req('POST', '/api/chat/stop'),
