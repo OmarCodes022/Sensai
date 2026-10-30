@@ -74,6 +74,33 @@ a resumed session (`--session <id>`) does not contain them. A stopped or failed
 `/think` alone prints `usage: /think <request>`. Messages without `/think` work
 exactly as before.
 
+## In the web page
+
+`/think <request>` in the web page (`sensai-web`) runs the same loop with the
+same budget, per-step deadline and check. The reply shows a **Reasoning** block
+that fills as the steps arrive: `Plan`, then each tool round as an `Act` step
+holding the usual tool card (with its result) and an `Observe` step with the
+outcome, `Draft`, `Check: ok` or `Check: N problems` with the list, `Revise`,
+`Unresolved` or `Check unavailable`. The page names the steps in its own
+language (in French: Plan, Action, Observation, Brouillon, Vérification,
+Révision). `run_python` asks for approval in its `Act` step, as in a normal
+reply.
+
+When the loop ends, the steps fold into one line such as
+`Reasoning: 2 rounds, 1 tool call` (click it to open them again) and the final
+answer is shown as the normal reply, marked when problems are unresolved or the
+answer could not be checked. The Stop button and `Esc` stop the whole loop. During
+a check, the stop takes effect when the check reply arrives (at most the
+per-step limit); until then the reply is still running and a new message is
+refused as busy. The Stop button shows the elapsed time without a budget ring,
+since the limit applies to each step, and tool cards show their round without a
+maximum. Up arrow and **Reuse** give back `/think <request>`, so sending it again
+thinks again (a resumed session holds the bare request).
+
+As in the terminal, only the request and the final answer are kept: a resumed
+session, the session list and `/history` show those two, never the steps.
+`/think` alone shows `Usage: /think <request>`.
+
 ## Limits
 
 - The `run_python` approval prompt (`Run run_python?`) appears before that

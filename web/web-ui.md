@@ -41,7 +41,7 @@ GET  /api/session         session shape (below)       POST /api/sessions   new e
 GET  /api/sessions        {items:[{id,title,created_at,updated_at,persona,messages}]}
 GET  /api/sessions/{id}   session shape               POST /api/sessions/{id}/resume
 GET  /api/history         {items:[{n,text}]}
-POST /api/chat {text}     application/x-ndjson stream     POST /api/chat/stop -> {stopped}
+POST /api/chat {text, mode?}  application/x-ndjson stream (mode "think" runs /think)     POST /api/chat/stop -> {stopped}
 POST /api/approvals/{id}  {approved}
 GET  /api/tools           {items:[{name,description,parameters,timeout,confirm,max_calls}]}
 POST /api/run {code}      {exit_code,duration_s,timed_out,truncated,stdout,stderr,report,limits?}
@@ -62,9 +62,23 @@ Added by this round (assumption, not in the original contract): `GET /api/config
 
 Session items: `{kind:"user",n,text,at}`, `{kind:"assistant",text,persona,usage|null,tools,at}`, `{kind:"tool",...}`, `{kind:"event",text}`.
 
-Stream events (one JSON per line): `turn_start`, `text`, `tool_call`, `approval_request`, `approval_result`, `tool_result` (with `meta` for `run_python`), `usage` (any count may be null), `title`, `saved`, `warning`, `sources`, `done` (`completed|interrupted|timed_out`), `error`. `sources` (`items:[{n,source,version,score,outdated}]`) follows a `search_docs` result. Planned, ignored unless the capability is true: `redacted`, `blocked`, `step`. A stream that ends without `done` is a network error.
+Stream events (one JSON per line): `turn_start`, `text`, `tool_call`, `approval_request`, `approval_result`, `tool_result` (with `meta` for `run_python`), `usage` (any count may be null), `title`, `saved`, `warning`, `sources`, `done` (`completed|interrupted|timed_out`), `error`. `sources` (`items:[{n,source,version,score,outdated}]`) follows a `search_docs` result. A `"mode": "think"` turn adds `think_section` and `think_done` (below). Planned, ignored unless the capability is true: `redacted`, `blocked`, `step`. A stream that ends without `done` is a network error.
 
 Planned endpoints (documented, never called while the capability is false): `/api/campaign/{week}`, `/api/campaign/{week}/edit`, `/api/campaign/{week}/approve`, `/api/weekly-run`, `/api/brand`, `/api/facts`, `/api/docs`, `/api/docs/search`, `/api/docs/reindex`, `/api/context`, `/api/stats`, `/api/export`, `/api/share`, `/api/schedule`, `/api/safety`, `/api/evals`.
+
+### /think turns
+
+`POST /api/chat {"text": <request>, "mode": "think"}` runs the terminal's `/think` loop (`sensai.chat.reasoning.think`, unchanged) on the active session, with the same validation (400 `empty_input`, 413, 429 `busy`; any other `mode` than `"think"`, `"normal"` or none is 400 `bad_request`), the same lock and the same `POST /api/chat/stop`. Each step (the plan, each draft or revision with its tool calls, each check) gets its own `--operation-timeout` deadline; Stop cancels the whole loop. The check request takes no cancellation token: a Stop during a check takes effect when the check returns (at most the per-step limit), and until then the turn holds the lock, so a new `POST /api/chat` gets 429 `busy`. The check is an `OllamaStructuredClient` on the chat's host, with the per-step timeout as its HTTP timeout and the configured context length.
+
+Events, in order:
+
+- `{"type": "think_section", "title": <title>}` starts a step. Titles are the terminal's English labels: `Plan`, `Act`, `Observe`, `Draft`, `Check — ok`, `Check — 1 problem` / `Check — N problems`, `Revise`, `Unresolved`, `Check unavailable`, `Final answer (<r> round(s), <t> tool call(s))`. The usual `text` events under it carry the step's text.
+- A tool round arrives as `tool_call`, the approval events for `run_python`, `tool_result`, then the text the model wrote before the call, then `think_section` `Act` with one `text` (the call, cut to 6 lines and 500 characters) and `think_section` `Observe` with one `text` (the result or error, cut the same way). An unparsable tool block follows the same order (`tool_call` named `<invalid>`).
+- `{"type": "think_done", "answer", "rounds", "tool_calls", "unresolved": [..], "checked": bool}` after the final answer, then `usage` (the chat replies of every step; the check requests report none), `saved`/`title` and `done` as in a normal turn. Interruption, timeout and errors end as in a normal turn; nothing is added or saved then.
+
+Only the request (without `/think`) and `answer` join the conversation and are saved, so restored sessions, `/api/history` and the session list show those two.
+
+The page (`js/chat/reasoning.js`): a `<details>` **Reasoning** block in the assistant message, open while the steps stream, with one list item per step labelled in the page language (`think.step.*`, `Check: ok` in English, `Vérification : ok` in French). The tool card opens the round's `Act` step on `tool_call` (approvals appear inside it); the call and result lines are not repeated next to the card, and `Observe` shows the card's outcome chip. The text written before a call stays in the step before. `Final answer` is not a step: on `think_done` the block folds to `Reasoning: <r> rounds, <t> tool calls`, the reply body shows `answer`, and amber tags mark unresolved problems or an unchecked answer. An approval opens a folded block before it appears. Tool cards show `tool.roundN` (the round alone, since tool limits start over at each step), and the Stop button hides the budget ring (the budget is per step) and shows the elapsed time. Up arrow and Reuse give back `/think <request>` for a think turn made in the page; restored sessions hold the bare request. `/think` alone shows `think.usage`. Mock: `mode: "think"` always plays the scenario 24 think script (any scenario, any number of times); a normal message never plays think events, even in scenario 24.
 
 ## Capability flags
 
@@ -79,7 +93,7 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 - `#/profile`: key-value list, JSON editor with live line-level validation, confirm modal, `PUT`. Never auto-saves; success is shown only after the backend answers.
 - `#/tools`: registry, recent calls (built from the stored session items), sandbox runner reusing the `run_python` result card. Cancel only stops waiting: the real `POST /api/run` has no cancel, and the UI says so.
 - `#/documents`: live when `capabilities.documents` is true (otherwise Planned). Status chip and embedding model, a drop area (`.md`, `.txt`, checked in the page before sending), the list with version, chunks and status, a viewer (click a name: rendered Markdown and raw text, with source, version and chunks), a two-step remove, reindex, and a search box that shows what the model would receive (no model call). It polls `GET /api/docs` every 3 s, so files copied into the folder appear by themselves. Replies that used `search_docs` show their sources under them.
-- Composer: a **+** button (menu: Add documents, Add data files, each shown when its capability is on) and slash commands with arguments. `/add`, `/remove`, `/docs [text]` and `/reindex` are live when `capabilities.documents` is true and run in the page against `/api/docs` (cards in the transcript, no model call); the other planned commands keep their Planned chip.
+- Composer: a **+** button (menu: Add documents, Add data files, each shown when its capability is on) and slash commands with arguments. `/add`, `/remove`, `/docs [text]` and `/reindex` are live when `capabilities.documents` is true and run in the page against `/api/docs` (cards in the transcript, no model call); `/think <request>` is live when `capabilities.think` is true (see /think turns); the other planned commands keep their Planned chip.
 - `#/settings`: effective configuration with source chips, secret-looking keys shown as "hidden", UI preferences, reset, backend card with capability chips.
 - `#/keynote`: launcher plus a presenter bar on `<body>` (body class `keynote`, `keynote-record` for record-friendly). Mock only: scenarios are played by the mock backend. Play, pause, step, restart, speed 0.5x to 3x, beat timeline, notes (`N`).
 - Planned views with mock previews behind a "Preview with mock data" toggle, each card with a MOCK ribbon: campaign (week header, four tabs, command box with before/after card, weekly run), brand, documents (local word-overlap search, no model), insights, safety, schedule. Preview buttons that would change data are inert and say so.
@@ -93,7 +107,7 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 4. Add strings to BOTH `strings.en.json` and `strings.fr.json` with identical keys, and a nav key `nav.<name>`.
 5. Keep files under 300 lines; build DOM with `h()` (never `innerHTML`).
 
-## String keys (737 per language, identical in en and fr)
+## String keys (845 per language, identical in en and fr)
 
 - `common` (24): `na`, `planned`, `mockData`, `cancel`, `confirm`, `close`, `copy`, `copied`, `copyFailed`, `copyCommand`, `retry`, `clear`, `loading`, `remove`, `copyDetails`, `stop`, `send`, `run`, `refuse`, `viewAll`, `saved`, `nothingSent`, `dismiss`, `loadError`
 - `nav` (14): `chat`, `sessions`, `personas`, `profile`, `tools`, `settings`, `campaign`, `brand`, `documents`, `insights`, `safety`, `schedule`, `keynote`, `views`
@@ -138,7 +152,7 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 - `reconnect` (2): `done`, `text`
 - `slash` (27): `label`, `none`, `plannedMsg`, `foot.move`, `foot.complete`, `foot.pick`, `foot.close`, `persona`, `history`, `tools`, `run`, `new`, `help`, `read`, `save`, `docs`, `reindex`, `search`, `facts`, `context`, `campaign`, `export`, `share`, `unshare`, `think`, `team`, `edit`
 - `starter` (9): `redaction.1`, `redaction.2`, `redaction.3`, `communaute.1`, `communaute.2`, `communaute.3`, `analyse.1`, `analyse.2`, `analyse.3`
-- `tool` (14): `arguments`, `finished`, `label`, `round`, `started`, `timedOut`, `using`, `status.running`, `status.waiting`, `status.ok`, `status.error`, `status.refused`, `status.timeout`, `status.cancelled`
+- `tool` (15): `arguments`, `finished`, `label`, `round`, `roundN`, `started`, `timedOut`, `using`, `status.running`, `status.waiting`, `status.ok`, `status.error`, `status.refused`, `status.timeout`, `status.cancelled`
 - `personas` (20): `builtin`, `custom`, `readOnly`, `howTitle`, `howIntro`, `shape`, `required`, `errorsTitle`, `err.missing`, `err.extra`, `err.blank`, `err.duplicate`, `err.unknown`, `none`, `active`, `use`, `inUse`, `role`, `scope`, `guard`
 - `profile` (19): `plaintext`, `creatorKey`, `injected`, `empty`, `emptyBody`, `create`, `edit`, `editor`, `line`, `err.empty`, `err.syntax`, `err.notObject`, `err.notString`, `valid`, `replace`, `confirmTitle`, `confirmBody`, `saved`, `noAuto`
 - `settings` (49): `effective`, `prefs`, `backend`, `k.ollama_host`, `k.model`, `k.request_timeout`, `k.turn_budget`, `k.context_length`, `k.database_path`, `k.creator`, `k.profile_file`, `k.data_dir`, `k.prompt_file`, `k.personas_file`, `packaged`, `builtin`, `none`, `hidden`, `source`, `sourceNa`, `dataNote`, `noSources`, `prefsNote`, `theme`, `density`, `comfortable`, `compact`, `fontSize`, `small`, `default`, `large`, `motion`, `reduce`, `lang`, `showTokens`, `showTools`, `showNumbers`, `draftLabel`, `reset`, `resetBody`, `resetDone`, `version`, `uptime`, `mode`, `live`, `capCount`, `caps`, `capOn`, `capOff`
@@ -150,6 +164,7 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 - `insights` (14): `kind`, `kindHelp`, `allKinds`, `calls`, `errors`, `failures`, `latency`, `tokens`, `perDay`, `day`, `toolUse`, `sparkCalls`, `sparkLatency`, `plain`
 - `safety` (20): `rules`, `direction`, `action`, `reason`, `claimsCount`, `suite`, `defined`, `category`, `cases`, `hold`, `fail`, `notRun`, `suiteTotal`, `eval`, `metric`, `relevance`, `coherence`, `faithfulness`, `flagged`, `planted`
 - `schedule` (11): `banner`, `name`, `prompt`, `every`, `minutes`, `last`, `next`, `st.ok`, `st.failed`, `retry`, `drafts`
+- `think` (24): `title`, `steps`, `summary`, `round.one`, `round.other`, `tool.one`, `tool.other`, `problem.one`, `problem.other`, `unresolved.one`, `unresolved.other`, `unchecked`, `step.plan`, `step.act`, `step.observe`, `step.draft`, `step.ok`, `step.problems`, `step.revise`, `step.unresolved`, `step.unavailable`, `started`, `chip`, `usage`
 
 ## Accessibility checklist (honest results)
 

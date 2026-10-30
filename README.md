@@ -64,6 +64,8 @@ your profile, in a page served from your machine.
 - Same options, database, creator and `.env` as the terminal chat.
 - Listens on `127.0.0.1` only. Add `?mock=1` to the address for a demo without a model.
 - Tool calls (calculator, Python) work best with a larger model such as `qwen2.5`.
+- `/think <request>` works in the page too: the steps stream in a **Reasoning** block, then fold away
+  under the final answer ([details](docs/user-guide/thinking.md#in-the-web-page)).
 - Page, API and design notes: [web/web-ui.md](web/web-ui.md).
 
 ## Your data
