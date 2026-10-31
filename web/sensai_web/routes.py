@@ -12,7 +12,7 @@ from sensai.memory.vector_index import VectorIndexError
 from sensai.rag import MAX_FILE_BYTES, MAX_TOTAL_BYTES, TYPES, DocError
 from sensai.sandbox import SandboxLimits
 from sensai.tools import MAX_TOOL_CALLS
-from sensai_web import manage, models, sandbox, session_view
+from sensai_web import branching, manage, models, sandbox, session_view
 from sensai_web.app import WebApp
 from sensai_web.errors import ApiError, llm_failure
 from sensai_web.tools import tool_list
@@ -21,7 +21,7 @@ from sensai_web.turn import run_turn
 
 MAX_TEXT_CHARS = 200_000
 CAPABILITIES = ("chat", "personas", "sessions", "profile", "usage", "tools", "approval", "sandbox",
-                "run_script", "history", "think")
+                "run_script", "history", "think", "branching")
 STARTED = monotonic()
 ROUTES: list[tuple[str, re.Pattern, Callable]] = []
 
@@ -160,6 +160,23 @@ def chat(app: WebApp, request):
     def play(emit):
         try:
             run_turn(app, active, stop, text, emit)
+        finally:
+            app.end_turn()
+
+    return Stream(play, stop.set)
+
+
+@route("POST", r"/api/edit")
+def edit(app: WebApp, request):
+    body = request.json()
+    number, text = branching.check(app, body.get("n"), body.get("text"))
+    if len(text) > MAX_TEXT_CHARS:
+        raise ApiError(413, "too_large", "The message is too long.")
+    stop, active = app.begin_turn()
+
+    def play(emit):
+        try:
+            branching.run_edit(app, active, stop, number, text, emit)
         finally:
             app.end_turn()
 

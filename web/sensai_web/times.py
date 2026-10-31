@@ -60,3 +60,19 @@ class TurnTimes:
                 connection.close()
         except sqlite3.Error:
             pass
+
+    def copy(self, source: str, target: str, last_turn: int) -> None:
+        """Give a branch the times of the turns it kept (1 to last_turn) from the session it came from."""
+        try:
+            connection = sqlite3.connect(self._path, timeout=5)
+            try:
+                with connection:
+                    connection.execute(SCHEMA)
+                    connection.execute(
+                        "INSERT OR IGNORE INTO web_turn_times SELECT creator_id, ?, turn, started_at, finished_at "
+                        "FROM web_turn_times WHERE creator_id = ? AND session_id = ? AND turn <= ?",
+                        (target, self._creator, source, last_turn))
+            finally:
+                connection.close()
+        except sqlite3.Error:
+            pass
