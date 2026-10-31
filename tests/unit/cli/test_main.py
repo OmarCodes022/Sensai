@@ -15,8 +15,9 @@ from sensai.tools import CALCULATE, tool_instructions
 from sensai.core.cancellation import OperationCancelled, OperationTimedOut
 from sensai.chat.facts import DELETE_FACT, SAVE_FACT
 from sensai.chat.questions import ASK_USER
+from sensai.search import WEB_SEARCH
 
-TOOLS = "\n\n" + tool_instructions([CALCULATE, RUN_PYTHON, SAVE_FACT, DELETE_FACT, ASK_USER])
+TOOLS = "\n\n" + tool_instructions([CALCULATE, RUN_PYTHON, SAVE_FACT, DELETE_FACT, ASK_USER, WEB_SEARCH])
 REPL_TOOLS = "\n\n" + tool_instructions([CALCULATE, RUN_PYTHON])  # repl() called directly has no fact sheet
 
 

@@ -27,6 +27,7 @@ from sensai.campaign.edits import editable as campaign_editable
 from sensai.guardrails.rules import Claims
 from sensai.llm.structured import StructuredOutputError
 from sensai.chat.blocks import split_block
+from sensai.search import WEB_SEARCH, SearchError, WebSearch, numbered, provider_for, search
 from sensai.chat.questions import ASK_USER, TerminalForm
 from sensai.chat.facts import DELETE_FACT, SAVE_FACT, FactMemory, with_facts
 from sensai.chat.reasoning import Section, think
@@ -283,7 +284,7 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
          tool_registry: ToolRegistry | None = None, data_dir: str | None = None,
          docs: DocLibrary | None = None, checker=None, memory: FactMemory | None = None,
          guard: Guardrail | None = None, files: FileTools | None = None,
-         campaign: CampaignStore | None = None, approval=None) -> None:
+         campaign: CampaignStore | None = None, approval=None, web: WebSearch | None = None) -> None:
     if base_prompt is None:
         base_prompt = session.messages[0].content
     if tool_registry is None:
@@ -448,6 +449,20 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
                     if recorder is not None:
                         recorder.persona_changed(persona.id)
             continue
+        if command and command[0] == "/search":
+            query = command[1].strip() if len(command) > 1 else ""
+            if not query:
+                write("usage: /search <query>")
+            elif web is None:
+                write("Web search is not available.")
+            else:
+                try:
+                    found = search(query, web.provider, web.key)
+                except SearchError as e:
+                    write(f"Web search unavailable: {e}")
+                else:
+                    write(numbered(found) if found else f"No web results for {query!r}.")
+            continue
         if command and command[0] == "/campaign":
             campaign_command(command[1].strip() if len(command) > 1 else "")
             continue
@@ -524,6 +539,8 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
             continue
 
         refresh_docs()  # A document added a moment ago counts for this very question.
+        if web is not None:
+            web.results.clear()  # Sources are listed per answer.
 
         def on_tool(call, result):
             if call.name == RUN_PYTHON.name:
@@ -572,6 +589,11 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
         if completed and recorder is not None:
             recorder.after_turn(session)
         settle_facts(completed)
+        if completed and web is not None and web.results:
+            write("Sources:")
+            for n, result in enumerate(web.results, 1):
+                write(f"[{n}] {sanitize(result.title, keep='')} {sanitize(result.url, keep='')}"
+                      + (f" ({result.date})" if result.date else ""))
 
 
 def _open_storage(args: argparse.Namespace):
@@ -731,6 +753,10 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
             tool_registry.register(SAVE_FACT, memory.save, timeout=None)  # In this process: the queue is here.
             tool_registry.register(DELETE_FACT, memory.delete, timeout=None)
             tool_registry.register(ASK_USER, TerminalForm(terminal.read, print), timeout=None)  # Reads the terminal itself.
+            web = WebSearch(provider_for(settings.search_provider, settings.search_api_key), settings.search_api_key,
+                            on_search=lambda q: print(f"Searching the web for: {q}"))
+            if web.provider != "off":
+                tool_registry.register(WEB_SEARCH, web, timeout=None)  # Keeps this turn's sources here.
             def titler(first_user: str, first_answer: str) -> str | None:
                 token = CancellationToken(
                     monotonic() + min(saved_sessions.TITLE_TIMEOUT, args.operation_timeout),
@@ -751,7 +777,7 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
                  persona_registry=registry, base_prompt=base_prompt, recorder=recorder,
                  tool_registry=tool_registry, data_dir=args.data_dir,
                  docs=docs, checker=checker, memory=memory, guard=guard, files=files,
-                 campaign=CampaignStore(settings.campaigns_dir), approval=approval)
+                 campaign=CampaignStore(settings.campaigns_dir), approval=approval, web=web)
     finally:
         try:
             remove_stale_folders()

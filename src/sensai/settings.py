@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     embed_model: str = Field("nomic-embed-text", validation_alias="SENSAI_EMBED_MODEL")
     # Guardrails (EV2): extra rules, and the brand file whose approved claims replies may use.
     campaigns_dir: str = Field("campaigns", validation_alias="SENSAI_CAMPAIGNS_DIR")  # The weekly documents (M4).
+    # Web search (T3): brave (needs the key), duckduckgo (no key) or off; default brave when a key is set.
+    search_provider: str | None = Field(None, validation_alias="SENSAI_SEARCH_PROVIDER")
+    search_api_key: str | None = Field(None, validation_alias="SENSAI_SEARCH_API_KEY")
     guardrails_file: str | None = Field(None, validation_alias="SENSAI_GUARDRAILS_FILE")
     brand_file: str | None = Field(default_factory=lambda: "data/brand.json" if os.path.isfile("data/brand.json") else None,
                                    validation_alias="SENSAI_BRAND_FILE")
