@@ -36,6 +36,18 @@ def no_shared_sample_files(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def no_web(monkeypatch):
+    """Unit tests never reach the internet: a web search sees a network error unless a test fakes it."""
+    import requests
+    from sensai import search
+
+    def offline(*args, **kwargs):
+        raise requests.ConnectionError("network disabled in unit tests")
+    monkeypatch.setattr(search.requests, "get", offline)
+    monkeypatch.setattr(search.requests, "post", offline)
+
+
+@pytest.fixture(autouse=True)
 def no_document_search(monkeypatch):
     """The repository's data/docs would otherwise be embedded through a real Ollama in every chat."""
     monkeypatch.setattr(cli, "_setup_docs", lambda *args, **kwargs: None)
