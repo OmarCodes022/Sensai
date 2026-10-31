@@ -605,7 +605,7 @@
  "campaign.status.approved": "approved",
  "campaign.approve": "Approve section",
  "campaign.approveTitle": "Approve this section?",
- "campaign.approveBody": "An approved section is locked. Changing it later needs your explicit approval. (Mock preview: nothing is saved.)",
+ "campaign.approveBody": "An approved section is locked. Changing it later needs your explicit approval.",
  "campaign.locked": "Approved {at}. This section is locked.",
  "campaign.valid": "Valid",
  "campaign.invalid": "Invalid",
