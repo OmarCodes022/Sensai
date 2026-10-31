@@ -93,9 +93,9 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 4. Add strings to BOTH `strings.en.json` and `strings.fr.json` with identical keys, and a nav key `nav.<name>`.
 5. Keep files under 300 lines; build DOM with `h()` (never `innerHTML`).
 
-## String keys (737 per language, identical in en and fr)
+## String keys (847 per language, identical in en and fr)
 
-- `common` (24): `na`, `planned`, `mockData`, `cancel`, `confirm`, `close`, `copy`, `copied`, `copyFailed`, `copyCommand`, `retry`, `clear`, `loading`, `remove`, `copyDetails`, `stop`, `send`, `run`, `refuse`, `viewAll`, `saved`, `nothingSent`, `dismiss`, `loadError`
+- `common` (25): `na`, `planned`, `mockData`, `cancel`, `confirm`, `close`, `copy`, `copied`, `copyFailed`, `copyCommand`, `retry`, `clear`, `loading`, `remove`, `copyDetails`, `stop`, `send`, `run`, `refuse`, `viewAll`, `saved`, `nothingSent`, `dismiss`, `loadError`, `save`
 - `nav` (14): `chat`, `sessions`, `personas`, `profile`, `tools`, `settings`, `campaign`, `brand`, `documents`, `insights`, `safety`, `schedule`, `keynote`, `views`
 - `theme` (3): `system`, `light`, `dark`
 - `topbar` (4): `toggleSidebar`, `toggleInspector`, `search`, `themeNext`
@@ -105,13 +105,13 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 - `session` (7): `new`, `id`, `copyId`, `idCopied`, `saved`, `notSaved`, `savedAfter`
 - `creator` (2): `chip`, `tip`
 - `persona` (7): `switcher`, `none`, `details`, `tone`, `toast`, `changed`, `waitTip`
-- `status` (14): `button`, `ollama`, `model`, `ollamaReady`, `checking`, `cannotReach`, `host`, `latency`, `modelAvailable`, `modelMissing`, `modelUnknown`, `pickModel`, `useModel`, `modelNote`, `modelSet`, `remote`, `remoteShort`
-- `sessions` (26): `title`, `search`, `untitled`, `empty`, `noMatch`, `loadError`, `switchTitle`, `switchMessage`, `stopSwitch`, `stay`, `allPersonas`, `filterPersona`, `col.title`, `col.id`, `col.persona`, `col.messages`, `col.created`, `col.updated`, `dir.asc`, `dir.desc`, `sortedBy`, `tableCaption`, `detail`, `detailNone`, `detailHint`, `open`
+- `status` (17): `button`, `ollama`, `model`, `ollamaReady`, `checking`, `cannotReach`, `host`, `latency`, `modelAvailable`, `modelMissing`, `modelUnknown`, `pickModel`, `useModel`, `modelNote`, `modelSet`, `remote`, `remoteShort`
+- `sessions` (36): `title`, `search`, `untitled`, `empty`, `noMatch`, `loadError`, `switchTitle`, `switchMessage`, `stopSwitch`, `stay`, `allPersonas`, `filterPersona`, `col.title`, `col.id`, `col.persona`, `col.messages`, `col.created`, `col.updated`, `dir.asc`, `dir.desc`, `sortedBy`, `tableCaption`, `detail`, `detailNone`, `detailHint`, `open`, `rename`, `export`, `delete`, `renameTitle`, `titleField`, `renamed`, `exported`, `deleted`, `deleteTitle`, `deleteBody`
 - `time` (7): `justNow`, `minutes`, `hours`, `days`, `today`, `yesterday`, `thisWeek`
 - `usage` (10): `tokens`, `tokensNa`, `inOut`, `latency`, `server`, `turns`, `notReported`, `outputTokens`, `promptTokens`, `reported`
 - `meter` (1): `text`
 - `inspector` (13): `title`, `turn`, `context`, `tools`, `sources`, `noTurn`, `noTurnBody`, `persona`, `usage`, `contextMeter`, `meterUnknown`, `sourcesBody`, `meterPartial`
-- `tools` (57): `confirm`, `none`, `loadError`, `roundLimit`, `group`, `registry`, `recent`, `sandboxTitle`, `col.name`, `col.description`, `col.timeout`, `col.confirm`, `col.max`, `col.time`, `col.tool`, `col.status`, `col.duration`, `col.message`, `noConfirm`, `noLimit`, `recentNone`, `openChat`, `codeLabel`, `helper`, `tooBig`, `notUtf8`, `loaded`, `loadFile`, `run`, `running`, `finished`, `elapsed`, `cancelled`, `dataTitle`, `noData`, `dataDir`, `limitsHelp`, `limitsTitle`, `limit.wall`, `limit.wall.d`, `limit.cpu`, `limit.cpu.d`, `limit.mem`, `limit.mem.d`, `limit.file`, `limit.file.d`, `limit.out`, `limit.out.d`, `notProtected`, `not.malicious`, `not.network`, `not.absolute`, `not.memory`, `not.cpu`, `not.fork`, `not.group`, `not.kill`
+- `tools` (72): `confirm`, `none`, `loadError`, `roundLimit`, `group`, `registry`, `recent`, `sandboxTitle`, `col.name`, `col.description`, `col.timeout`, `col.confirm`, `col.max`, `col.time`, `col.tool`, `col.status`, `col.duration`, `col.message`, `noConfirm`, `noLimit`, `recentNone`, `openChat`, `codeLabel`, `helper`, `tooBig`, `notUtf8`, `loaded`, `loadFile`, `run`, `running`, `finished`, `elapsed`, `cancelled`, `dataTitle`, `noData`, `dataDir`, `limitsHelp`, `limitsTitle`, `limit.wall`, `limit.wall.d`, `limit.cpu`, `limit.cpu.d`, `limit.mem`, `limit.mem.d`, `limit.file`, `limit.file.d`, `limit.out`, `limit.out.d`, `notProtected`, `not.malicious`, `not.network`, `not.absolute`, `not.memory`, `not.cpu`, `not.fork`, `not.group`, `not.kill`, `dataHelp`, `dataFolderNew`, `dataEmpty`, `dataAdd`, `dataDrop`, `dataExample`, `dataExampleHelp`, `dataDelete`, `dataSure`, `dataAdded`, `dataRemoved`, `dataBadType`, `dataTooBig`, `dataNotText`, `dataBlank`
 - `shortcuts` (14): `title`, `send`, `newline`, `stop`, `recall`, `palette`, `newChat`, `sidebar`, `inspector`, `shortcuts`, `searchSidebar`, `approval`, `views`, `theme`
 - `palette` (8): `title`, `placeholder`, `none`, `sessions`, `personas`, `views`, `commands`, `planned`
 - `cmd` (5): `newChat`, `theme`, `sidebar`, `shortcuts`, `copyId`
@@ -133,23 +133,28 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 - `hint` (4): `largePaste`, `privacy`, `privacyGuarded`, `undo`
 - `history` (3): `note`, `noteEdit`, `title`
 - `menu` (12): `copyMd`, `download`, `go`, `hideTokens`, `hideTools`, `jump`, `jumpLabel`, `print`, `serverExport`, `showTokens`, `showTools`, `title`
-- `msg` (9): `assistantLabel`, `copyMd`, `copyPlain`, `details`, `interruptedHidden`, `notSent`, `reuse`, `you`, `youN`
+- `msg` (11): `assistantLabel`, `copyMd`, `copyPlain`, `details`, `interruptedHidden`, `notSent`, `reuse`, `you`, `youN`, `sources`, `outdated`
 - `py` (16): `code`, `cpuLimit`, `errors`, `exit`, `fileLimit`, `gotoLine`, `limitCpu`, `limitMem`, `limitWall`, `noErrors`, `noOutput`, `output`, `signal`, `tabs`, `timeLimit`, `truncated`
 - `reconnect` (2): `done`, `text`
-- `slash` (27): `label`, `none`, `plannedMsg`, `foot.move`, `foot.complete`, `foot.pick`, `foot.close`, `persona`, `history`, `tools`, `run`, `new`, `help`, `read`, `save`, `docs`, `reindex`, `search`, `facts`, `context`, `campaign`, `export`, `share`, `unshare`, `think`, `team`, `edit`
+- `slash` (30): `label`, `none`, `plannedMsg`, `foot.move`, `foot.complete`, `foot.pick`, `foot.close`, `persona`, `history`, `tools`, `run`, `new`, `help`, `read`, `save`, `docs`, `reindex`, `search`, `facts`, `context`, `campaign`, `export`, `share`, `unshare`, `think`, `team`, `edit`, `add`, `remove`, `thinkUsage`
 - `starter` (9): `redaction.1`, `redaction.2`, `redaction.3`, `communaute.1`, `communaute.2`, `communaute.3`, `analyse.1`, `analyse.2`, `analyse.3`
 - `tool` (20): `arguments`, `finished`, `label`, `round`, `started`, `timedOut`, `using`, `status.running`, `status.waiting`, `status.ok`, `status.error`, `status.refused`, `status.timeout`, `status.cancelled`, `status.stopped`, `attempt`, `attemptLast`, `stopped`, `desc.calculate`, `desc.run_python`
-- `personas` (20): `builtin`, `custom`, `readOnly`, `howTitle`, `howIntro`, `shape`, `required`, `errorsTitle`, `err.missing`, `err.extra`, `err.blank`, `err.duplicate`, `err.unknown`, `none`, `active`, `use`, `inUse`, `role`, `scope`, `guard`
-- `profile` (19): `plaintext`, `creatorKey`, `injected`, `empty`, `emptyBody`, `create`, `edit`, `editor`, `line`, `err.empty`, `err.syntax`, `err.notObject`, `err.notString`, `valid`, `replace`, `confirmTitle`, `confirmBody`, `saved`, `noAuto`
-- `settings` (49): `effective`, `prefs`, `backend`, `k.ollama_host`, `k.model`, `k.request_timeout`, `k.turn_budget`, `k.context_length`, `k.database_path`, `k.creator`, `k.profile_file`, `k.data_dir`, `k.prompt_file`, `k.personas_file`, `packaged`, `builtin`, `none`, `hidden`, `source`, `sourceNa`, `dataNote`, `noSources`, `prefsNote`, `theme`, `density`, `comfortable`, `compact`, `fontSize`, `small`, `default`, `large`, `motion`, `reduce`, `lang`, `showTokens`, `showTools`, `showNumbers`, `draftLabel`, `reset`, `resetBody`, `resetDone`, `version`, `uptime`, `mode`, `live`, `capCount`, `caps`, `capOn`, `capOff`
+- `personas` (24): `builtin`, `custom`, `none`, `active`, `use`, `inUse`, `role`, `scope`, `guard`, `editHelp`, `new`, `edit`, `remove`, `saved`, `removed`, `newTitle`, `editTitle`, `fieldName`, `fieldId`, `idHelp`, `idFixed`, `scopeHelp`, `needId`, `idTaken`
+- `profile` (27): `plaintext`, `creatorKey`, `injected`, `empty`, `emptyBody`, `create`, `edit`, `editor`, `line`, `err.empty`, `err.syntax`, `err.notObject`, `err.notString`, `valid`, `replace`, `confirmTitle`, `confirmBody`, `saved`, `noAuto`, `key`, `text`, `addRow`, `removeRow`, `asJson`, `formHelp`, `err.rowBlank`, `err.rowDup`
+- `settings` (55): `effective`, `prefs`, `backend`, `k.ollama_host`, `k.model`, `k.request_timeout`, `k.turn_budget`, `k.context_length`, `k.database_path`, `k.creator`, `k.profile_file`, `k.data_dir`, `k.prompt_file`, `k.personas_file`, `packaged`, `builtin`, `none`, `hidden`, `source`, `sourceNa`, `dataNote`, `noSources`, `prefsNote`, `theme`, `density`, `comfortable`, `compact`, `fontSize`, `small`, `default`, `large`, `motion`, `reduce`, `lang`, `showTokens`, `showTools`, `showNumbers`, `draftLabel`, `reset`, `resetBody`, `resetDone`, `version`, `uptime`, `mode`, `live`, `capCount`, `caps`, `capOn`, `capOff`, `src.cli`, `src.env`, `src.dotenv`, `src.default`, `k.docs_dir`, `k.embed_model`
 - `keynote` (21): `intro`, `needsMock`, `openMock`, `scenario`, `start`, `record`, `recordHelp`, `keys`, `bar`, `play`, `pause`, `step`, `restart`, `exit`, `speed`, `timeline`, `beat`, `fallback`, `notes`, `noNotes`, `done`
 - `preview` (4): `notice`, `inert`, `prev`, `next`
 - `campaign` (67): `prepare`, `export`, `share`, `print`, `sections`, `tab.posts`, `tab.dm`, `tab.report`, `tab.calendar`, `status.draft`, `status.approved`, `approve`, `approveTitle`, `approveBody`, `locked`, `valid`, `invalid`, `neverPublished`, `exportBlocked`, `dmCounters`, `unsent`, `question`, `suggestion`, `leftOut`, `figure`, `value`, `period`, `tz`, `source`, `reached`, `engaged`, `rate`, `formula`, `interp`, `daily`, `chartLabel`, `tableAlt`, `day`, `zeroReach`, `flag28`, `edgeTitle`, `edge.zero`, `edge.invalid`, `edge.missing`, `view`, `grid`, `list`, `proposal`, `notScheduled`, `noDrag`, `cmd`, `cmdHelp`, `showEdit`, `invalidEdit`, `applyQ`, `postsApproved`, `autoDraft`, `action`, `where`, `replacePost`, `before`, `after`, `apply`, `noChange`, `previewApplied`, `weeklyRun`, `saved`
 - `brand` (19): `claims`, `facts`, `readOnly`, `id`, `product`, `text`, `source`, `from`, `until`, `status`, `updated`, `st.valid`, `st.expiring`, `st.expired`, `st.notApproved`, `factsNote`, `memUpdated`, `memWill`, `perCreator`
-- `documents` (14): `source`, `type`, `product`, `version`, `chunks`, `reindex`, `reindexNote`, `embedOk`, `pullHint`, `search`, `placeholder`, `noModel`, `score`, `notIn`
+- `documents` (47): `source`, `type`, `product`, `version`, `chunks`, `reindex`, `reindexNote`, `embedOk`, `pullHint`, `search`, `placeholder`, `noModel`, `score`, `notIn`, `state.ready`, `state.indexing`, `state.empty`, `state.unavailable`, `state.off`, `folder`, `help`, `add`, `drop`, `col.name`, `col.state`, `ready`, `pending`, `remove`, `sure`, `removed`, `added`, `badType`, `tooBig`, `notText`, `emptyBody`, `unavailable`, `offBody`, `reindexed`, `searching`, `title`, `view`, `rendered`, `raw`, `viewLabel`, `close`, `bytes`, `notIndexed`
 - `insights` (14): `kind`, `kindHelp`, `allKinds`, `calls`, `errors`, `failures`, `latency`, `tokens`, `perDay`, `day`, `toolUse`, `sparkCalls`, `sparkLatency`, `plain`
 - `safety` (20): `rules`, `direction`, `action`, `reason`, `claimsCount`, `suite`, `defined`, `category`, `cases`, `hold`, `fail`, `notRun`, `suiteTotal`, `eval`, `metric`, `relevance`, `coherence`, `faithfulness`, `flagged`, `planted`
 - `schedule` (11): `banner`, `name`, `prompt`, `every`, `minutes`, `last`, `next`, `st.ok`, `st.failed`, `retry`, `drafts`
+- `a11y` (2): `skipComposer`, `skipMain`
+- `limits` (4): `cpu`, `mem`, `file`, `chars`
+- `safe` (1): `hidden`
+- `composer` (4): `attach`, `addDocs`, `addData`, `nothingToAdd`
+- `doccmd` (8): `failed`, `open`, `listTitle`, `none`, `searchTitle`, `left`, `addedDocs`, `addedData`
 
 ## Accessibility checklist (honest results)
 
