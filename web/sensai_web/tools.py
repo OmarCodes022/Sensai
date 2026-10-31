@@ -11,6 +11,7 @@ from sensai.rag_advanced import advanced_search
 from sensai.sandbox import PYTHON_ATTEMPTS, RUN_PYTHON
 from sensai.chat.facts import DELETE_FACT, SAVE_FACT, FactMemory
 from sensai.chat.questions import ASK_USER
+from sensai.mcp_client import TIMEOUT as MCP_TIMEOUT
 from sensai.search import WEB_SEARCH
 from sensai.security.file_tools import FILE_TOOLS, FileTools
 from sensai.tools import CALCULATE, ToolRegistry, calculate
@@ -33,7 +34,7 @@ def tool_list(documents: bool = False, files: bool = False, web: bool = False, m
                        *(FILE_TOOLS if files else ()), ASK_USER, *((WEB_SEARCH,) if web else ()))]
     if mcp is not None:
         items.extend({"name": d.name, "description": d.description, "parameters": d.parameters,
-                      "timeout": 30, "confirm": True, "max_calls": None} for d in mcp.definitions())
+                      "timeout": MCP_TIMEOUT, "confirm": True, "max_calls": None} for d in mcp.definitions())
     return items
 
 
