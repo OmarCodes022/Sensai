@@ -27,6 +27,7 @@ from sensai.campaign.edits import editable as campaign_editable
 from sensai.guardrails.rules import Claims
 from sensai.llm.structured import StructuredOutputError
 from sensai.chat.blocks import split_block
+from sensai.export import Exporter, ExportRefused
 from sensai.rag_advanced import DocSearch, make_ranker
 from sensai.search import WEB_SEARCH, SearchError, WebSearch, numbered, provider_for, search
 from sensai.chat.questions import ASK_USER, TerminalForm
@@ -287,7 +288,7 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
          docs: DocLibrary | None = None, checker=None, memory: FactMemory | None = None,
          guard: Guardrail | None = None, files: FileTools | None = None,
          campaign: CampaignStore | None = None, approval=None, web: WebSearch | None = None,
-         doc_search: DocSearch | None = None) -> None:
+         doc_search: DocSearch | None = None, exporter: Exporter | None = None) -> None:
     if base_prompt is None:
         base_prompt = session.messages[0].content
     if tool_registry is None:
@@ -384,12 +385,40 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
                 for line in overview(doc):
                     write(line)
             elif word == "approve":
-                approve_section(campaign, doc, rest.strip())
+                export_campaign(approve_section(campaign, doc, rest.strip()))
                 write(f"{rest.strip().capitalize()} approved: later edits ask for confirmation first.")
             else:
                 edit_section(doc, word, rest.strip())
         except CampaignError as e:
             write(f"error: {e}")
+
+    def export_campaign(doc) -> None:
+        """The private export follows every saved change (no question: it never leaves this computer)."""
+        if exporter is None:
+            return
+        try:
+            write(f"Exported campaign: {', '.join(exporter.campaign(doc))}")
+        except ExportRefused as e:
+            write(f"Campaign not exported: the guardrails refused it ({e}). The previous export is unchanged.")
+        except OSError as e:
+            write(f"error: campaign not exported: {e.strerror or e}")
+
+    def export_all() -> None:
+        if exporter is None:
+            write("error: export is unavailable")
+            return
+        session_id = recorder.session_id if recorder is not None else "current"
+        title = (recorder.title if recorder is not None else None) or display_title(None, session.messages[1:])
+        try:
+            write(f"Conversation: {', '.join(exporter.session(session_id, title, session.messages))}")
+        except ExportRefused as e:
+            write(f"Conversation not exported: the guardrails refused it ({e}).")
+        except OSError as e:
+            write(f"error: conversation not exported: {e.strerror or e}")
+        if campaign is None or not campaign.has_any():
+            write("No campaign yet: only the conversation was exported.")
+        else:
+            export_campaign(campaign.latest())
 
     def edit_section(doc, section: str, request: str) -> None:
         campaign_editable(doc, section)
@@ -413,6 +442,7 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
                 return
         write(f"{section.capitalize()}: {change.action}")
         write(f"Saved {apply_change(campaign, change)}")
+        export_campaign(change.doc)
 
     refresh_facts()
     while True:
@@ -465,6 +495,9 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
                     write(f"Web search unavailable: {e}")
                 else:
                     write(numbered(found) if found else f"No web results for {query!r}.")
+            continue
+        if command and command[0] == "/export":
+            export_all()
             continue
         if command and command[0] == "/campaign":
             campaign_command(command[1].strip() if len(command) > 1 else "")
@@ -795,7 +828,7 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
                  tool_registry=tool_registry, data_dir=args.data_dir,
                  docs=docs, checker=checker, memory=memory, guard=guard, files=files,
                  campaign=CampaignStore(settings.campaigns_dir), approval=approval, web=web,
-                 doc_search=found[0] if found else None)
+                 doc_search=found[0] if found else None, exporter=Exporter(guard, settings.exports_dir))
     finally:
         try:
             remove_stale_folders()

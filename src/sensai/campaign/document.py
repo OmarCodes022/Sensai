@@ -32,6 +32,9 @@ class CampaignStore:
     def path(self, week: str) -> str:
         return os.path.join(self.folder, f"{week}.json")
 
+    def has_any(self) -> bool:
+        return os.path.isdir(self.folder) and any(n.endswith(".json") for n in os.listdir(self.folder))
+
     def latest(self) -> Campaign:
         """The newest week's document, or a new empty one for the coming week (saved)."""
         weeks = sorted(n[:-5] for n in os.listdir(self.folder) if n.endswith(".json")) if os.path.isdir(self.folder) else []

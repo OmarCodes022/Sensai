@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     rag_mode: str = Field("advanced", pattern="^(advanced|basic)$", validation_alias="SENSAI_RAG")
     # Guardrails (EV2): extra rules, and the brand file whose approved claims replies may use.
     campaigns_dir: str = Field("campaigns", validation_alias="SENSAI_CAMPAIGNS_DIR")  # The weekly documents (M4).
+    exports_dir: str = Field("exports", validation_alias="SENSAI_EXPORTS_DIR")  # Private JSON/Markdown exports (X3).
     # Web search (T3): brave (needs the key), duckduckgo (no key) or off; default brave when a key is set.
     search_provider: str | None = Field(None, validation_alias="SENSAI_SEARCH_PROVIDER")
     search_api_key: str | None = Field(None, validation_alias="SENSAI_SEARCH_API_KEY")
