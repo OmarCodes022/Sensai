@@ -926,5 +926,19 @@
  "schedule.saved": "Saved {file}",
  "schedule.off": "Scheduling is off",
  "schedule.offBody": "Copy schedule.example.json to schedule.local.json (or set SENSAI_SCHEDULE_FILE), then restart Sensai.",
- "schedule.noDrafts": "No drafts yet."
+ "schedule.noDrafts": "No drafts yet.",
+ "slash.compact": "Summarize older messages now",
+ "context.title": "Context",
+ "context.window": "Window",
+ "context.lastTurn": "Last turn",
+ "context.summaries": "Summaries",
+ "context.saved": "Tokens saved",
+ "context.source.set": "set",
+ "context.source.ollama": "from Ollama",
+ "context.source.default": "default",
+ "context.hint": "Older messages are summarized when a turn reaches {pct}% of the window. Type /compact to do it now.",
+ "context.compacting": "Context at {pct}%, summarizing {n} older messages…",
+ "context.compactedEvent": "{n} older messages summarized. The last 4 messages are kept word for word.",
+ "context.compacted": "Compacted: about {before} -> {after} tokens",
+ "context.compactedBody": "{n} older messages were replaced by one summary. They stay visible here until you reload."
 }

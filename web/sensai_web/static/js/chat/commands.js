@@ -5,7 +5,7 @@ export const COMMANDS = [
   { name: 'add', task: 'T36', cap: 'documents' }, { name: 'remove', task: 'T36', cap: 'documents' },
   { name: 'docs', task: 'T36', cap: 'documents' }, { name: 'reindex', task: 'T36', cap: 'documents' },
   { name: 'read', task: 'T26', cap: 'file_access' }, { name: 'save', task: 'T26', cap: 'file_access' },
-  { name: 'search', task: 'T41', cap: 'web_search' }, { name: 'facts', task: 'T32', cap: 'facts' }, { name: 'context', task: 'T31' }, { name: 'campaign', task: 'T40', cap: 'campaign' },
+  { name: 'search', task: 'T41', cap: 'web_search' }, { name: 'facts', task: 'T32', cap: 'facts' }, { name: 'context', task: 'T31', cap: 'context_budget' }, { name: 'compact', task: 'T31', cap: 'context_budget' }, { name: 'campaign', task: 'T40', cap: 'campaign' },
   { name: 'export', task: 'T50', cap: 'export' }, { name: 'share', task: 'T53' }, { name: 'unshare', task: 'T53' }, { name: 'think', task: 'T20', cap: 'think' },
   { name: 'team', task: 'T48' }, { name: 'edit', task: 'T34', cap: 'branching' },
 ];

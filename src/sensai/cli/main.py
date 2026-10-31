@@ -15,7 +15,10 @@ from typing import NamedTuple
 from sensai.core.errors import LLMError, SensaiError
 from sensai.core.cancellation import CancellationToken, OperationCancelled, OperationTimedOut
 from sensai.core.ports import ApprovalRequest, PolicyDenied, PortError, Profile, ToolCall
-from sensai.chat import saved_sessions
+from sensai.chat import compression, saved_sessions
+from sensai.chat.context import ContextState, loaded_window, summary_cap
+from sensai.cli.context_commands import compact, summarize
+from sensai.llm.ollama import OllamaClient
 from sensai.chat.saved_sessions import SessionRecorder, display_title, profile_block
 from sensai.core.errors import GuardrailRefused
 from sensai.guardrails import GuardedClient, Guardrail, GuardrailConfigError, load_guardrail
@@ -209,6 +212,16 @@ class PreparedChat(NamedTuple):
     recorder: SessionRecorder
 
 
+def _positive_int(value: str) -> int:
+    try:
+        number = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError("must be a positive whole number") from None
+    if number <= 0:
+        raise argparse.ArgumentTypeError("must be a positive whole number")
+    return number
+
+
 def parse_args(settings: Settings, argv: Sequence[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Chat with a local Ollama model.")
     p.add_argument("model", nargs="?", default=settings.model, help="model (or set SENSAI_MODEL)")
@@ -237,6 +250,9 @@ def parse_args(settings: Settings, argv: Sequence[str] | None = None) -> argpars
         if not isfinite(number) or number <= 0:
             raise argparse.ArgumentTypeError("timeout must be a positive finite number")
         return number
+    p.add_argument("--context-budget", type=_positive_int, default=settings.context_length,
+                   help="context window in tokens, sent to Ollama as num_ctx; older messages are summarized at 80%% "
+                        "(default: SENSAI_CONTEXT_LENGTH, else the window Ollama loads)")
     p.add_argument("--operation-timeout", type=positive_timeout,
                    default=settings.operation_timeout,
                    help="maximum seconds per complete turn, and per step of a /think")
@@ -288,7 +304,8 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
          docs: DocLibrary | None = None, checker=None, memory: FactMemory | None = None,
          guard: Guardrail | None = None, files: FileTools | None = None,
          campaign: CampaignStore | None = None, approval=None, web: WebSearch | None = None,
-         doc_search: DocSearch | None = None, exporter: Exporter | None = None) -> None:
+         doc_search: DocSearch | None = None, exporter: Exporter | None = None,
+         context: ContextState | None = None, summary_client=None, probe=None) -> None:
     if base_prompt is None:
         base_prompt = session.messages[0].content
     if tool_registry is None:
@@ -505,6 +522,15 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
         if command and command[0] in ("/read", "/save"):
             file_command(command[0], command[1].strip() if len(command) > 1 else "")
             continue
+        if command and command[0] in ("/context", "/compact"):
+            if context is None:
+                write("error: the context budget is unavailable")
+            elif command[0] == "/context":
+                write(context.report())
+            else:
+                compact(session, context, write, recorder,
+                        CancellationToken(monotonic() + operation_timeout, cancel_requested), summary_client)
+            continue
         if command and command[0] == "/facts":
             for line in (memory.listing() if memory is not None else ["error: the fact sheet is unavailable"]):
                 write(line)
@@ -598,6 +624,8 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
             arguments = arguments.encode("utf-8", "backslashreplace").decode("utf-8")
             write(f"Using tool: {call.name}({arguments})")
 
+        if context is not None:
+            context.start_turn()
         stream = run_with_tools(session, tool_registry, text, token, on_tool=on_tool)
         completed = False
         try:
@@ -624,6 +652,11 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
             session.messages[:] = original  # An interrupted or failed edit leaves the conversation as it was.
         if completed and branch is not None:
             recorder = branch
+        if completed and context is not None:
+            # Count before the title or summary requests report their own usage.
+            tokens = context.end_turn(session.messages)
+            if context.after_summary:
+                write(context.line(tokens))
         if completed and recorder is not None:
             recorder.after_turn(session)
         settle_facts(completed)
@@ -637,6 +670,12 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
             for n, result in enumerate(web.results, 1):
                 write(f"[{n}] {sanitize(result.title, keep='')} {sanitize(result.url, keep='')}"
                       + (f" ({result.date})" if result.date else ""))
+        if completed and context is not None:
+            if probe is not None:
+                context.learn(probe)
+            if compression.should_compress(tokens, context.budget):
+                summarize(session, context, tokens, write, recorder,
+                          CancellationToken(monotonic() + operation_timeout, cancel_requested), summary_client)
 
 
 def _open_storage(args: argparse.Namespace):
@@ -771,8 +810,18 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
             guard = load_guardrail(settings.guardrails_file, settings.brand_file)
         except GuardrailConfigError as e:
             sys.exit(f"error: {e}")
-        raw_client = create_client(settings.model_copy(update={"host": args.host}))
+        # M2: --context-budget is sent to Ollama as num_ctx on every request.
+        settings = settings.model_copy(update={"host": args.host, "context_length": args.context_budget})
+        raw_client = create_client(settings)
         client = GuardedClient(raw_client, guard)  # Every reply is checked line by line before it is shown.
+        context = ContextState(args.context_budget)
+        if hasattr(raw_client, "set_usage_sink"):
+            raw_client.set_usage_sink(context.on_usage)
+        summary_client = None
+        if isinstance(raw_client, OllamaClient):  # The summary's own answer is capped at a quarter of the window.
+            def summary_client(budget):
+                return OllamaClient(args.host, settings.timeout, context_length=args.context_budget,
+                                    num_predict=summary_cap(budget))
         print(f"Chatting with {args.model}. Type '/persona' to list profiles or 'exit' to quit.")
         if recorder.saved:
             print(f"Session {recorder.session_id} — {display_title(recorder.title, recorder.messages)}")
@@ -828,7 +877,9 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
                  tool_registry=tool_registry, data_dir=args.data_dir,
                  docs=docs, checker=checker, memory=memory, guard=guard, files=files,
                  campaign=CampaignStore(settings.campaigns_dir), approval=approval, web=web,
-                 doc_search=found[0] if found else None, exporter=Exporter(guard, settings.exports_dir))
+                 doc_search=found[0] if found else None, exporter=Exporter(guard, settings.exports_dir),
+                 context=context, summary_client=summary_client,
+                 probe=lambda: loaded_window(args.host, args.model) if isinstance(raw_client, OllamaClient) else None)
     finally:
         try:
             remove_stale_folders()

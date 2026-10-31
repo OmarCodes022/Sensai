@@ -12,7 +12,7 @@ from sensai.memory.vector_index import VectorIndexError
 from sensai.rag import MAX_FILE_BYTES, MAX_TOTAL_BYTES, TYPES, DocError
 from sensai.sandbox import SandboxLimits
 from sensai.tools import MAX_TOOL_CALLS
-from sensai_web import branching, campaign, exports, scheduling, questions, websearch, facts, files, manage, models, sandbox, session_view
+from sensai_web import branching, campaign, compaction, exports, scheduling, questions, websearch, facts, files, manage, models, sandbox, session_view
 from sensai_web.app import WebApp
 from sensai_web.errors import ApiError, llm_failure
 from sensai_web.tools import tool_list
@@ -21,7 +21,8 @@ from sensai_web.turn import run_turn
 
 MAX_TEXT_CHARS = 200_000
 CAPABILITIES = ("chat", "personas", "sessions", "profile", "usage", "tools", "approval", "sandbox",
-                "run_script", "history", "think", "branching", "facts", "guardrails", "campaign", "ask_user", "export")
+                "run_script", "history", "think", "branching", "facts", "guardrails", "campaign", "ask_user", "export",
+                "context_budget")
 # "schedule" is added when a tasks file is loaded.
 STARTED = monotonic()
 ROUTES: list[tuple[str, re.Pattern, Callable]] = []
@@ -203,6 +204,17 @@ def think(app: WebApp, request):
             app.end_turn()
 
     return Stream(play, stop.set)
+
+
+@route("GET", r"/api/context")
+def context(app: WebApp, request):
+    with app.mutex:
+        return app.context.as_dict()
+
+
+@route("POST", r"/api/context/compact")
+def compact_context(app: WebApp, request):
+    return compaction.compact(app)
 
 
 @route("POST", r"/api/chat/stop")

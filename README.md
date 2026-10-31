@@ -26,6 +26,7 @@ Docs: <https://omarcodes022.github.io/Sensai/> (sources in [docs/](docs/README.m
 | Brand facts memory | the model saves, corrects and deletes facts with `save_fact` / `delete_fact`; `/facts`; web Brand facts page | [Brand facts](docs/user-guide/brand-facts.md) |
 | Advanced document search | filters by product and newest sheet, the model scores each passage, weak ones are dropped; sources show the score (`SENSAI_RAG=basic` to turn off) | [Document search](docs/user-guide/documents.md#advanced-search) |
 | Brand document search | `/add <file>`, `/docs`; files in `data/docs/` are indexed by themselves | [Document search](docs/user-guide/documents.md) |
+| Long conversations | older messages are summarized at 80% of the window; `/context` shows the count, `/compact` summarizes now (terminal and web) | [Long conversations](docs/user-guide/context.md) |
 | Web interface | `sensai-web <model>` | [below](#web-interface) |
 
 Planned work and what is not built yet: [product scope](docs/product/scope.md).
@@ -128,7 +129,7 @@ variables win over `.env`, and command-line options win over both.
 | `SENSAI_GUARDRAILS_FILE`, `SENSAI_BRAND_FILE` | extra guardrail rules (JSON) and the brand file with the approved claims | none, `./data/brand.json` if it exists |
 | `SENSAI_DOCS`, `SENSAI_EMBED_MODEL` | document folder (empty switches search off) and embedding model | `./data/docs`, `nomic-embed-text` |
 | `SENSAI_OPERATION_TIMEOUT` | seconds per turn | `120` |
-| `SENSAI_CONTEXT_LENGTH` | context tokens (more uses more VRAM) | Ollama's default |
+| `SENSAI_CONTEXT_LENGTH` | context window in tokens, also where summaries start (80%); `--context-budget` in the terminal | Ollama's default |
 | `SENSAI_SSH_HOST` | SSH alias for a remote Ollama | none |
 
 If your `.env` still has `SENSAI_PROMPT=prompts/system.txt`, delete that line: the file no longer exists.

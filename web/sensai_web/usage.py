@@ -20,6 +20,11 @@ class UsageCollector:
         with self._lock:
             self._items.clear()
 
+    def last(self) -> OllamaUsage | None:
+        """The turn's last request: its prompt holds the whole history (the M2 count)."""
+        with self._lock:
+            return self._items[-1] if self._items else None
+
     def summary(self) -> dict:
         """prompt_tokens is the last request's (the context size); the others add up over tool rounds."""
         with self._lock:

@@ -81,6 +81,8 @@ const real = {
   profile: () => req('GET', '/api/profile'),
   putProfile: (preferences) => req('PUT', '/api/profile', { preferences }),
   takeover: () => req('POST', '/api/session/takeover'),
+  context: () => req('GET', '/api/context'),
+  compactContext: () => req('POST', '/api/context/compact'),
 };
 
 let impl = real;

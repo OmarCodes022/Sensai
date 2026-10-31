@@ -926,5 +926,19 @@
  "schedule.saved": "{file} enregistré",
  "schedule.off": "La planification est désactivée",
  "schedule.offBody": "Copiez schedule.example.json vers schedule.local.json (ou définissez SENSAI_SCHEDULE_FILE), puis relancez Sensai.",
- "schedule.noDrafts": "Aucun brouillon pour l'instant."
+ "schedule.noDrafts": "Aucun brouillon pour l'instant.",
+ "slash.compact": "Résumer les anciens messages maintenant",
+ "context.title": "Contexte",
+ "context.window": "Fenêtre",
+ "context.lastTurn": "Dernier tour",
+ "context.summaries": "Résumés",
+ "context.saved": "Jetons économisés",
+ "context.source.set": "réglée",
+ "context.source.ollama": "d'Ollama",
+ "context.source.default": "par défaut",
+ "context.hint": "Les anciens messages sont résumés quand un tour atteint {pct} % de la fenêtre. Tapez /compact pour le faire maintenant.",
+ "context.compacting": "Contexte à {pct} %, résumé de {n} anciens messages…",
+ "context.compactedEvent": "{n} anciens messages résumés. Les 4 derniers messages sont gardés mot pour mot.",
+ "context.compacted": "Compacté : environ {before} -> {after} jetons",
+ "context.compactedBody": "{n} anciens messages ont été remplacés par un résumé. Ils restent visibles ici jusqu'au rechargement."
 }

@@ -22,12 +22,13 @@ export function createInspector({ store, api }) {
     const u = sess?.usage || {};
     box.append(h('h3', null, t('inspector.usage')),
       h('dl', { class: 'kv' }, h('dt', null, t('usage.turns')), h('dd', { class: 'num' }, formatNumber(u.turns ?? 0)), h('dt', null, t('usage.tokens')), h('dd', null, formatTokens(u.prompt_tokens, u.output_tokens))));
-    const max = s.config?.context_length;
+    const max = s.context?.budget ?? s.config?.context_length;
     const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
     const prompt = num(u.last_prompt_tokens) ?? num(u.prompt_tokens), out = num(u.output_tokens);
-    const used = prompt != null ? prompt + (out ?? 0) : null;
+    const live = num(s.context?.last_tokens);  // M2: the whole history's count after the last turn
+    const used = live ?? (prompt != null ? prompt + (out ?? 0) : null);
     box.append(h('h3', null, t('inspector.contextMeter')), max && used != null ? meter({ value: used, max, marker: !!s.capabilities.context_budget }) : h('p', { class: 'muted' }, t('inspector.meterUnknown')),
-      max && used != null && out == null ? h('p', { class: 'muted' }, t('inspector.meterPartial')) : null);
+      max && used != null && live == null && out == null ? h('p', { class: 'muted' }, t('inspector.meterPartial')) : null);
   });
 
   const toolsPanel = () => body((box) => {
