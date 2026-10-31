@@ -14,12 +14,14 @@ from typing import NamedTuple
 
 from sensai.core.errors import SensaiError
 from sensai.core.cancellation import CancellationToken, OperationCancelled, OperationTimedOut
-from sensai.core.ports import PortError, Profile, ToolCall
+from sensai.core.ports import PolicyDenied, PortError, Profile, ToolCall
 from sensai.chat import saved_sessions
 from sensai.chat.saved_sessions import SessionRecorder, display_title, profile_block
 from sensai.core.errors import GuardrailRefused
 from sensai.guardrails import GuardedClient, Guardrail, GuardrailConfigError, load_guardrail
 from sensai.guardrails.rules import message_for
+from sensai.security.file_tools import FILE_TOOLS, FileTools, open_project
+from sensai.chat.blocks import split_block
 from sensai.chat.facts import DELETE_FACT, SAVE_FACT, FactMemory, with_facts
 from sensai.chat.reasoning import Section, think
 from sensai.cli.approval import TerminalApproval, sanitize
@@ -274,7 +276,7 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
          base_prompt: str | None = None, recorder: SessionRecorder | None = None,
          tool_registry: ToolRegistry | None = None, data_dir: str | None = None,
          docs: DocLibrary | None = None, checker=None, memory: FactMemory | None = None,
-         guard: Guardrail | None = None) -> None:
+         guard: Guardrail | None = None, files: FileTools | None = None) -> None:
     if base_prompt is None:
         base_prompt = session.messages[0].content
     if tool_registry is None:
@@ -334,6 +336,31 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
             write(f"(sent as: \"{decision.text}\")")
         return decision.text
 
+    attached: list[str] = []  # Files read with /read, sent with the next message.
+
+    def file_command(name: str, argument: str) -> None:
+        if files is None:
+            write("File access is off (no .sensai/settings.json).")
+        elif not argument:
+            write(f"usage: {name} <path>")
+        elif name == "/read":
+            try:
+                text = files.read(argument)
+            except PortError as e:  # PolicyDenied included; never shows file contents.
+                write(f"{'Permission denied' if isinstance(e, PolicyDenied) else 'error'}: {e} ({argument})")
+                return
+            attached.append(f"File {argument}:\n{text}")
+            write(f"Read {len(text):,} characters from {argument} (sent with your next message)")
+        else:
+            reply = next((split_block(m.content)[0].strip() for m in reversed(session.messages) if m.role == "assistant"), "")
+            if not reply:
+                write("Nothing to save yet: no reply in this conversation.")
+                return
+            try:
+                write(f"{files.save(argument, reply + chr(10))} {argument}")
+            except PortError as e:
+                write(f"{'Permission denied' if isinstance(e, PolicyDenied) else 'error'}: {e} ({argument})")
+
     refresh_facts()
     while True:
         refresh_docs()
@@ -371,6 +398,9 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
                     write(f"Persona sélectionnée : {persona.id}")
                     if recorder is not None:
                         recorder.persona_changed(persona.id)
+            continue
+        if command and command[0] in ("/read", "/save"):
+            file_command(command[0], command[1].strip() if len(command) > 1 else "")
             continue
         if command and command[0] == "/facts":
             for line in (memory.listing() if memory is not None else ["error: the fact sheet is unavailable"]):
@@ -410,8 +440,12 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
                 write(f"New branch {branch.session_id} from {recorder.session_id} "
                       f"({recorder.session_id} is kept unchanged).")
         commands = ("/run", "/docs", "/reindex", "/add", "/remove")
-        if original is None and not (command and command[0] in commands) and (text := screen(text)) is None:
-            continue
+        if original is None and not (command and command[0] in commands):
+            if attached:
+                text = "\n\n".join([*attached, text])
+                attached.clear()
+            if (text := screen(text)) is None:
+                continue
         token = CancellationToken(monotonic() + operation_timeout, cancel_requested)
         if command and command[0] == "/run":
             if len(command) == 1:
@@ -631,6 +665,16 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
             tool_registry = _tools(terminal.read, approval=TerminalApproval(terminal.read_key, print),
                                    data_dir=args.data_dir)
             docs = _setup_docs(args, settings, tool_registry)
+            try:
+                files = open_project(os.getcwd(), args.creator)
+            except (PolicyDenied, PortError) as e:
+                sys.exit(f"error: {e}")
+            if files is not None:
+                allow, deny = files.fs.summary
+                print(f"File access on: {allow} allow rule{'s' * (allow != 1)}, {deny} deny rule{'s' * (deny != 1)} "
+                      "(.sensai/settings.json)")
+                for definition in FILE_TOOLS:  # In this process, with the loaded policy.
+                    tool_registry.register(definition, getattr(files, definition.name), timeout=None)
             memory = FactMemory(repository.for_creator(args.creator).facts)
             tool_registry.register(SAVE_FACT, memory.save, timeout=None)  # In this process: the queue is here.
             tool_registry.register(DELETE_FACT, memory.delete, timeout=None)
@@ -653,7 +697,7 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
                  cancel_requested=terminal.cancel_requested,
                  persona_registry=registry, base_prompt=base_prompt, recorder=recorder,
                  tool_registry=tool_registry, data_dir=args.data_dir,
-                 docs=docs, checker=checker, memory=memory, guard=guard)
+                 docs=docs, checker=checker, memory=memory, guard=guard, files=files)
     finally:
         try:
             remove_stale_folders()
