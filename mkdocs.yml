@@ -33,6 +33,7 @@ nav:
       - Questions and forms: user-guide/questions.md
       - Web search: user-guide/web-search.md
       - Private export: user-guide/export.md
+      - Scheduled drafts: user-guide/scheduling.md
   - Developer guide:
       - Architecture: developer-guide/architecture.md
       - File structure: developer-guide/file-structure.md

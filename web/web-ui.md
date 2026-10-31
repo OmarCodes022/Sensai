@@ -93,7 +93,7 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 4. Add strings to BOTH `strings.en.json` and `strings.fr.json` with identical keys, and a nav key `nav.<name>`.
 5. Keep files under 300 lines; build DOM with `h()` (never `innerHTML`).
 
-## String keys (918 per language, identical in en and fr)
+## String keys (928 per language, identical in en and fr)
 
 - `search` (5): `usage`, `title`, `noModel`, `none`, `failed`
 - `question` (8): `title`, `other`, `otherPlaceholder`, `send`, `skip`, `answerAll`, `answered`, `skipped`
@@ -152,7 +152,7 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 - `documents` (47): `source`, `type`, `product`, `version`, `chunks`, `reindex`, `reindexNote`, `embedOk`, `pullHint`, `search`, `placeholder`, `noModel`, `score`, `notIn`, `state.ready`, `state.indexing`, `state.empty`, `state.unavailable`, `state.off`, `folder`, `help`, `add`, `drop`, `col.name`, `col.state`, `ready`, `pending`, `remove`, `sure`, `removed`, `added`, `badType`, `tooBig`, `notText`, `emptyBody`, `unavailable`, `offBody`, `reindexed`, `searching`, `title`, `view`, `rendered`, `raw`, `viewLabel`, `close`, `bytes`, `notIndexed`
 - `insights` (14): `kind`, `kindHelp`, `allKinds`, `calls`, `errors`, `failures`, `latency`, `tokens`, `perDay`, `day`, `toolUse`, `sparkCalls`, `sparkLatency`, `plain`
 - `safety` (20): `rules`, `direction`, `action`, `reason`, `claimsCount`, `suite`, `defined`, `category`, `cases`, `hold`, `fail`, `notRun`, `suiteTotal`, `eval`, `metric`, `relevance`, `coherence`, `faithfulness`, `flagged`, `planted`
-- `schedule` (11): `banner`, `name`, `prompt`, `every`, `minutes`, `last`, `next`, `st.ok`, `st.failed`, `retry`, `drafts`
+- `schedule` (21): `banner`, `name`, `prompt`, `every`, `minutes`, `last`, `next`, `st.ok`, `st.failed`, `retry`, `drafts`, `tasks`, `intro`, `ok`, `failed`, `notYet`, `runNow`, `saved`, `off`, `offBody`, `noDrafts`
 - `a11y` (2): `skipComposer`, `skipMain`
 - `limits` (4): `cpu`, `mem`, `file`, `chars`
 - `safe` (1): `hidden`
