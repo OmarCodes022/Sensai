@@ -41,8 +41,11 @@ def _persist(app: WebApp, active: ActiveSession, emit: Emit, stop, budget: float
         emit({"type": "title", "title": recorder.title})
 
 
-def run_turn(app: WebApp, active: ActiveSession, stop, text: str, emit: Emit) -> None:
-    """Answer `text` on the active session. Ends with `done`, or with `error` when the turn failed."""
+def run_turn(app: WebApp, active: ActiveSession, stop, text: str, emit: Emit) -> str | None:
+    """Answer `text` on the active session. Ends with `done`, or with `error` when the turn failed.
+
+    Returns the final status (completed, interrupted, timed_out), or None after an error.
+    """
     cfg, session = app.cfg, active.session
     started_at = now()
     turn_id = f"t{uuid4().hex[:8]}"
@@ -77,7 +80,7 @@ def run_turn(app: WebApp, active: ActiveSession, stop, text: str, emit: Emit) ->
         registry.close()
         remove_stale_folders()  # A killed tool worker may not have removed its folder.
     if status is None:
-        return
+        return None
     if status == "completed":
         usage = app.usage.summary()
         emit({"type": "usage", **usage})
@@ -89,3 +92,4 @@ def run_turn(app: WebApp, active: ActiveSession, stop, text: str, emit: Emit) ->
         if active.recorder.saved:
             app.times.record(active.recorder.session_id, number, started_at, active.updated_at)
     emit({"type": "done", "status": status, "turn_id": turn_id})
+    return status
