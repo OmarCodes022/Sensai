@@ -78,6 +78,9 @@ async function chat(text, { onEvent, signal, think = false } = {}) {
   } finally { active = null; }
 }
 
+/** The /api/tools answer; `found` says whether the MCP config file exists. */
+const toolsReply = (found) => ({ items: state.noTools ? [] : TOOLS, servers: [], config: '/home/you/sensai/mcp.json', found, example: '{\n  "mcpServers": {}\n}\n', guide: '#/tools' });
+
 const impl = {
   health: async () => ({ ...HEALTH }),
   config: async () => ({ ...CONFIG }),
@@ -133,9 +136,9 @@ const impl = {
   chat,
   async approve(id, approved) { const r = pending.get(id); if (!r) throw new ApiError('not_found', 'no pending approval', { status: 404 }); pending.delete(id); r(!!approved); return { ok: true }; },
   async stopChat() { active?.abort(); return { stopped: true }; },
-  tools: async () => ({ items: state.noTools ? [] : TOOLS, servers: [], config: '/home/you/sensai/mcp.json', found: false, example: '{\n  "mcpServers": {}\n}\n', guide: '#/tools' }),
-  reloadTools: async () => ({ items: state.noTools ? [] : TOOLS, servers: [], config: '/home/you/sensai/mcp.json', found: false, example: '{\n  "mcpServers": {}\n}\n', guide: '#/tools' }),
-  trustTools: async () => ({ items: state.noTools ? [] : TOOLS, servers: [], config: '/home/you/sensai/mcp.json', found: true, example: '{\n  "mcpServers": {}\n}\n', guide: '#/tools' }),
+  tools: async () => toolsReply(false),
+  reloadTools: async () => toolsReply(false),
+  trustTools: async () => toolsReply(true),
   async run(code) {
     const loop = /while\s+True/.test(code);
     return { exit_code: loop ? -9 : 0, duration_s: loop ? 15 : 0.3, timed_out: loop, truncated: false, stdout: loop ? '' : '1021.4\n', stderr: '', report: loop ? 'Time limit reached (15 s)' : 'Exit code 0 · 0.3 s' };
