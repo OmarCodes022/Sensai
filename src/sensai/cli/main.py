@@ -27,6 +27,7 @@ from sensai.campaign.edits import editable as campaign_editable
 from sensai.guardrails.rules import Claims
 from sensai.llm.structured import StructuredOutputError
 from sensai.chat.blocks import split_block
+from sensai.rag_advanced import DocSearch, make_ranker
 from sensai.search import WEB_SEARCH, SearchError, WebSearch, numbered, provider_for, search
 from sensai.chat.questions import ASK_USER, TerminalForm
 from sensai.chat.facts import DELETE_FACT, SAVE_FACT, FactMemory, with_facts
@@ -65,14 +66,15 @@ def _tools(read, approval=None, data_dir=None, permission=None):
                       confirm=True, max_calls=PYTHON_ATTEMPTS)
     return registry
 
-def _setup_docs(args, settings, tool_registry) -> DocLibrary | None:
+def _setup_docs(args, settings, tool_registry, searcher=None) -> DocLibrary | None:
     """The documents folder as a library that indexes itself in the background; None if switched off."""
     if not args.docs:
         return None
     embedding = OllamaEmbeddingAdapter(settings.embed_model, host=args.host)
     library = DocLibrary(args.docs, embedding, args.creator, cache_path=args.db or DEFAULT_DB_PATH,
                          model=settings.embed_model)
-    tool_registry.register(SEARCH_DOCS, partial(search_docs_handler, library=library), timeout=None)
+    handler = searcher(library) if searcher else partial(search_docs_handler, library=library)
+    tool_registry.register(SEARCH_DOCS, handler, timeout=None)
     library.sync()
     return library
 
@@ -284,7 +286,8 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
          tool_registry: ToolRegistry | None = None, data_dir: str | None = None,
          docs: DocLibrary | None = None, checker=None, memory: FactMemory | None = None,
          guard: Guardrail | None = None, files: FileTools | None = None,
-         campaign: CampaignStore | None = None, approval=None, web: WebSearch | None = None) -> None:
+         campaign: CampaignStore | None = None, approval=None, web: WebSearch | None = None,
+         doc_search: DocSearch | None = None) -> None:
     if base_prompt is None:
         base_prompt = session.messages[0].content
     if tool_registry is None:
@@ -541,6 +544,8 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
         refresh_docs()  # A document added a moment ago counts for this very question.
         if web is not None:
             web.results.clear()  # Sources are listed per answer.
+        if doc_search is not None:
+            doc_search.report = None
 
         def on_tool(call, result):
             if call.name == RUN_PYTHON.name:
@@ -589,6 +594,11 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
         if completed and recorder is not None:
             recorder.after_turn(session)
         settle_facts(completed)
+        if completed and doc_search is not None and doc_search.report is not None and doc_search.report.hits:
+            write("Document sources:")
+            for hit in doc_search.report.hits:
+                relevance = f", relevance {hit['relevance']}/10" if hit["relevance"] is not None else ""
+                write(f"[{hit['n']}] {hit['source']} ({hit['version']}){relevance}")
         if completed and web is not None and web.results:
             write("Sources:")
             for n, result in enumerate(web.results, 1):
@@ -738,7 +748,14 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
         with TerminalInput() as terminal:
             approval = TerminalApproval(terminal.read_key, print)  # Tools and approved campaign edits ask the same way.
             tool_registry = _tools(terminal.read, approval=approval, data_dir=args.data_dir)
-            docs = _setup_docs(args, settings, tool_registry)
+            found: list[DocSearch] = []
+
+            def advanced(library):  # R2: filter, rerank with the model, drop weak matches.
+                ranker = make_ranker(OllamaStructuredClient(args.host, args.operation_timeout,
+                                                            context_length=settings.context_length), args.model)
+                found.append(DocSearch(library, ranker, on_search=lambda report: print(report.summary())))
+                return found[-1]
+            docs = _setup_docs(args, settings, tool_registry, advanced if settings.rag_mode == "advanced" else None)
             try:
                 files = open_project(os.getcwd(), args.creator)
             except (PolicyDenied, PortError) as e:
@@ -777,7 +794,8 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
                  persona_registry=registry, base_prompt=base_prompt, recorder=recorder,
                  tool_registry=tool_registry, data_dir=args.data_dir,
                  docs=docs, checker=checker, memory=memory, guard=guard, files=files,
-                 campaign=CampaignStore(settings.campaigns_dir), approval=approval, web=web)
+                 campaign=CampaignStore(settings.campaigns_dir), approval=approval, web=web,
+                 doc_search=found[0] if found else None)
     finally:
         try:
             remove_stale_folders()

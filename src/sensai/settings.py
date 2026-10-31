@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     # Brand documents searched by the model. Default ./data/docs (created by /add); empty switches it off.
     docs_dir: str | None = Field("data/docs", validation_alias="SENSAI_DOCS")
     embed_model: str = Field("nomic-embed-text", validation_alias="SENSAI_EMBED_MODEL")
+    # Document search mode: advanced (filter, model rerank, drop weak matches; R2) or basic (closest chunks; R1).
+    rag_mode: str = Field("advanced", pattern="^(advanced|basic)$", validation_alias="SENSAI_RAG")
     # Guardrails (EV2): extra rules, and the brand file whose approved claims replies may use.
     campaigns_dir: str = Field("campaigns", validation_alias="SENSAI_CAMPAIGNS_DIR")  # The weekly documents (M4).
     # Web search (T3): brave (needs the key), duckduckgo (no key) or off; default brave when a key is set.
