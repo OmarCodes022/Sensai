@@ -93,7 +93,7 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 4. Add strings to BOTH `strings.en.json` and `strings.fr.json` with identical keys, and a nav key `nav.<name>`.
 5. Keep files under 300 lines; build DOM with `h()` (never `innerHTML`).
 
-## String keys (851 per language, identical in en and fr)
+## String keys (868 per language, identical in en and fr)
 
 - `common` (25): `na`, `planned`, `mockData`, `cancel`, `confirm`, `close`, `copy`, `copied`, `copyFailed`, `copyCommand`, `retry`, `clear`, `loading`, `remove`, `copyDetails`, `stop`, `send`, `run`, `refuse`, `viewAll`, `saved`, `nothingSent`, `dismiss`, `loadError`, `save`
 - `nav` (14): `chat`, `sessions`, `personas`, `profile`, `tools`, `settings`, `campaign`, `brand`, `documents`, `insights`, `safety`, `schedule`, `keynote`, `views`
@@ -133,7 +133,7 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 - `hint` (4): `largePaste`, `privacy`, `privacyGuarded`, `undo`
 - `history` (3): `note`, `noteEdit`, `title`
 - `menu` (12): `copyMd`, `download`, `go`, `hideTokens`, `hideTools`, `jump`, `jumpLabel`, `print`, `serverExport`, `showTokens`, `showTools`, `title`
-- `msg` (12): `assistantLabel`, `copyMd`, `copyPlain`, `details`, `interruptedHidden`, `notSent`, `reuse`, `you`, `youN`, `sources`, `outdated`, `branch`
+- `msg` (14): `assistantLabel`, `copyMd`, `copyPlain`, `details`, `interruptedHidden`, `notSent`, `reuse`, `you`, `youN`, `sources`, `outdated`, `edit`, `editHint`, `editSend`
 - `py` (16): `code`, `cpuLimit`, `errors`, `exit`, `fileLimit`, `gotoLine`, `limitCpu`, `limitMem`, `limitWall`, `noErrors`, `noOutput`, `output`, `signal`, `tabs`, `timeLimit`, `truncated`
 - `reconnect` (2): `done`, `text`
 - `slash` (31): `label`, `none`, `plannedMsg`, `foot.move`, `foot.complete`, `foot.pick`, `foot.close`, `persona`, `history`, `tools`, `run`, `new`, `help`, `read`, `save`, `docs`, `reindex`, `search`, `facts`, `context`, `campaign`, `export`, `share`, `unshare`, `think`, `team`, `edit`, `add`, `remove`, `thinkUsage`, `editUsage`
@@ -145,7 +145,7 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 - `keynote` (21): `intro`, `needsMock`, `openMock`, `scenario`, `start`, `record`, `recordHelp`, `keys`, `bar`, `play`, `pause`, `step`, `restart`, `exit`, `speed`, `timeline`, `beat`, `fallback`, `notes`, `noNotes`, `done`
 - `preview` (4): `notice`, `inert`, `prev`, `next`
 - `campaign` (67): `prepare`, `export`, `share`, `print`, `sections`, `tab.posts`, `tab.dm`, `tab.report`, `tab.calendar`, `status.draft`, `status.approved`, `approve`, `approveTitle`, `approveBody`, `locked`, `valid`, `invalid`, `neverPublished`, `exportBlocked`, `dmCounters`, `unsent`, `question`, `suggestion`, `leftOut`, `figure`, `value`, `period`, `tz`, `source`, `reached`, `engaged`, `rate`, `formula`, `interp`, `daily`, `chartLabel`, `tableAlt`, `day`, `zeroReach`, `flag28`, `edgeTitle`, `edge.zero`, `edge.invalid`, `edge.missing`, `view`, `grid`, `list`, `proposal`, `notScheduled`, `noDrag`, `cmd`, `cmdHelp`, `showEdit`, `invalidEdit`, `applyQ`, `postsApproved`, `autoDraft`, `action`, `where`, `replacePost`, `before`, `after`, `apply`, `noChange`, `previewApplied`, `weeklyRun`, `saved`
-- `brand` (19): `claims`, `facts`, `readOnly`, `id`, `product`, `text`, `source`, `from`, `until`, `status`, `updated`, `st.valid`, `st.expiring`, `st.expired`, `st.notApproved`, `factsNote`, `memUpdated`, `memWill`, `perCreator`
+- `brand` (34): `claims`, `facts`, `readOnly`, `id`, `product`, `text`, `source`, `from`, `until`, `status`, `updated`, `st.valid`, `st.expiring`, `st.expired`, `st.notApproved`, `factsNote`, `memUpdated`, `memWill`, `perCreator`, `memory`, `noFacts`, `addTitle`, `textPlaceholder`, `idHelp`, `saveFact`, `edit`, `delete`, `deleteTitle`, `deleteBody`, `deleteConfirm`, `deleted`, `saved`, `noClaims`, `noClaimsBody`
 - `documents` (47): `source`, `type`, `product`, `version`, `chunks`, `reindex`, `reindexNote`, `embedOk`, `pullHint`, `search`, `placeholder`, `noModel`, `score`, `notIn`, `state.ready`, `state.indexing`, `state.empty`, `state.unavailable`, `state.off`, `folder`, `help`, `add`, `drop`, `col.name`, `col.state`, `ready`, `pending`, `remove`, `sure`, `removed`, `added`, `badType`, `tooBig`, `notText`, `emptyBody`, `unavailable`, `offBody`, `reindexed`, `searching`, `title`, `view`, `rendered`, `raw`, `viewLabel`, `close`, `bytes`, `notIndexed`
 - `insights` (14): `kind`, `kindHelp`, `allKinds`, `calls`, `errors`, `failures`, `latency`, `tokens`, `perDay`, `day`, `toolUse`, `sparkCalls`, `sparkLatency`, `plain`
 - `safety` (20): `rules`, `direction`, `action`, `reason`, `claimsCount`, `suite`, `defined`, `category`, `cases`, `hold`, `fail`, `notRun`, `suiteTotal`, `eval`, `metric`, `relevance`, `coherence`, `faithfulness`, `flagged`, `planted`
