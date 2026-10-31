@@ -48,6 +48,8 @@ def test_one_edit_changes_one_item_and_leaves_the_other_sections_byte_for_byte(s
     ("posts", PostEdit(op="add", caption="x", claim_ids=["C04"]), "C04 is not approved"),
     ("posts", PostEdit(op="replace", id="P9", caption="x"), "post P9 does not exist"),
     ("posts", PostEdit(op="add", caption=" "), "no caption"),
+    ("posts", PostEdit(op="add", caption="Keeps skin hydrated for 8 hours (C01)"), "C01 must keep its approved wording"),
+    ("posts", PostEdit(op="add", caption="Glow all day", claim_ids=["C01"]), "C01 must keep its approved wording"),
     ("calendar", EntryEdit(op="add", date="2026-11-04", time="18:00", post_id="P7", theme="x"), "post P7 does not exist"),
     ("calendar", EntryEdit(op="add", date="2026-12-01", time="18:00", post_id="P1", theme="x"), "outside the week"),
     ("calendar", EntryEdit(op="add", date="2026-11-04", time="25:00", post_id="P1", theme="x"), "HH:MM"),
@@ -84,3 +86,11 @@ def test_the_model_is_asked_with_the_sections_schema(store, claims):
     edit = ask(Checker(), "m", store.latest(), "posts", "write a post", claims)
     assert seen["schema"] is PostEdit and isinstance(edit, PostEdit)
     assert '"approved_claims": [{"id": "C01"' in seen["text"] and "Request: write a post" in seen["text"]
+
+
+def test_a_claim_the_caption_cites_is_listed_even_if_the_model_forgot_it(store, claims):
+    doc = store.latest()
+    by_text = plan(doc, "posts", PostEdit(op="add", caption="Hydrates skin for up to 8 hours. Glow on."), claims)
+    assert by_text.doc.sections.posts.items[-1].claim_ids == ["C01"]
+    by_id = plan(doc, "posts", PostEdit(op="add", caption="Hydrates skin for up to 8 hours (C01)"), claims)
+    assert by_id.doc.sections.posts.items[-1].claim_ids == ["C01"]
