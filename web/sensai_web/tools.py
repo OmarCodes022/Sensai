@@ -7,6 +7,7 @@ from time import monotonic
 
 from sensai.core.ports import ToolCall, ToolResult
 from sensai.rag import SEARCH_DOCS, DocLibrary, search_with_hits
+from sensai.rag_advanced import advanced_search
 from sensai.sandbox import PYTHON_ATTEMPTS, RUN_PYTHON
 from sensai.chat.facts import DELETE_FACT, SAVE_FACT, FactMemory
 from sensai.chat.questions import ASK_USER
@@ -41,7 +42,7 @@ class ObservedRegistry(ToolRegistry):
 
     def __init__(self, approval: WebApproval, emit: Callable[[dict], None], data_dir: str | None,
                  meta_dir: str, library: DocLibrary | None = None, memory: FactMemory | None = None,
-                 files: FileTools | None = None, form=None, web=None):
+                 files: FileTools | None = None, form=None, web=None, ranker=None):
         super().__init__(approval)
         self._approval = approval
         self._emit = emit
@@ -62,6 +63,7 @@ class ObservedRegistry(ToolRegistry):
         if web is not None:  # Keeps this turn's results here for the source list.
             self.register(WEB_SEARCH, web, timeout=None)
         self._hits: list[dict] = []
+        self._ranker, self._doc_report = ranker, None
         if library is not None and library.enabled:
             self.register(SEARCH_DOCS, partial(self._search, library), timeout=None)  # In this process: the index is here.
 
@@ -75,7 +77,11 @@ class ObservedRegistry(ToolRegistry):
         return result
 
     def _search(self, library: DocLibrary, arguments, cancellation=None) -> ToolResult:
-        text, self._hits = search_with_hits(library, arguments.get("query", ""))
+        if self._ranker is not None:  # R2: filter, rerank with the model, drop weak matches.
+            text, report = advanced_search(library, arguments.get("query", "") or "", self._ranker)
+            self._hits, self._doc_report = report.hits, report
+        else:
+            text, self._hits = search_with_hits(library, arguments.get("query", ""))
         return ToolResult(text)
 
     def malformed(self, call: ToolCall, result: ToolResult) -> None:
@@ -106,7 +112,11 @@ class ObservedRegistry(ToolRegistry):
             event["meta"] = {key: record[key] for key in record if key not in ("report", "duration_s")}
         self._emit(event)
         if call.name == SEARCH_DOCS.name and result.error is None and self._hits:
-            self._emit({"type": "sources", "items": [{k: hit[k] for k in ("n", "source", "version", "score", "outdated")} for hit in self._hits]})
+            report = self._doc_report
+            self._emit({"type": "sources", "items": [{k: hit.get(k) for k in ("n", "source", "version", "score", "outdated", "relevance")}
+                                                     for hit in self._hits],
+                        **({"kept": report.kept, "candidates": report.candidates, "filter": report.filter,
+                            "reranked": report.reranked} if report is not None else {})})
             self._hits = []
 
     def close(self) -> None:

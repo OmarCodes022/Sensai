@@ -127,7 +127,8 @@ class WebApp:
         self.campaign = CampaignStore(settings.campaigns_dir)  # The weekly document (M4).
         self.pending_change = None
         self.questions = Approvals()
-        self.web = make_search(settings)  # Web search (T3), or None when switched off.  # ask_user forms waiting for the page (X4).  # An approved-section edit waiting for the creator's yes (A3).
+        self.web = make_search(settings)
+        self.rag_mode = settings.rag_mode  # advanced (R2) or basic (R1) document search  # Web search (T3), or None when switched off.  # ask_user forms waiting for the page (X4).  # An approved-section edit waiting for the creator's yes (A3).
         self.title_client = make_client(settings)
         try:
             self.catalogue = Catalogue(cfg.personas_file)

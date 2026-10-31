@@ -14,6 +14,7 @@ from sensai_web.approvals import WebApproval
 from sensai_web.errors import llm_failure
 from sensai_web.facts import settle
 from sensai_web.guard import screen, stopped
+from sensai.rag_advanced import make_ranker
 from sensai_web.questions import WebForm
 from sensai_web import websearch
 from sensai_web.tools import INVALID, ObservedRegistry
@@ -68,7 +69,8 @@ def run_turn(app: WebApp, active: ActiveSession, stop, text: str, emit: Emit) ->
     if app.web is not None:
         app.web.results.clear()  # Sources are listed per reply.
     registry = ObservedRegistry(approval, emit, app.data.path, app.meta_dir, app.docs, app.memory, app.files,
-                              WebForm(app.questions, emit, stop, turn_id, approval), app.web)
+                              WebForm(app.questions, emit, stop, turn_id, approval), app.web,
+                              make_ranker(app.checker, app.model) if app.rag_mode == "advanced" else None)
     status = None
     stream = run_with_tools(
         session, registry, text, token,
