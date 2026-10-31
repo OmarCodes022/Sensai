@@ -41,7 +41,8 @@ including an unknown `/word`, is sent to the model.
 | `/persona <id>` | Switches persona from the next message, keeping the conversation |
 | `/history` | Lists your own messages of this session, one line each |
 | `/tools` | Lists the tools the model can use |
-| `/reload` | Reloads the MCP configuration, keeping the conversation |
+| `/mcp` | Shows the MCP config file, server status and how to add a server |
+| `/mcp reload` | Reloads the MCP configuration, keeping the conversation |
 | `/run <file.py>` | Runs a local Python file in the sandbox, without the model |
 | `/think <request>` | Plans, uses tools, drafts, checks and revises, showing every step |
 | `exit` or `quit` | Leaves Sensai, in any letter case |

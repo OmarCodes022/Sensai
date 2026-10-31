@@ -49,7 +49,7 @@ commands (like `sensai-web`) are registered. Full install guide:
 .venv/bin/sensai-remote                           # same, through an SSH tunnel
 ```
 
-In a chat: `/persona [id]`, `/tools`, `/reload` (MCP configuration), `/history`, `/run <file.py>`, `/docs [text]`,
+In a chat: `/persona [id]`, `/tools`, `/mcp` (status and setup; `/mcp reload` after editing), `/history`, `/run <file.py>`, `/docs [text]`,
 `/add`, `/remove`, `/reindex`, and `exit` to leave. Each turn has a 120 s budget.
 Remote Ollama: [SSH setup](docs/operations/remote-ollama.md).
 

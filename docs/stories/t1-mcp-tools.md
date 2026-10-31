@@ -10,6 +10,6 @@ As a skincare creator, I want Sensai to fetch my weekly engagement figures from 
 
 As a creator, I want to plug in existing MCP tools by editing a config file, so that I can add abilities without changing Sensai's code.
 
-- After adding a server and using `/reload` or **Reload MCP**, its tools appear in the listing and can be used in chat.
+- After adding a server and using `/mcp reload` or **Reload MCP**, its tools appear in the listing and can be used in chat.
 - A broken server shows a warning while other tools and chat keep working.
 - Removing a server and reloading removes its tools without losing the conversation.
