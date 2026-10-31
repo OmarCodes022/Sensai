@@ -250,6 +250,19 @@ def _history(messages) -> str:
     return "\n".join(lines) or "Aucun message dans cette session."
 
 
+def _parse_edit(argument: str, messages) -> tuple[int, str] | str:
+    """(message number, new text) for /edit, or the error line to print."""
+    usage = "usage: /edit <number> <new text>"
+    number, _, text = argument.strip().partition(" ")
+    if not number.isdecimal() or not text.strip():
+        return usage
+    count = len(saved_sessions.user_messages(messages))
+    if not 1 <= int(number) <= count:
+        return f"error: there is no message {number} (use /history: 1 to {count})" if count else \
+            "error: there are no messages to edit yet."
+    return int(number), text.strip()
+
+
 def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
          operation_timeout: float = 120.0, cancel_requested=None,
          persona_registry: PersonaRegistry | None = None,
@@ -327,6 +340,22 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
 
                 _think(session, tool_registry, command[1], checker, step_token, write, recorder)
             continue
+        original = branch = None
+        if command and command[0] == "/edit":
+            edited = _parse_edit(command[1] if len(command) > 1 else "", session.messages)
+            if isinstance(edited, str):
+                write(edited)
+                continue
+            number, text = edited
+            original = list(session.messages)
+            session.messages[:] = saved_sessions.messages_before_user(original, number)
+            command = []  # The new text is a plain message, never a command.
+            if recorder is not None:
+                known = {s.id for s in recorder.store.list()}
+                branch = recorder.branch(saved_sessions.new_session_id(known.__contains__),
+                                         [m for m in original if m.role != "system"])
+                write(f"New branch {branch.session_id} from {recorder.session_id} "
+                      f"({recorder.session_id} is kept unchanged).")
         token = CancellationToken(monotonic() + operation_timeout, cancel_requested)
         if command and command[0] == "/run":
             if len(command) == 1:
@@ -392,6 +421,10 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
             write(f"error: {e}")
         finally:
             stream.close()
+        if original is not None and not completed:
+            session.messages[:] = original  # An interrupted or failed edit leaves the conversation as it was.
+        if completed and branch is not None:
+            recorder = branch
         if completed and recorder is not None:
             recorder.after_turn(session)
 
