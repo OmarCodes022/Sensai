@@ -907,5 +907,7 @@
  "search.title": "Résultats web pour « {q} »",
  "search.noModel": "Affiché sans demander au modèle.",
  "search.none": "Aucun résultat web.",
- "search.failed": "La recherche web a échoué"
+ "search.failed": "La recherche web a échoué",
+ "msg.keptOf": "{k} passages gardés sur {n}, les autres ont moins de 6/10",
+ "msg.keptBasic": "{k} passages gardés sur {n} (classement simple)"
 }

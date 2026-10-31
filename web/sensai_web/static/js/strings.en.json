@@ -907,5 +907,7 @@
  "search.title": "Web results for \"{q}\"",
  "search.noModel": "Shown without asking the model.",
  "search.none": "No web results.",
- "search.failed": "Web search failed"
+ "search.failed": "Web search failed",
+ "msg.keptOf": "kept {k} of {n} passages, the rest scored below 6/10",
+ "msg.keptBasic": "kept {k} of {n} passages (basic ranking)"
 }

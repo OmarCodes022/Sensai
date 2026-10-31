@@ -66,10 +66,11 @@ export function createAssistant(opts) {
         h('span', { class: 'num mono' }, `[${s.n}] `), /^https?:\/\//.test(s.url) ? h('a', { href: s.url, target: '_blank', rel: 'noopener noreferrer' }, s.title) : s.title,
         s.date ? h('span', { class: 'muted' }, ` · ${s.date}`) : null)))] : []));
     },
-    setSources(items) {
+    setSources(items, meta = {}) {
       sources = items;
       cited.hidden = !items?.length;
-      cited.replaceChildren(...(items?.length ? [h('span', { class: 'muted' }, t('msg.sources')), ...items.map((s) => chip(`${s.n ? `${s.n}. ` : ''}${s.source}${s.version ? ` ${s.version}` : ''}${s.outdated ? ` (${t('msg.outdated')})` : ''}`, { outline: true, tone: s.outdated ? 'amber' : undefined, mono: true }))] : []));
+      const kept = meta.candidates ? h('span', { class: 'muted' }, t(meta.reranked ? 'msg.keptOf' : 'msg.keptBasic', { k: meta.kept, n: meta.candidates })) : null;
+      cited.replaceChildren(...(items?.length ? [h('span', { class: 'muted' }, t('msg.sources')), ...items.map((s) => chip(`${s.n ? `${s.n}. ` : ''}${s.source}${s.version ? ` ${s.version}` : ''}${s.relevance != null ? ` · ${s.relevance}/10` : ''}${s.outdated ? ` (${t('msg.outdated')})` : ''}`, { outline: true, tone: s.outdated ? 'amber' : undefined, mono: true })), kept] : []));
       if (!streaming) paint();
     },
     finish(u) {
