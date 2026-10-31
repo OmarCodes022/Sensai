@@ -17,7 +17,10 @@ def _invalid_constant(value):
 
 
 _DECODER = json.JSONDecoder(parse_constant=_invalid_constant, parse_float=_finite_float)
-_START = re.compile(r"(?m)^\{")
+# An object at the start of a line, maybe indented, maybe after an opening code fence.
+_START = re.compile(r"(?m)^[ \t]*(```[A-Za-z]*[ \t]*\r?\n[ \t]*)?\{")
+# The end of the reply, while it may still grow into such a start.
+_OPENING = re.compile(r"(?m)^[ \t]*(?:`{1,2}|```[A-Za-z]*[ \t]*\r?\n?[ \t]*)?\Z")
 
 
 # Where a decode error points when only the end of the buffer is missing (besides
@@ -32,19 +35,34 @@ _CUT_ESCAPE = re.compile(r'\\(?:u[0-9a-fA-F]{0,3})?')
 
 
 def split_block(reply: str) -> tuple[str, dict | None]:
-    """Extract only an object starting at column zero and ending the reply."""
+    """Extract only an object ending the reply.
+
+    At column zero any object counts. Indented or inside a code fence, which
+    models often write instead, only a tool call does: other JSON stays visible.
+    """
     for start in _START.finditer(reply):
         try:
-            block, end = _DECODER.raw_decode(reply, start.start())
+            block, end = _DECODER.raw_decode(reply, start.end() - 1)
         except (ValueError, RecursionError):
             continue
-        if isinstance(block, dict) and not reply[end:].strip():
+        rest = reply[end:].strip()
+        if not isinstance(block, dict) or not (not rest or (start.group(1) and rest == "```")):
+            continue
+        if start.end() - start.start() == 1 or "tool" in block:
             return reply[:start.start()], block
     return reply, None
 
 
+def _held_opening(reply: str, printed: int) -> int:
+    """Where the unprinted end of the reply may still open a block (two lines at most)."""
+    last = reply.rfind("\n", printed)
+    previous = reply.rfind("\n", printed, last) if last >= 0 else -1
+    opening = _OPENING.search(reply, previous + 1 if previous >= 0 else printed)
+    return opening.start() if opening else len(reply)
+
+
 class BlockReader:
-    """Hold a ``{`` line while it may still become the final block, else release it."""
+    """Hold a possible block start while it may still become the final block, else release it."""
 
     def __init__(self):
         self._reply = ""
@@ -61,16 +79,16 @@ class BlockReader:
                 return ""
             self._string = None
         start = _START.search(self._reply, self._printed)
-        safe = len(self._reply)
+        safe = None
         while start is not None:
-            offset = start.start()
+            offset = start.end() - 1
             try:
                 _, end = _DECODER.raw_decode(self._reply, offset)
             except json.JSONDecodeError as exc:
                 cut_string = exc.msg.startswith("Unterminated string")
                 if (cut_string or exc.pos >= len(self._reply)
                         or _PARTIAL_TOKEN.fullmatch(self._reply, exc.pos)):
-                    safe = offset  # More text may still complete this object.
+                    safe = start.start()  # More text may still complete this object.
                     if cut_string:
                         self._string = exc.pos + 1
                     break
@@ -78,10 +96,13 @@ class BlockReader:
             except (ValueError, RecursionError):
                 end = offset + 1  # NaN/Infinity, nonfinite numbers, deep nesting.
             else:
-                if not self._reply[end:].strip():
-                    safe = offset
+                rest = self._reply[end:].strip()
+                if not rest or (start.group(1) and "```".startswith(rest)):
+                    safe = start.start()
                     break
             start = _START.search(self._reply, end)
+        if safe is None:
+            safe = _held_opening(self._reply, self._printed)
         visible = self._reply[self._printed:safe]
         self._printed = safe
         return visible

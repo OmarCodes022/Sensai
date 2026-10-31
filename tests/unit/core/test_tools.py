@@ -49,7 +49,7 @@ def test_block_reader_all_chunk_boundaries_and_final_non_tool():
 
 
 @pytest.mark.parametrize("reply", [
-    'inline {"tool":"x"}', ' {"tool":"x"}', '{invalid}', '{"n": NaN}',
+    'inline {"tool":"x"}', ' {"x": 1}', '{invalid}', '{"n": NaN}',
     '{"n": Infinity}', '{"n": -Infinity}', '{"n": 1e999}', '{"x": 1}\nmore text',
     'Ordinary {braces}\n', '{"x": 1} suffix',
 ])
