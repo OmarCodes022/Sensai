@@ -22,6 +22,7 @@ from sensai.sandbox import RUN_PYTHON, SandboxError, data_file_names, data_promp
 from sensai.settings import Settings
 from sensai.llm.embeddings import OllamaEmbeddingAdapter
 from sensai.rag import DOCS_PROMPT, SEARCH_DOCS, DocLibrary
+from sensai.chat.facts import DELETE_FACT, SAVE_FACT
 from sensai.tools import CALCULATE, tool_instructions
 from sensai_web import session_view
 from sensai_web.approvals import Approvals
@@ -29,6 +30,7 @@ from sensai_web.catalogue import Catalogue
 from sensai_web.config import WebConfig
 from sensai_web.datafiles import DataFolder
 from sensai_web.errors import ApiError
+from sensai_web.facts import make_memory
 from sensai_web.health import Health
 from sensai_web.profile import clean_preferences
 from sensai_web.tabs import TabLock
@@ -102,6 +104,7 @@ class WebApp:
         self.docs = DocLibrary(cfg.docs_dir, make_embedding(cfg), cfg.creator, cache_path=cfg.db_path, model=cfg.embed_model)
         self.model = cfg.model  # the page can change it while running
         self.checker = make_checker(cfg)
+        self.memory = make_memory(self)  # The brand fact sheet (M3); the model edits it through two tools.
         self.health = Health(cfg.host, cfg.model)
         self.meta_dir = tempfile.mkdtemp(prefix="sensai-web-")
         settings = (settings or Settings()).model_copy(update={"host": cfg.host})
@@ -157,7 +160,7 @@ class WebApp:
     # Prompt and sessions
 
     def tools_text(self) -> str:
-        return tool_instructions((CALCULATE, RUN_PYTHON, *((SEARCH_DOCS,) if self.docs.enabled else ())))
+        return tool_instructions((CALCULATE, RUN_PYTHON, SAVE_FACT, DELETE_FACT, *((SEARCH_DOCS,) if self.docs.enabled else ())))
 
     def data_text(self) -> str:
         """The data file names for the model (as in the CLI), or "" without a readable data folder."""
@@ -174,7 +177,7 @@ class WebApp:
         prompt, block = self.base_prompt, profile_block(self.preferences)
         persona = self.catalogue.registry.get(persona_id) if persona_id else None
         docs = DOCS_PROMPT if self.docs.ready_count() > 0 else ""
-        parts = (prompt, self.data_text(), block, persona.system_prompt if persona else "", docs)
+        parts = (prompt, self.data_text(), block, self.memory.block(), persona.system_prompt if persona else "", docs)
         prompt = "\n\n".join(part for part in parts if part)
         tools = self.tools_text()
         return prompt if prompt.endswith(tools) else f"{prompt}\n\n{tools}"

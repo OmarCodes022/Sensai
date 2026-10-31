@@ -12,6 +12,7 @@ from sensai.tools import run_with_tools
 from sensai_web.app import ActiveSession, WebApp, now
 from sensai_web.approvals import WebApproval
 from sensai_web.errors import llm_failure
+from sensai_web.facts import settle
 from sensai_web.tools import INVALID, ObservedRegistry
 
 Emit = Callable[[dict], None]
@@ -56,7 +57,8 @@ def run_turn(app: WebApp, active: ActiveSession, stop, text: str, emit: Emit) ->
     for notice in app.refresh_prompt(active):
         emit({"type": "warning", "code": "documents", "message": notice})
     approval = WebApproval(app.approvals, emit, stop, turn_id)
-    registry = ObservedRegistry(approval, emit, app.data.path, app.meta_dir, app.docs)
+    app.memory.drop()
+    registry = ObservedRegistry(approval, emit, app.data.path, app.meta_dir, app.docs, app.memory)
     status = None
     stream = run_with_tools(
         session, registry, text, token,
@@ -79,6 +81,7 @@ def run_turn(app: WebApp, active: ActiveSession, stop, text: str, emit: Emit) ->
         stream.close()
         registry.close()
         remove_stale_folders()  # A killed tool worker may not have removed its folder.
+    settle(app, active, status == "completed", emit)  # Fact changes count only for a completed reply.
     if status is None:
         return None
     if status == "completed":

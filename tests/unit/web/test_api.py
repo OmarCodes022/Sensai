@@ -61,9 +61,10 @@ def test_the_configured_persona_is_active_from_the_start(web):
     assert web(persona="communaute").call("GET", "/api/session")[1]["persona"] == "communaute"
 
 
-def test_tools_lists_both_tools_with_their_rules(web):
+def test_tools_lists_the_tools_with_their_rules(web):
     items = web().call("GET", "/api/tools")[1]["items"]
-    assert [(t["name"], t["confirm"], t["timeout"]) for t in items] == [("calculate", False, 30), ("run_python", True, 30)]
+    assert [(t["name"], t["confirm"], t["timeout"]) for t in items] == [("calculate", False, 30), ("run_python", True, 30),
+                                                                            ("save_fact", False, None), ("delete_fact", False, None)]
     assert items[1]["parameters"]["required"] == ["code"]
 
 

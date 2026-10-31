@@ -11,6 +11,7 @@ from sensai.sandbox import remove_stale_folders
 from sensai_web.app import ActiveSession, WebApp, now
 from sensai_web.approvals import WebApproval
 from sensai_web.errors import llm_failure
+from sensai_web.facts import settle
 from sensai_web.tools import ObservedRegistry
 from sensai_web.turn import Emit, _add, _persist
 
@@ -45,7 +46,8 @@ def run_think(app: WebApp, active: ActiveSession, stop, request: str, emit: Emit
     for notice in app.refresh_prompt(active):
         emit({"type": "warning", "code": "documents", "message": notice})
     approval = WebApproval(app.approvals, emit, stop, turn_id)
-    registry = ObservedRegistry(approval, emit, app.data.path, app.meta_dir, app.docs)
+    app.memory.drop()
+    registry = ObservedRegistry(approval, emit, app.data.path, app.meta_dir, app.docs, app.memory)
     write = _writer(emit)
 
     def new_token():  # Each step gets its own deadline; stop cancels them all.
@@ -73,6 +75,7 @@ def run_think(app: WebApp, active: ActiveSession, stop, request: str, emit: Emit
         stream.close()
         registry.close()
         remove_stale_folders()
+    settle(app, active, status == "completed", emit)  # Fact changes count only for a completed reply.
     if status is None:
         return
     if status == "completed":

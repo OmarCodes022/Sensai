@@ -12,7 +12,7 @@ from sensai.memory.vector_index import VectorIndexError
 from sensai.rag import MAX_FILE_BYTES, MAX_TOTAL_BYTES, TYPES, DocError
 from sensai.sandbox import SandboxLimits
 from sensai.tools import MAX_TOOL_CALLS
-from sensai_web import branching, manage, models, sandbox, session_view
+from sensai_web import branching, facts, manage, models, sandbox, session_view
 from sensai_web.app import WebApp
 from sensai_web.errors import ApiError, llm_failure
 from sensai_web.tools import tool_list
@@ -21,7 +21,7 @@ from sensai_web.turn import run_turn
 
 MAX_TEXT_CHARS = 200_000
 CAPABILITIES = ("chat", "personas", "sessions", "profile", "usage", "tools", "approval", "sandbox",
-                "run_script", "history", "think", "branching")
+                "run_script", "history", "think", "branching", "facts")
 STARTED = monotonic()
 ROUTES: list[tuple[str, re.Pattern, Callable]] = []
 
@@ -256,6 +256,26 @@ def read_data(app: WebApp, request, name: str):
 @route("DELETE", r"/api/run/data/(?P<name>[^/]+)")
 def delete_data(app: WebApp, request, name: str):
     return app.data.delete(unquote(name))
+
+
+@route("GET", r"/api/facts")
+def list_facts(app: WebApp, request):
+    return facts.listing(app)
+
+
+@route("GET", r"/api/brand/claims")
+def brand_claims(app: WebApp, request):
+    return facts.claims(app)
+
+
+@route("PUT", r"/api/facts/(?P<id>[^/]+)")
+def put_fact(app: WebApp, request, id: str):
+    return facts.put(app, unquote(id), request.json().get("text"))
+
+
+@route("DELETE", r"/api/facts/(?P<id>[^/]+)")
+def delete_fact(app: WebApp, request, id: str):
+    return facts.delete(app, unquote(id))
 
 
 @route("GET", r"/api/profile")
