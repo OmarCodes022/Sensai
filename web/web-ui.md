@@ -93,8 +93,9 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 4. Add strings to BOTH `strings.en.json` and `strings.fr.json` with identical keys, and a nav key `nav.<name>`.
 5. Keep files under 300 lines; build DOM with `h()` (never `innerHTML`).
 
-## String keys (903 per language, identical in en and fr)
+## String keys (909 per language, identical in en and fr)
 
+- `search` (5): `usage`, `title`, `noModel`, `none`, `failed`
 - `question` (8): `title`, `other`, `otherPlaceholder`, `send`, `skip`, `answerAll`, `answered`, `skipped`
 - `files` (8): `title`, `on`, `off`, `read`, `created`, `replaced`, `usageRead`, `usageSave`
 - `common` (25): `na`, `planned`, `mockData`, `cancel`, `confirm`, `close`, `copy`, `copied`, `copyFailed`, `copyCommand`, `retry`, `clear`, `loading`, `remove`, `copyDetails`, `stop`, `send`, `run`, `refuse`, `viewAll`, `saved`, `nothingSent`, `dismiss`, `loadError`, `save`
@@ -135,7 +136,7 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 - `hint` (4): `largePaste`, `privacy`, `privacyGuarded`, `undo`
 - `history` (3): `note`, `noteEdit`, `title`
 - `menu` (12): `copyMd`, `download`, `go`, `hideTokens`, `hideTools`, `jump`, `jumpLabel`, `print`, `serverExport`, `showTokens`, `showTools`, `title`
-- `msg` (14): `assistantLabel`, `copyMd`, `copyPlain`, `details`, `interruptedHidden`, `notSent`, `reuse`, `you`, `youN`, `sources`, `outdated`, `edit`, `editHint`, `editSend`
+- `msg` (15): `assistantLabel`, `copyMd`, `copyPlain`, `details`, `interruptedHidden`, `notSent`, `reuse`, `you`, `youN`, `sources`, `outdated`, `edit`, `editHint`, `editSend`, `webSources`
 - `py` (16): `code`, `cpuLimit`, `errors`, `exit`, `fileLimit`, `gotoLine`, `limitCpu`, `limitMem`, `limitWall`, `noErrors`, `noOutput`, `output`, `signal`, `tabs`, `timeLimit`, `truncated`
 - `reconnect` (2): `done`, `text`
 - `slash` (31): `label`, `none`, `plannedMsg`, `foot.move`, `foot.complete`, `foot.pick`, `foot.close`, `persona`, `history`, `tools`, `run`, `new`, `help`, `read`, `save`, `docs`, `reindex`, `search`, `facts`, `context`, `campaign`, `export`, `share`, `unshare`, `think`, `team`, `edit`, `add`, `remove`, `thinkUsage`, `editUsage`
