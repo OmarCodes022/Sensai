@@ -139,6 +139,25 @@ def test_web_reload_refreshes_tools_prompt_and_preserves_history(web, tmp_path):
     assert page.call("POST", "/api/tools/reload")[0] == 200
     assert "fixture.first" not in page.app.active.session.messages[0].content
     assert page.call("GET", "/api/session")[1]["items"] == before
+    page.client.replies.append(["again"])
+    assert page.stream({"text": "next"})[0] == 200
+    assert [m.role for m in page.client.requests[-1][1]].count("system") == 1  # Reloading is not a persona switch.
+
+
+def test_web_reload_while_another_runs_is_busy(web, tmp_path):
+    page = web(["hello"])
+    statuses = []
+
+    def reload():
+        statuses.append(page.call("POST", "/api/tools/reload")[0])
+        statuses.append(page.call("POST", "/api/tools/trust", {"digest": "x"})[0])
+        statuses.append(page.stream({"text": "hi"})[0])
+        return True
+
+    page.app.mcp.reload = reload
+    assert page.call("POST", "/api/tools/reload")[0] == 200
+    assert statuses == [429, 429, 429]
+    assert page.app.turn is None  # Released afterwards.
 
 
 @pytest.mark.parametrize("thinking", [False, True])
