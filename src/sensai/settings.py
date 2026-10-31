@@ -30,3 +30,7 @@ class Settings(BaseSettings):
     # Brand documents searched by the model. Default ./data/docs (created by /add); empty switches it off.
     docs_dir: str | None = Field("data/docs", validation_alias="SENSAI_DOCS")
     embed_model: str = Field("nomic-embed-text", validation_alias="SENSAI_EMBED_MODEL")
+    # Guardrails (EV2): extra rules, and the brand file whose approved claims replies may use.
+    guardrails_file: str | None = Field(None, validation_alias="SENSAI_GUARDRAILS_FILE")
+    brand_file: str | None = Field(default_factory=lambda: "data/brand.json" if os.path.isfile("data/brand.json") else None,
+                                   validation_alias="SENSAI_BRAND_FILE")
