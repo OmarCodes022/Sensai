@@ -149,6 +149,10 @@ class ToolRegistry:
                 raise ValueError("timed handlers must be pickleable; open resources in the child") from exc
         self._tools[name] = _RegisteredTool(definition, handler, timeout, confirm, max_calls)
 
+    def unregister(self, name: str) -> None:
+        """Remove a tool when its configured server is reloaded."""
+        self._tools.pop(name, None)
+
     def definitions(self) -> tuple[ToolDefinition, ...]:
         return tuple(tool.definition for tool in self._tools.values())
 
@@ -265,8 +269,14 @@ def _validate_arguments(arguments, parameters):
         "null": lambda value: value is None,
     }
     for name, schema in parameters.get("properties", {}).items():
+        if schema is False and name in arguments:
+            raise ValueError(f"{name} is not permitted")
+        if isinstance(schema, bool):
+            continue
         kind = schema.get("type")
-        if name in arguments and kind in checks and not checks[kind](arguments[name]):
+        kinds = kind if isinstance(kind, list) else [kind]
+        if (name in arguments and kinds and all(isinstance(k, str) and k in checks for k in kinds)
+                and not any(checks[k](arguments[name]) for k in kinds)):
             raise ValueError(f"{name} must be {kind}")
 
 
