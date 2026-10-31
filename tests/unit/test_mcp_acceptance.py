@@ -12,7 +12,7 @@ import pytest
 
 from sensai.core.ports import ToolCall, ToolDefinition
 from sensai.core.cancellation import CancellationToken, OperationCancelled
-from sensai.mcp_client import Catalogue, Server, exchange
+from sensai.mcp_client import EXAMPLE_CONFIG, GUIDE_URL, Catalogue, Server, exchange
 from sensai.tools import ToolRegistry
 from .web.conftest import web
 
@@ -171,12 +171,12 @@ def test_cli_reload_replaces_tools_without_losing_history(tmp_path):
     catalogue.register(registry)
     client = FakeClient(["first answer"], ["second answer"])
     session = ChatSession(client, "fake", "Shared rules")
-    inputs = iter(["first", "/reload", "/tools", "second", "exit"])
+    inputs = iter(["first", "/mcp reload", "/tools", "second", "exit"])
     output = []
 
     def read(_):
         text = next(inputs)
-        if text == "/reload":
+        if text == "/mcp reload":
             path.unlink()
         return text
 
@@ -185,6 +185,72 @@ def test_cli_reload_replaces_tools_without_losing_history(tmp_path):
     assert "fixture.first" in client.requests[0][1][0].content
     assert "fixture.first" not in client.requests[1][1][0].content
     assert [m.content for m in session.messages[1:]] == ["first", "first answer", "second", "second answer"]
+
+
+def run_commands(tmp_path, *commands):
+    from fakes import FakeClient
+    from sensai.chat.session import ChatSession
+    from sensai.cli.main import repl
+
+    catalogue = Catalogue(tmp_path / "mcp.json")
+    catalogue.reload()
+    client = FakeClient()
+    session = ChatSession(client, "fake", "Shared rules")
+    inputs, output = iter([*commands, "exit"]), []
+    repl(session, read=lambda _: next(inputs), write=lambda text="", **_: output.append(text),
+         tool_registry=ToolRegistry(read=lambda _: "yes"), mcp=catalogue)
+    assert client.requests == []  # None of these reach the model.
+    assert session.messages[1:] == []
+    return "\n".join(output)
+
+
+def test_cli_mcp_explains_setup_when_nothing_is_configured(tmp_path):
+    output = run_commands(tmp_path, "/mcp")
+    assert f"MCP config: {(tmp_path / 'mcp.json').resolve()} (not found" in output
+    assert EXAMPLE_CONFIG.rstrip() in output
+    assert "/mcp reload" in output and GUIDE_URL in output
+
+
+def test_cli_mcp_shows_server_status_and_points_failures_at_mcp_reload(tmp_path):
+    path = tmp_path / "mcp.json"
+    config(path)
+    path.write_text(json.dumps({"mcpServers": {**json.loads(path.read_text())["mcpServers"],
+                                               "broken": {"command": str(tmp_path / "absent")}}}))
+    output = run_commands(tmp_path, "/mcp")
+    assert "not found" not in output.splitlines()[0]
+    assert "MCP: fixture (2 tools)" in output
+    assert "MCP server broken unavailable: MCP executable not found; fix configuration and use /mcp reload" in output
+
+
+def test_cli_mcp_rejects_unknown_argument(tmp_path):
+    assert run_commands(tmp_path, "/mcp nonsense").endswith("usage: /mcp [reload]")
+
+
+def test_old_reload_command_is_gone(tmp_path):
+    from fakes import FakeClient
+    from sensai.chat.session import ChatSession
+    from sensai.cli.main import repl
+
+    client = FakeClient(["an answer"])
+    session = ChatSession(client, "fake", "Shared rules")
+    inputs = iter(["/reload", "exit"])
+    repl(session, read=lambda _: next(inputs), write=lambda *_, **__: None,
+         tool_registry=ToolRegistry(read=lambda _: "yes"), mcp=Catalogue(tmp_path / "mcp.json"))
+    assert session.messages[1].content == "/reload"
+
+
+def test_example_config_matches_the_committed_example():
+    assert (ROOT / "mcp.example.json").read_text() == EXAMPLE_CONFIG
+
+
+def test_web_tools_reports_config_location_and_setup(web, tmp_path):
+    page = web(["hello"])
+    body = page.call("GET", "/api/tools")[1]
+    assert (body["config"], body["found"]) == (str((tmp_path / "mcp.json").resolve()), False)
+    assert body["example"] == EXAMPLE_CONFIG and body["guide"] == GUIDE_URL
+    config(tmp_path / "mcp.json")
+    body = page.call("POST", "/api/tools/reload")[1]
+    assert body["found"] is True and body["servers"][0]["name"] == "fixture"
 
 
 def dead(pid):
