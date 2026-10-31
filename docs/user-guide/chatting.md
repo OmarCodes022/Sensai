@@ -74,8 +74,8 @@ kept.
 | `error: model 'x' not found, try: ollama pull x` | The model is not installed | Run `ollama pull x`, or pick a model from `ollama list` |
 | `error: Ollama timed out` | Ollama sent nothing for `SENSAI_TIMEOUT` seconds (60) | Retry, or raise `SENSAI_TIMEOUT` |
 | `Délai maximal dépassé` | The turn, tool calls included, took longer than 120 s; time spent answering an approval prompt doesn't count | Raise the limit with `--operation-timeout` or `SENSAI_OPERATION_TIMEOUT` |
-| `error: Ollama stopped before finishing the answer (token limit reached)` | The context is full | Type `/compact`, or raise `SENSAI_CONTEXT_LENGTH` (default 8192) |
-| `error: Ollama returned no visible answer` | The model produced no text | Retry; for thinking models, raise `SENSAI_CONTEXT_LENGTH` |
+| `error: Ollama stopped before finishing the answer (token limit reached)` | The context is full | Set `SENSAI_CONTEXT_LENGTH=8192` |
+| `error: Ollama returned no visible answer` | The model produced no text | Retry; for thinking models, set `SENSAI_CONTEXT_LENGTH=8192` |
 | `Please type something.` | The message was empty | Type a message |
 
 Problems with the configuration stop Sensai at startup, before it contacts the

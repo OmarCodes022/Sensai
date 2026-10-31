@@ -16,8 +16,7 @@ class Settings(BaseSettings):
     persona: str | None = Field(None, validation_alias="SENSAI_PERSONA")
     personas_file: str | None = Field(None, validation_alias="SENSAI_PERSONAS_FILE")
     timeout: float = Field(60.0, gt=0, allow_inf_nan=False, validation_alias="SENSAI_TIMEOUT")
-    # 8192 by default: Sensai's instructions take about 2,000 tokens, so Ollama's usual 4096 fills after one turn.
-    context_length: int | None = Field(8192, gt=0, validation_alias="SENSAI_CONTEXT_LENGTH")
+    context_length: int | None = Field(None, gt=0, validation_alias="SENSAI_CONTEXT_LENGTH")
     operation_timeout: float = Field(120.0, gt=0, allow_inf_nan=False,
                                      validation_alias="SENSAI_OPERATION_TIMEOUT")
     db_path: str | None = Field(None, validation_alias="SENSAI_DB")
