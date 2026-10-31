@@ -12,7 +12,7 @@ from sensai.memory.vector_index import VectorIndexError
 from sensai.rag import MAX_FILE_BYTES, MAX_TOTAL_BYTES, TYPES, DocError
 from sensai.sandbox import SandboxLimits
 from sensai.tools import MAX_TOOL_CALLS
-from sensai_web import branching, campaign, questions, websearch, facts, files, manage, models, sandbox, session_view
+from sensai_web import branching, campaign, exports, questions, websearch, facts, files, manage, models, sandbox, session_view
 from sensai_web.app import WebApp
 from sensai_web.errors import ApiError, llm_failure
 from sensai_web.tools import tool_list
@@ -21,7 +21,7 @@ from sensai_web.turn import run_turn
 
 MAX_TEXT_CHARS = 200_000
 CAPABILITIES = ("chat", "personas", "sessions", "profile", "usage", "tools", "approval", "sandbox",
-                "run_script", "history", "think", "branching", "facts", "guardrails", "campaign", "ask_user")
+                "run_script", "history", "think", "branching", "facts", "guardrails", "campaign", "ask_user", "export")
 STARTED = monotonic()
 ROUTES: list[tuple[str, re.Pattern, Callable]] = []
 
@@ -258,6 +258,11 @@ def read_data(app: WebApp, request, name: str):
 @route("DELETE", r"/api/run/data/(?P<name>[^/]+)")
 def delete_data(app: WebApp, request, name: str):
     return app.data.delete(unquote(name))
+
+
+@route("POST", r"/api/export")
+def export_all(app: WebApp, request):
+    return exports.export_all(app)
 
 
 @route("POST", r"/api/search")

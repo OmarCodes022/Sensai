@@ -23,6 +23,7 @@ from sensai.settings import Settings
 from sensai.llm.embeddings import OllamaEmbeddingAdapter
 from sensai.rag import DOCS_PROMPT, SEARCH_DOCS, DocLibrary
 from sensai.campaign import CampaignStore
+from sensai.export import Exporter
 from sensai.chat.facts import DELETE_FACT, SAVE_FACT
 from sensai.chat.questions import ASK_USER
 from sensai.search import WEB_SEARCH
@@ -128,7 +129,8 @@ class WebApp:
         self.pending_change = None
         self.questions = Approvals()
         self.web = make_search(settings)
-        self.rag_mode = settings.rag_mode  # advanced (R2) or basic (R1) document search  # Web search (T3), or None when switched off.  # ask_user forms waiting for the page (X4).  # An approved-section edit waiting for the creator's yes (A3).
+        self.rag_mode = settings.rag_mode
+        self.exporter = Exporter(self.guard, settings.exports_dir)  # Private export (X3)  # advanced (R2) or basic (R1) document search  # Web search (T3), or None when switched off.  # ask_user forms waiting for the page (X4).  # An approved-section edit waiting for the creator's yes (A3).
         self.title_client = make_client(settings)
         try:
             self.catalogue = Catalogue(cfg.personas_file)

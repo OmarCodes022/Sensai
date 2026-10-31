@@ -6,6 +6,7 @@ from sensai.campaign.edits import editable
 from sensai.core.errors import LLMError
 from sensai.llm.structured import StructuredOutputError
 from sensai_web.errors import ApiError
+from sensai_web.exports import campaign_export
 
 
 def _doc(app) -> dict:
@@ -41,7 +42,7 @@ def edit(app, section: object, request: object) -> dict:
             app.pending_change = (token, change)
         return {"status": "confirm", "token": token, **described}
     apply(app.campaign, change)
-    return {"status": "applied", **described, "doc": _doc(app)}
+    return {"status": "applied", **described, "doc": _doc(app), "export": campaign_export(app, change.doc)}
 
 
 def confirm(app, token: object, approved: object) -> dict:
@@ -51,13 +52,13 @@ def confirm(app, token: object, approved: object) -> dict:
         raise ApiError(409, "no_pending_change", "There is no change waiting for confirmation.")
     if approved is True:
         apply(app.campaign, pending[1])
-        return {"status": "applied", "action": pending[1].action, "doc": _doc(app)}
+        return {"status": "applied", "action": pending[1].action, "doc": _doc(app), "export": campaign_export(app, pending[1].doc)}
     return {"status": "discarded", "doc": _doc(app)}
 
 
 def approve_section(app, section: object) -> dict:
     try:
-        approve(app.campaign, app.campaign.latest(), section if isinstance(section, str) else "")
+        campaign_export(app, approve(app.campaign, app.campaign.latest(), section if isinstance(section, str) else ""))
     except CampaignError as exc:
         raise ApiError(400, "invalid_section", str(exc)) from None
     return _doc(app)
