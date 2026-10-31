@@ -72,7 +72,7 @@ export function createTurn({ ctx, transcript, composer, model, reconnect, onReus
       case 'approval_request': {
         const ap = createApproval(ev, { getCall: (id) => st.calls.get(id), onDecide: async (ok) => { await api.approve(ev.id, ok); setTimeout(() => resolveApproval(ev.id, ok), 0); } });
         ap.callId = ev.call_id; st.approvals.set(ev.id, ap); st.cards.get(ev.call_id)?.setStatus('waiting');
-        ensureBlock().addTool(ap.el); st.paused = true; refreshLock();
+        ensureBlock().addApproval(ap.el); st.paused = true; refreshLock();
         announce(t('approval.title', { action: ev.action }));
         requestAnimationFrame(() => { ap.el.scrollIntoView({ block: 'nearest' }); ap.focus(); }); break;
       }

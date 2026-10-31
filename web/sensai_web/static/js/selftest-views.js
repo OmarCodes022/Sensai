@@ -8,6 +8,7 @@ import { effectiveRows, SECRET } from './settings/config-rows.js';
 import { stripInvisible, visibleEscapes } from './safetext.js';
 import { createToolCard } from './chat/tool-card.js';
 import { pythonBody } from './chat/py-card.js';
+import { createAssistant } from './chat/assistant.js';
 import { parseHash } from './router.js';
 import { formatNumber, formatDuration, formatPercent } from './format.js';
 
@@ -77,5 +78,16 @@ export const VIEW_TESTS = [
     const el = pythonBody({ arguments: { code: 'x' } }, { ok: true, output: '', duration_ms: 1, meta: {} });
     const chips = [...el.querySelectorAll('.chip--mono')].map((c) => c.textContent);
     if (!chips.some((c) => c.includes('n/a')) || chips.some((c) => c === 'Exit code 0')) throw new Error(`chips: ${chips}`);
+  }],
+  ['an approval reopens a collapsed tool group', () => {
+    const block = createAssistant({ persona: { name: 'Sensai', id: 'x' } });
+    const group = block.el.querySelector('.toolgroup');
+    block.addTool(document.createElement('div'));
+    group.open = false;
+    block.addTool(document.createElement('div'));
+    if (group.open) throw new Error('a tool card must not reopen a group the creator collapsed');
+    const card = document.createElement('section');
+    block.addApproval(card);
+    if (!group.open || !group.contains(card)) throw new Error('the approval stayed hidden');
   }],
 ];
