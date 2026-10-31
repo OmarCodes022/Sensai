@@ -276,9 +276,18 @@ def test_bad_max_rounds(value):
     assert len(session.messages) == 1
 
 
-def test_non_tool_block_ends_question_and_returns_full_visible_reply():
+def test_non_tool_json_ends_question_and_is_shown_as_written():
     session = ChatSession(FakeClient(['A', 'nswer\n{"payload": 1}']), "m", "sys")
-    assert collect(run_with_tools(session, registry(), "q")) == ('Answer\n', ('Answer\n', {"payload": 1}))
+    shown = 'Answer\n{"payload": 1}'
+    assert collect(run_with_tools(session, registry(), "q")) == (shown, (shown, None))
+
+
+def test_reply_that_is_only_json_drafts_is_shown():
+    # qwen2.5 sometimes answers a drafting request in JSON; the page used to show nothing.
+    reply = '{\n  "drafts": [{"text": "Hi Julie!"}]\n}'
+    session = ChatSession(FakeClient([reply]), "m", "sys")
+    assert collect(run_with_tools(session, registry(), "q"))[0] == reply
+    assert session.messages[-1].content == reply
 
 
 @pytest.mark.parametrize("failure", [OperationCancelled(), OperationTimedOut(), LLMError(), KeyboardInterrupt()])

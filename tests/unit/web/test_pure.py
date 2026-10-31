@@ -169,3 +169,9 @@ def test_history_lines_are_cut_like_the_terminal():
     long = "x" * 150
     assert session_view.history(msgs(("user", long)))[0]["text"] == "x" * 100 + " …"
     assert session_view.history(msgs(("user", "a\nb")))[0]["text"] == "a …"
+
+
+def test_a_reply_written_as_plain_json_is_shown_when_reopened():
+    reply = '{\n  "drafts": [{"text": "Hi Julie!"}]\n}'
+    items = session_view.display_items(msgs(("user", "draft a DM"), ("assistant", reply)), "redaction")
+    assert items[1]["text"] == reply and items[1]["tools"] == []
