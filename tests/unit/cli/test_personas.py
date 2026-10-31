@@ -83,6 +83,7 @@ def test_actual_model_prompt_stream_and_rollback(monkeypatch, tmp_path, persona_
     settings = Settings(_env_file=None, SENSAI_PERSONA=None, SENSAI_PERSONAS_FILE=None)
     monkeypatch.setattr(cli, "Settings", lambda: settings)
     monkeypatch.setattr(cli, "create_client", lambda _: client)
+    monkeypatch.setattr(cli, "GuardedClient", lambda client, guard: client)  # Raw chunks: guardrails are tested apart.
 
     def exercise(session: ChatSession, **kwargs):
         assert list(session.send("first message")) == ["first", " reply"]
@@ -141,6 +142,7 @@ def test_actual_repl_cancellation_keeps_persona_and_discards_partial_turn(
     prompt.write_text("Shared rules", encoding="utf-8")
     client = FakeClient(["shown partial", "never shown"], ["complete"])
     monkeypatch.setattr(cli, "create_client", lambda settings: client)
+    monkeypatch.setattr(cli, "GuardedClient", lambda client, guard: client)  # Raw chunks: guardrails are tested apart.
     partial_emitted = False
 
     class Terminal:

@@ -17,6 +17,9 @@ from sensai.core.cancellation import CancellationToken, OperationCancelled, Oper
 from sensai.core.ports import PortError, Profile, ToolCall
 from sensai.chat import saved_sessions
 from sensai.chat.saved_sessions import SessionRecorder, display_title, profile_block
+from sensai.core.errors import GuardrailRefused
+from sensai.guardrails import GuardedClient, Guardrail, GuardrailConfigError, load_guardrail
+from sensai.guardrails.rules import message_for
 from sensai.chat.facts import DELETE_FACT, SAVE_FACT, FactMemory, with_facts
 from sensai.chat.reasoning import Section, think
 from sensai.cli.approval import TerminalApproval, sanitize
@@ -270,7 +273,8 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
          persona_registry: PersonaRegistry | None = None,
          base_prompt: str | None = None, recorder: SessionRecorder | None = None,
          tool_registry: ToolRegistry | None = None, data_dir: str | None = None,
-         docs: DocLibrary | None = None, checker=None, memory: FactMemory | None = None) -> None:
+         docs: DocLibrary | None = None, checker=None, memory: FactMemory | None = None,
+         guard: Guardrail | None = None) -> None:
     if base_prompt is None:
         base_prompt = session.messages[0].content
     if tool_registry is None:
@@ -317,6 +321,18 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
             write(line)
         if lines:
             refresh_facts()
+
+    def screen(text: str) -> str | None:
+        """The message as the model may see it (identifiers redacted), or None when it is refused."""
+        if guard is None:
+            return text
+        decision = guard.inspect(text, "input")
+        if not decision.allowed:
+            write(f"Blocked before the model: {message_for(decision.reason)} ({decision.reason})")
+            return None
+        if decision.text != text:
+            write(f"(sent as: \"{decision.text}\")")
+        return decision.text
 
     refresh_facts()
     while True:
@@ -368,12 +384,12 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
                 write("usage: /think <request>")
             elif checker is None:
                 write("error: /think is unavailable")
-            else:
+            elif (request := screen(command[1])) is not None:
                 # Each model step gets its own deadline; one cancel callback stops them all.
                 def step_token():
                     return CancellationToken(monotonic() + operation_timeout, cancel_requested)
 
-                settle_facts(_think(session, tool_registry, command[1], checker, step_token, write, recorder))
+                settle_facts(_think(session, tool_registry, request, checker, step_token, write, recorder))
             continue
         original = branch = None
         if command and command[0] == "/edit":
@@ -382,6 +398,8 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
                 write(edited)
                 continue
             number, text = edited
+            if (text := screen(text)) is None:
+                continue
             original = list(session.messages)
             session.messages[:] = saved_sessions.messages_before_user(original, number)
             command = []  # The new text is a plain message, never a command.
@@ -391,6 +409,9 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
                                          [m for m in original if m.role != "system"])
                 write(f"New branch {branch.session_id} from {recorder.session_id} "
                       f"({recorder.session_id} is kept unchanged).")
+        commands = ("/run", "/docs", "/reindex", "/add", "/remove")
+        if original is None and not (command and command[0] in commands) and (text := screen(text)) is None:
+            continue
         token = CancellationToken(monotonic() + operation_timeout, cancel_requested)
         if command and command[0] == "/run":
             if len(command) == 1:
@@ -452,6 +473,8 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
             write("\nDélai maximal dépassé")
         except ValueError:
             write("Please type something.")
+        except GuardrailRefused as e:
+            write(f"\nReply blocked: {e} ({e.reason})")
         except SensaiError as e:
             write(f"error: {e}")
         finally:
@@ -593,7 +616,12 @@ def prepare_chat(args: argparse.Namespace) -> PreparedChat | None:
 def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedChat) -> None:
     prompt, registry, base_prompt, repository, recorder = prepared
     try:
-        client = create_client(settings.model_copy(update={"host": args.host}))
+        try:
+            guard = load_guardrail(settings.guardrails_file, settings.brand_file)
+        except GuardrailConfigError as e:
+            sys.exit(f"error: {e}")
+        raw_client = create_client(settings.model_copy(update={"host": args.host}))
+        client = GuardedClient(raw_client, guard)  # Every reply is checked line by line before it is shown.
         print(f"Chatting with {args.model}. Type '/persona' to list profiles or 'exit' to quit.")
         if recorder.saved:
             print(f"Session {recorder.session_id} — {display_title(recorder.title, recorder.messages)}")
@@ -610,7 +638,7 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
                 token = CancellationToken(
                     monotonic() + min(saved_sessions.TITLE_TIMEOUT, args.operation_timeout),
                     terminal.cancel_requested)
-                return saved_sessions.generate_title(client, args.model, first_user,
+                return saved_sessions.generate_title(raw_client, args.model, first_user,
                                                     first_answer, token)
 
             recorder.titler = titler
@@ -625,7 +653,7 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
                  cancel_requested=terminal.cancel_requested,
                  persona_registry=registry, base_prompt=base_prompt, recorder=recorder,
                  tool_registry=tool_registry, data_dir=args.data_dir,
-                 docs=docs, checker=checker, memory=memory)
+                 docs=docs, checker=checker, memory=memory, guard=guard)
     finally:
         try:
             remove_stale_folders()
