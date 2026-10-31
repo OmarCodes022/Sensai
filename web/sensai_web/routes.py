@@ -201,7 +201,17 @@ def approve(app: WebApp, request, id: str):
 
 @route("GET", r"/api/tools")
 def tools(app: WebApp, request):
-    return {"items": tool_list(documents=app.docs.enabled)}
+    return {"items": tool_list(documents=app.docs.enabled, mcp=app.mcp),
+            "servers": app.mcp.servers, "error": app.mcp.error}
+
+
+@route("POST", r"/api/tools/reload")
+def reload_tools(app: WebApp, request):
+    with app.mutex:
+        app.require_idle()
+        app.mcp.reload()
+        app.active.session.set_system_prompt(app.system_prompt(app.active.persona_id))
+        return tools(app, request)
 
 
 @route("POST", r"/api/run")

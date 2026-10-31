@@ -1,5 +1,6 @@
 // Tools view (spec 8.3): registry, recent calls, sandbox runner.
 import { h } from '../dom.js';
+import { button } from '../components/button.js';
 import { chip } from '../components/chip.js';
 import { emptyState } from '../components/state.js';
 import { viewShell, loadInto, section } from '../components/view.js';
@@ -28,9 +29,20 @@ function registry(items) {
 
 export function mount(root, { api, store }) {
   const reg = h('div'), recent = h('div');
+  const render = (d) => reg.replaceChildren(
+    ...(d.error ? [h('p', { role: 'alert' }, d.error, ' ', t('tools.reloadHint'))] : []),
+    ...(d.servers || []).map((s) => h('p', { role: s.error ? 'alert' : null },
+      s.error ? `${s.name}: ${s.error}` : `${s.name}: ${s.count}`, s.error ? ` ${t('tools.reloadHint')}` : '')),
+    registry(d.items || []));
+  const reload = button(t('tools.reload'), { onClick: async () => {
+    reload.disabled = true;
+    reload.setAttribute('aria-busy', 'true');
+    try { await loadInto(reg, () => api.reloadTools(), render, t('tools.loadError')); }
+    finally { reload.disabled = false; reload.removeAttribute('aria-busy'); }
+  } });
   const box = createSandbox({ api, store });
-  root.append(viewShell('tools', section(t('tools.registry'), reg), section(t('tools.recent'), recent), section(t('tools.sandboxTitle'), box.el)));
-  loadInto(reg, () => api.tools(), (d) => reg.replaceChildren(registry(d.items || [])), t('tools.loadError'));
+  root.append(viewShell('tools', section(t('tools.registry'), reload, h('p', null, t('tools.reloadHint')), reg), section(t('tools.recent'), recent), section(t('tools.sandboxTitle'), box.el)));
+  loadInto(reg, () => api.tools(), render, t('tools.loadError'));
   const paint = () => recent.replaceChildren(recentCalls(store.get().session));
   paint();
   const unsub = store.subscribe(paint, ['session']);

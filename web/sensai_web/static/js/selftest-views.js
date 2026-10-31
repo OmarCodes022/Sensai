@@ -1,4 +1,5 @@
 // Self tests for the view logic added with the live and planned views. Browser only (views import DOM helpers).
+import { mount as mountTools } from './views/tools.js';
 import { validateProfile } from './profile/validate.js';
 import { claimStatus } from './views/preview/brand.js';
 import { score } from './views/preview/documents.js';
@@ -16,6 +17,25 @@ import { formatNumber, formatDuration, formatPercent } from './format.js';
 const eq = (a, b, m = '') => { if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${m} expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`); };
 
 export const VIEW_TESTS = [
+  ['tools: reload refreshes registry and reports server failures', async () => {
+    const root = document.createElement('div'); document.body.append(root);
+    let finish;
+    const reply = new Promise((resolve) => { finish = resolve; });
+    const tool = { name: 'fixture.first', description: 'Fixture tool', timeout: 30, confirm: true };
+    const dispose = mountTools(root, {
+      api: { tools: async () => ({ items: [] }), reloadTools: () => reply, runData: async () => ({ files: [] }) },
+      store: { get: () => ({ session: null }), subscribe: () => () => {} },
+    });
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const reload = root.querySelector('button'); reload.click();
+      eq(reload.disabled, true);
+      finish({ items: [tool], servers: [{ name: 'broken', error: 'unavailable' }] });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      eq(reload.disabled, false);
+      if (!root.textContent.includes('Fixture tool') || !root.textContent.includes('broken: unavailable')) throw new Error('reload result missing');
+    } finally { dispose(); root.remove(); }
+  }],
   ['profile: object of strings is valid', () => eq(validateProfile('{"ton":"direct"}').value, { ton: 'direct' })],
   ['profile: non-string value reports its line', () => eq(validateProfile('{\n "a": "x",\n "b": 2\n}').errors, [{ line: 3, key: 'notString', args: { name: 'b' } }])],
   ['profile: arrays, null and empty are rejected', () => { eq(validateProfile('[]').errors[0].key, 'notObject'); eq(validateProfile('null').errors[0].key, 'notObject'); eq(validateProfile(' ').errors[0].key, 'empty'); }],

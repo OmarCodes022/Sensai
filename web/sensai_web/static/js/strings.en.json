@@ -846,5 +846,7 @@
  "profile.formHelp": "One line per thing Sensai should remember, for example voice or audience.",
  "profile.err.rowBlank": "Fill in both the name and the text of every line.",
  "profile.err.rowDup": "The name \"{name}\" is used twice.",
- "slash.thinkUsage": "Write what to think about, for example: /think what is my engagement rate?"
+ "slash.thinkUsage": "Write what to think about, for example: /think what is my engagement rate?",
+ "tools.reload": "Reload MCP",
+  "tools.reloadHint": "After editing MCP configuration, use Reload MCP to refresh tools."
 }

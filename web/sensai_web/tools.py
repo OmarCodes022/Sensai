@@ -19,10 +19,14 @@ TOOL_TABLE = {CALCULATE.name: (30, False, None), RUN_PYTHON.name: (30, True, PYT
 INVALID = "<invalid>"
 
 
-def tool_list(documents: bool = False) -> list[dict]:
-    return [{"name": d.name, "description": d.description, "parameters": d.parameters,
-             "timeout": TOOL_TABLE[d.name][0], "confirm": TOOL_TABLE[d.name][1], "max_calls": TOOL_TABLE[d.name][2]}
-            for d in (CALCULATE, RUN_PYTHON, *((SEARCH_DOCS,) if documents else ()))]
+def tool_list(documents: bool = False, mcp=None) -> list[dict]:
+    items = [{"name": d.name, "description": d.description, "parameters": d.parameters,
+              "timeout": TOOL_TABLE[d.name][0], "confirm": TOOL_TABLE[d.name][1], "max_calls": TOOL_TABLE[d.name][2]}
+             for d in (CALCULATE, RUN_PYTHON, *((SEARCH_DOCS,) if documents else ()))]
+    if mcp is not None:
+        items.extend({"name": d.name, "description": d.description, "parameters": d.parameters,
+                      "timeout": 30, "confirm": True, "max_calls": None} for d in mcp.definitions())
+    return items
 
 
 class ObservedRegistry(ToolRegistry):
@@ -33,7 +37,7 @@ class ObservedRegistry(ToolRegistry):
     """
 
     def __init__(self, approval: WebApproval, emit: Callable[[dict], None], data_dir: str | None,
-                 meta_dir: str, library: DocLibrary | None = None):
+                 meta_dir: str, library: DocLibrary | None = None, mcp=None):
         super().__init__(approval)
         self._approval = approval
         self._emit = emit
@@ -44,6 +48,8 @@ class ObservedRegistry(ToolRegistry):
         self.register(CALCULATE, calculate)
         self.register(RUN_PYTHON, run_handler(data_dir, self._meta_path, permission=None), confirm=True,
                       max_calls=PYTHON_ATTEMPTS)  # No permission policy yet (T26).
+        if mcp is not None:
+            mcp.register(self)
         self._hits: list[dict] = []
         if library is not None and library.enabled:
             self.register(SEARCH_DOCS, partial(self._search, library), timeout=None)  # In this process: the index is here.

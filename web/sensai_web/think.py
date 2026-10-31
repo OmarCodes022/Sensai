@@ -45,7 +45,7 @@ def run_think(app: WebApp, active: ActiveSession, stop, request: str, emit: Emit
     for notice in app.refresh_prompt(active):
         emit({"type": "warning", "code": "documents", "message": notice})
     approval = WebApproval(app.approvals, emit, stop, turn_id)
-    registry = ObservedRegistry(approval, emit, app.data.path, app.meta_dir, app.docs)
+    registry = ObservedRegistry(approval, emit, app.data.path, app.meta_dir, app.docs, app.mcp)
     write = _writer(emit)
 
     def new_token():  # Each step gets its own deadline; stop cancels them all.

@@ -846,5 +846,7 @@
  "profile.formHelp": "Une ligne par chose que Sensai doit retenir, par exemple le ton ou le public.",
  "profile.err.rowBlank": "Renseignez le nom et le texte de chaque ligne.",
  "profile.err.rowDup": "Le nom « {name} » est utilisé deux fois.",
- "slash.thinkUsage": "Écrivez le sujet, par exemple : /think quel est mon taux d'engagement ?"
+ "slash.thinkUsage": "Écrivez le sujet, par exemple : /think quel est mon taux d'engagement ?",
+ "tools.reload": "Recharger MCP",
+  "tools.reloadHint": "Après modification de la configuration MCP, utilisez Recharger MCP pour actualiser les outils."
 }

@@ -20,6 +20,7 @@ from sensai.llm.structured import OllamaStructuredClient
 from sensai.memory.sqlite_store import StorageRepository
 from sensai.sandbox import RUN_PYTHON, SandboxError, data_file_names, data_prompt, remove_stale_folders
 from sensai.settings import Settings
+from sensai.mcp_client import Catalogue as MCPCatalogue
 from sensai.llm.embeddings import OllamaEmbeddingAdapter
 from sensai.rag import DOCS_PROMPT, SEARCH_DOCS, DocLibrary
 from sensai.tools import CALCULATE, tool_instructions
@@ -105,6 +106,8 @@ class WebApp:
         self.health = Health(cfg.host, cfg.model)
         self.meta_dir = tempfile.mkdtemp(prefix="sensai-web-")
         settings = (settings or Settings()).model_copy(update={"host": cfg.host})
+        self.mcp = MCPCatalogue(settings.mcp_config)
+        self.mcp.reload()
         self.chat_client = make_client(settings, self.usage.add)
         self.title_client = make_client(settings)
         try:
@@ -157,7 +160,7 @@ class WebApp:
     # Prompt and sessions
 
     def tools_text(self) -> str:
-        return tool_instructions((CALCULATE, RUN_PYTHON, *((SEARCH_DOCS,) if self.docs.enabled else ())))
+        return tool_instructions((CALCULATE, RUN_PYTHON, *((SEARCH_DOCS,) if self.docs.enabled else ()), *self.mcp.definitions()))
 
     def data_text(self) -> str:
         """The data file names for the model (as in the CLI), or "" without a readable data folder."""

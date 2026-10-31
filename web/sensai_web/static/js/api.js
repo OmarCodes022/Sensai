@@ -48,6 +48,7 @@ const real = {
   stopChat: () => req('POST', '/api/chat/stop'),
   approve: (id, approved) => req('POST', `/api/approvals/${encodeURIComponent(id)}`, { approved }),
   tools: () => req('GET', '/api/tools'),
+  reloadTools: () => req('POST', '/api/tools/reload'),
   run: (code) => req('POST', '/api/run', { code }),
   runData: () => req('GET', '/api/run/data'),
   readData: (name) => req('GET', `/api/run/data/${encodeURIComponent(name)}`),

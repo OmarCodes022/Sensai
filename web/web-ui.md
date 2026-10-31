@@ -93,7 +93,7 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 4. Add strings to BOTH `strings.en.json` and `strings.fr.json` with identical keys, and a nav key `nav.<name>`.
 5. Keep files under 300 lines; build DOM with `h()` (never `innerHTML`).
 
-## String keys (848 per language, identical in en and fr)
+## String keys (850 per language, identical in en and fr)
 
 - `common` (25): `na`, `planned`, `mockData`, `cancel`, `confirm`, `close`, `copy`, `copied`, `copyFailed`, `copyCommand`, `retry`, `clear`, `loading`, `remove`, `copyDetails`, `stop`, `send`, `run`, `refuse`, `viewAll`, `saved`, `nothingSent`, `dismiss`, `loadError`, `save`
 - `nav` (14): `chat`, `sessions`, `personas`, `profile`, `tools`, `settings`, `campaign`, `brand`, `documents`, `insights`, `safety`, `schedule`, `keynote`, `views`
@@ -111,7 +111,7 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 - `usage` (10): `tokens`, `tokensNa`, `inOut`, `latency`, `server`, `turns`, `notReported`, `outputTokens`, `promptTokens`, `reported`
 - `meter` (1): `text`
 - `inspector` (13): `title`, `turn`, `context`, `tools`, `sources`, `noTurn`, `noTurnBody`, `persona`, `usage`, `contextMeter`, `meterUnknown`, `sourcesBody`, `meterPartial`
-- `tools` (72): `confirm`, `none`, `loadError`, `roundLimit`, `group`, `registry`, `recent`, `sandboxTitle`, `col.name`, `col.description`, `col.timeout`, `col.confirm`, `col.max`, `col.time`, `col.tool`, `col.status`, `col.duration`, `col.message`, `noConfirm`, `noLimit`, `recentNone`, `openChat`, `codeLabel`, `helper`, `tooBig`, `notUtf8`, `loaded`, `loadFile`, `run`, `running`, `finished`, `elapsed`, `cancelled`, `dataTitle`, `noData`, `dataDir`, `limitsHelp`, `limitsTitle`, `limit.wall`, `limit.wall.d`, `limit.cpu`, `limit.cpu.d`, `limit.mem`, `limit.mem.d`, `limit.file`, `limit.file.d`, `limit.out`, `limit.out.d`, `notProtected`, `not.malicious`, `not.network`, `not.absolute`, `not.memory`, `not.cpu`, `not.fork`, `not.group`, `not.kill`, `dataHelp`, `dataFolderNew`, `dataEmpty`, `dataAdd`, `dataDrop`, `dataExample`, `dataExampleHelp`, `dataDelete`, `dataSure`, `dataAdded`, `dataRemoved`, `dataBadType`, `dataTooBig`, `dataNotText`, `dataBlank`
+- `tools` (74): `confirm`, `none`, `loadError`, `roundLimit`, `group`, `registry`, `recent`, `sandboxTitle`, `col.name`, `col.description`, `col.timeout`, `col.confirm`, `col.max`, `col.time`, `col.tool`, `col.status`, `col.duration`, `col.message`, `noConfirm`, `noLimit`, `recentNone`, `openChat`, `codeLabel`, `helper`, `tooBig`, `notUtf8`, `loaded`, `loadFile`, `run`, `running`, `finished`, `elapsed`, `cancelled`, `dataTitle`, `noData`, `dataDir`, `limitsHelp`, `limitsTitle`, `limit.wall`, `limit.wall.d`, `limit.cpu`, `limit.cpu.d`, `limit.mem`, `limit.mem.d`, `limit.file`, `limit.file.d`, `limit.out`, `limit.out.d`, `notProtected`, `not.malicious`, `not.network`, `not.absolute`, `not.memory`, `not.cpu`, `not.fork`, `not.group`, `not.kill`, `dataHelp`, `dataFolderNew`, `dataEmpty`, `dataAdd`, `dataDrop`, `dataExample`, `dataExampleHelp`, `dataDelete`, `dataSure`, `dataAdded`, `dataRemoved`, `dataBadType`, `dataTooBig`, `dataNotText`, `dataBlank`, `reload`, `reloadHint`
 - `shortcuts` (14): `title`, `send`, `newline`, `stop`, `recall`, `palette`, `newChat`, `sidebar`, `inspector`, `shortcuts`, `searchSidebar`, `approval`, `views`, `theme`
 - `palette` (8): `title`, `placeholder`, `none`, `sessions`, `personas`, `views`, `commands`, `planned`
 - `cmd` (5): `newChat`, `theme`, `sidebar`, `shortcuts`, `copyId`

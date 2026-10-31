@@ -53,7 +53,7 @@ def run_turn(app: WebApp, active: ActiveSession, stop, text: str, emit: Emit) ->
     for notice in app.refresh_prompt(active):
         emit({"type": "warning", "code": "documents", "message": notice})
     approval = WebApproval(app.approvals, emit, stop, turn_id)
-    registry = ObservedRegistry(approval, emit, app.data.path, app.meta_dir, app.docs)
+    registry = ObservedRegistry(approval, emit, app.data.path, app.meta_dir, app.docs, app.mcp)
     status = None
     stream = run_with_tools(
         session, registry, text, token,

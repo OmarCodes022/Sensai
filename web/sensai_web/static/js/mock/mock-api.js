@@ -134,6 +134,7 @@ const impl = {
   async approve(id, approved) { const r = pending.get(id); if (!r) throw new ApiError('not_found', 'no pending approval', { status: 404 }); pending.delete(id); r(!!approved); return { ok: true }; },
   async stopChat() { active?.abort(); return { stopped: true }; },
   tools: async () => ({ items: state.noTools ? [] : TOOLS }),
+  reloadTools: async () => ({ items: state.noTools ? [] : TOOLS, servers: [] }),
   async run(code) {
     const loop = /while\s+True/.test(code);
     return { exit_code: loop ? -9 : 0, duration_s: loop ? 15 : 0.3, timed_out: loop, truncated: false, stdout: loop ? '' : '1021.4\n', stderr: '', report: loop ? 'Time limit reached (15 s)' : 'Exit code 0 · 0.3 s' };
