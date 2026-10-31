@@ -93,7 +93,7 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 4. Add strings to BOTH `strings.en.json` and `strings.fr.json` with identical keys, and a nav key `nav.<name>`.
 5. Keep files under 300 lines; build DOM with `h()` (never `innerHTML`).
 
-## String keys (911 per language, identical in en and fr)
+## String keys (918 per language, identical in en and fr)
 
 - `search` (5): `usage`, `title`, `noModel`, `none`, `failed`
 - `question` (8): `title`, `other`, `otherPlaceholder`, `send`, `skip`, `answerAll`, `answered`, `skipped`
@@ -131,7 +131,7 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 - `dev` (9): `export`, `fill`, `inject`, `none`, `reset`, `scenario`, `speed`, `title`, `turn`
 - `errb` (12): `connection`, `model_not_found`, `timeout`, `llm_error`, `invalid_response`, `profile_invalid`, `persona_unknown`, `tab_locked`, `guardrail_refused`, `network`, `storage`, `turn_timeout`
 - `esc` (1): `hidden`
-- `export` (4): `assistant`, `date`, `session`, `you`
+- `export` (11): `assistant`, `date`, `session`, `you`, `title`, `conversation`, `campaign`, `refused`, `noCampaign`, `private`, `failed`
 - `guard` (1): `redacted`
 - `hint` (4): `largePaste`, `privacy`, `privacyGuarded`, `undo`
 - `history` (3): `note`, `noteEdit`, `title`

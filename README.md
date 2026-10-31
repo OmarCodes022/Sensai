@@ -16,6 +16,7 @@ Docs: <https://omarcodes022.github.io/Sensai/> (sources in [docs/](docs/README.m
 | Branching and interrupt | `/edit N <new text>` continues from message N as a new session; Ctrl+C, Esc or Stop interrupts a reply | [Sessions](docs/user-guide/sessions.md#editing-an-earlier-message-branching) |
 | Tools | the model calls `calculate` and `run_python` (you approve each run); a failed run goes back to the model, which fixes its code, up to 3 runs per question | [Tools and sandbox](docs/user-guide/tools.md) |
 | Step-by-step reasoning | `/think <request>`: a plan, tool calls, a draft, a check against your rules, revisions | [Reasoning step by step](docs/user-guide/thinking.md) |
+| Private export | `/export` writes the conversation and the week's campaign to `exports/` as JSON and Markdown, after the guardrails; the campaign export follows every change | [Export](docs/user-guide/export.md) |
 | Web search | the model calls `web_search` for current information and cites `[1]`, `[2]` with a source list; `/search <query>` | [Web search](docs/user-guide/web-search.md) |
 | Questions and forms | when a detail is missing, the model asks with `ask_user`: a numbered choice in the terminal, a form card in the web chat | [Questions](docs/user-guide/questions.md) |
 | Weekly campaign document | `/campaign`: four sections, edited one schema-forced JSON edit at a time; approved sections ask before any change; web Campaign page | [Campaign](docs/user-guide/campaign.md) |
@@ -56,7 +57,7 @@ commands (like `sensai-web`) are registered. Full install guide:
 .venv/bin/sensai-remote                           # same, through an SSH tunnel
 ```
 
-In a chat: `/persona [id]`, `/tools`, `/history`, `/edit N <text>`, `/facts`, `/campaign`, `/search`, `/read`, `/save`, `/run <file.py>`, `/docs [text]`,
+In a chat: `/persona [id]`, `/tools`, `/history`, `/edit N <text>`, `/facts`, `/campaign`, `/export`, `/search`, `/read`, `/save`, `/run <file.py>`, `/docs [text]`,
 `/add`, `/remove`, `/reindex`, and `exit` to leave. Each turn has a 120 s budget.
 Remote Ollama: [SSH setup](docs/operations/remote-ollama.md).
 

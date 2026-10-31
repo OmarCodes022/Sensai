@@ -32,6 +32,7 @@ nav:
       - Campaign document: user-guide/campaign.md
       - Questions and forms: user-guide/questions.md
       - Web search: user-guide/web-search.md
+      - Private export: user-guide/export.md
   - Developer guide:
       - Architecture: developer-guide/architecture.md
       - File structure: developer-guide/file-structure.md
