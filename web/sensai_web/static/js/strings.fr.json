@@ -936,6 +936,7 @@
  "context.source.set": "réglée",
  "context.source.ollama": "d'Ollama",
  "context.source.default": "par défaut",
+ "context.source.doubled": "choix d'Ollama doublé",
  "context.hint": "Les anciens messages sont résumés quand un tour atteint {pct} % de la fenêtre. Tapez /compact pour le faire maintenant.",
  "context.compacting": "Contexte à {pct} %, résumé de {n} anciens messages…",
  "context.compactedEvent": "{n} anciens messages résumés. Les 4 derniers messages sont gardés mot pour mot.",

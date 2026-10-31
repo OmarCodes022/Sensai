@@ -4,12 +4,12 @@ import shutil
 import sqlite3
 import tempfile
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from threading import Event, Lock, RLock
 
 from sensai.chat import saved_sessions
-from sensai.chat.context import ContextState
+from sensai.chat.context import ContextState, choose_window, ollama_window
 from sensai.chat.prompts import load_system_prompt
 from sensai.chat.saved_sessions import SessionRecorder, profile_block
 from sensai.chat.session import ChatSession
@@ -101,10 +101,14 @@ def make_checker(cfg: WebConfig) -> OllamaStructuredClient:
 
 class WebApp:
     def __init__(self, cfg: WebConfig, settings: Settings | None = None):
+        source = None
+        if cfg.context_length is None:  # M2: Ollama's choice for this computer, doubled at 4096 or less.
+            window, source = choose_window(ollama_window(cfg.host, cfg.model))
+            cfg = replace(cfg, context_length=window)
         self.cfg = cfg
         self.started = now()
         self.usage = UsageCollector()
-        self.context = ContextState(cfg.context_length)  # M2: the window and what summaries saved
+        self.context = ContextState(cfg.context_length, source)  # M2: the window and what summaries saved
         self.approvals = Approvals()
         self.turn: Event | None = None
         self.mutex = RLock()
@@ -122,7 +126,7 @@ class WebApp:
         self.memory = make_memory(self)  # The brand fact sheet (M3); the model edits it through two tools.
         self.health = Health(cfg.host, cfg.model)
         self.meta_dir = tempfile.mkdtemp(prefix="sensai-web-")
-        settings = (settings or Settings()).model_copy(update={"host": cfg.host})
+        settings = (settings or Settings()).model_copy(update={"host": cfg.host, "context_length": cfg.context_length})
         self.mcp = MCPCatalogue(settings.mcp_config)
         self.mcp.reload()
         try:

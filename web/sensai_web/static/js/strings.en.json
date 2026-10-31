@@ -936,6 +936,7 @@
  "context.source.set": "set",
  "context.source.ollama": "from Ollama",
  "context.source.default": "default",
+ "context.source.doubled": "Ollama's choice doubled",
  "context.hint": "Older messages are summarized when a turn reaches {pct}% of the window. Type /compact to do it now.",
  "context.compacting": "Context at {pct}%, summarizing {n} older messages…",
  "context.compactedEvent": "{n} older messages summarized. The last 4 messages are kept word for word.",
