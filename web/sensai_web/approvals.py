@@ -26,7 +26,8 @@ class Approvals:
             self._pending[approval_id] = slot
         return slot
 
-    def decide(self, approval_id: str, approved: bool) -> bool:
+    def decide(self, approval_id: str, approved) -> bool:
+        """Answer a waiting request: True/False for an approval, a list of answers (or None) for a form."""
         with self._lock:
             slot = self._pending.get(approval_id)
         if slot is None:

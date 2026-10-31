@@ -13,6 +13,7 @@ from sensai_web.approvals import WebApproval
 from sensai_web.errors import llm_failure
 from sensai_web.facts import settle
 from sensai_web.guard import screen, stopped
+from sensai_web.questions import WebForm
 from sensai_web.tools import ObservedRegistry
 from sensai_web.turn import Emit, _add, _persist
 
@@ -52,7 +53,8 @@ def run_think(app: WebApp, active: ActiveSession, stop, request: str, emit: Emit
         emit({"type": "warning", "code": "documents", "message": notice})
     approval = WebApproval(app.approvals, emit, stop, turn_id)
     app.memory.drop()
-    registry = ObservedRegistry(approval, emit, app.data.path, app.meta_dir, app.docs, app.memory, app.files)
+    registry = ObservedRegistry(approval, emit, app.data.path, app.meta_dir, app.docs, app.memory, app.files,
+                              WebForm(app.questions, emit, stop, turn_id, approval))
     write = _writer(emit)
 
     def new_token():  # Each step gets its own deadline; stop cancels them all.

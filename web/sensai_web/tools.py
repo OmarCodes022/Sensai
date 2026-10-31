@@ -9,6 +9,7 @@ from sensai.core.ports import ToolCall, ToolResult
 from sensai.rag import SEARCH_DOCS, DocLibrary, search_with_hits
 from sensai.sandbox import PYTHON_ATTEMPTS, RUN_PYTHON
 from sensai.chat.facts import DELETE_FACT, SAVE_FACT, FactMemory
+from sensai.chat.questions import ASK_USER
 from sensai.security.file_tools import FILE_TOOLS, FileTools
 from sensai.tools import CALCULATE, ToolRegistry, calculate
 from sensai_web.approvals import WebApproval
@@ -18,7 +19,8 @@ from sensai_web.session_view import for_page
 # What the page's Tools view lists: name -> (timeout seconds, needs approval, calls per question).
 TOOL_TABLE = {CALCULATE.name: (30, False, None), RUN_PYTHON.name: (30, True, PYTHON_ATTEMPTS),
               SEARCH_DOCS.name: (None, False, None), SAVE_FACT.name: (None, False, None),
-              DELETE_FACT.name: (None, False, None), **{d.name: (None, False, None) for d in FILE_TOOLS}}
+              DELETE_FACT.name: (None, False, None), **{d.name: (None, False, None) for d in FILE_TOOLS},
+              ASK_USER.name: (None, False, None)}
 INVALID = "<invalid>"
 
 
@@ -26,7 +28,7 @@ def tool_list(documents: bool = False, files: bool = False) -> list[dict]:
     return [{"name": d.name, "description": d.description, "parameters": d.parameters,
              "timeout": TOOL_TABLE[d.name][0], "confirm": TOOL_TABLE[d.name][1], "max_calls": TOOL_TABLE[d.name][2]}
             for d in (CALCULATE, RUN_PYTHON, SAVE_FACT, DELETE_FACT, *((SEARCH_DOCS,) if documents else ()),
-                      *(FILE_TOOLS if files else ()))]
+                      *(FILE_TOOLS if files else ()), ASK_USER)]
 
 
 class ObservedRegistry(ToolRegistry):
@@ -38,7 +40,7 @@ class ObservedRegistry(ToolRegistry):
 
     def __init__(self, approval: WebApproval, emit: Callable[[dict], None], data_dir: str | None,
                  meta_dir: str, library: DocLibrary | None = None, memory: FactMemory | None = None,
-                 files: FileTools | None = None):
+                 files: FileTools | None = None, form=None):
         super().__init__(approval)
         self._approval = approval
         self._emit = emit
@@ -54,6 +56,8 @@ class ObservedRegistry(ToolRegistry):
             self.register(DELETE_FACT, memory.delete, timeout=None)
         for definition in (FILE_TOOLS if files is not None else ()):  # In this process, with the loaded policy.
             self.register(definition, getattr(files, definition.name), timeout=None)
+        if form is not None:  # Waits for the page in this process.
+            self.register(ASK_USER, form, timeout=None)
         self._hits: list[dict] = []
         if library is not None and library.enabled:
             self.register(SEARCH_DOCS, partial(self._search, library), timeout=None)  # In this process: the index is here.

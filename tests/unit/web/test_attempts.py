@@ -93,7 +93,7 @@ def test_other_tools_carry_no_attempt_fields(web):
 def test_the_tools_list_reports_the_run_python_limit(web):
     items = web().call("GET", "/api/tools")[1]["items"]
     assert {t["name"]: t["max_calls"] for t in items} == {"calculate": None, "run_python": 3, "save_fact": None,
-                                                             "delete_fact": None}
+                                                             "delete_fact": None, "ask_user": None}
 
 
 class Refuse:
