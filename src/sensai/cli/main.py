@@ -16,7 +16,7 @@ from sensai.core.errors import LLMError, SensaiError
 from sensai.core.cancellation import CancellationToken, OperationCancelled, OperationTimedOut
 from sensai.core.ports import ApprovalRequest, PolicyDenied, PortError, Profile, ToolCall
 from sensai.chat import compression, saved_sessions
-from sensai.chat.context import ContextState, loaded_window, summary_cap
+from sensai.chat.context import ContextState, choose_window, loaded_window, ollama_window, summary_cap
 from sensai.cli.context_commands import compact, summarize
 from sensai.llm.ollama import OllamaClient
 from sensai.chat.saved_sessions import SessionRecorder, display_title, profile_block
@@ -879,17 +879,21 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
             guard = load_guardrail(settings.guardrails_file, settings.brand_file)
         except GuardrailConfigError as e:
             sys.exit(f"error: {e}")
-        # M2: --context-budget is sent to Ollama as num_ctx on every request.
-        settings = settings.model_copy(update={"host": args.host, "context_length": args.context_budget})
+        # M2: the window is --context-budget, else Ollama's choice for this computer (doubled at 4096 or less),
+        # sent as num_ctx on every request.
+        budget, source = args.context_budget, None
+        if budget is None:
+            budget, source = choose_window(ollama_window(args.host, args.model))
+        settings = settings.model_copy(update={"host": args.host, "context_length": budget})
         raw_client = create_client(settings)
         client = GuardedClient(raw_client, guard)  # Every reply is checked line by line before it is shown.
-        context = ContextState(args.context_budget)
+        context = ContextState(budget, source)
         if hasattr(raw_client, "set_usage_sink"):
             raw_client.set_usage_sink(context.on_usage)
         summary_client = None
         if isinstance(raw_client, OllamaClient):  # The summary's own answer is capped at a quarter of the window.
             def summary_client(budget):
-                return OllamaClient(args.host, settings.timeout, context_length=args.context_budget,
+                return OllamaClient(args.host, settings.timeout, context_length=budget,
                                     num_predict=summary_cap(budget))
         print(f"Chatting with {args.model}. Type '/persona' to list profiles or 'exit' to quit.")
         if recorder.saved:

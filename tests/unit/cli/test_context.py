@@ -154,3 +154,16 @@ def test_compact_summarizes_on_demand_and_reports_tokens(monkeypatch, tmp_path, 
 def test_compact_with_too_few_messages_says_so(monkeypatch, tmp_path, capsys):
     chat(monkeypatch, tmp_path, UsageClient([10], ["A1"]), ["Q1", "/compact", "exit"])
     assert "Nothing to compact yet: too few older messages." in capsys.readouterr().out
+
+
+def test_without_a_budget_ollamas_choice_is_used_and_doubled(monkeypatch, tmp_path, capsys):
+    monkeypatch.setattr(cli, "ollama_window", lambda host, model: 4096)
+    client = UsageClient([300], ["A1"])
+    chat(monkeypatch, tmp_path, client, ["Q1", "/context", "exit"])
+    assert "Window 8,192 (ollama 4,096 doubled)   Last turn 300 (3%)" in capsys.readouterr().out
+
+
+def test_a_set_budget_wins_over_ollamas_choice(monkeypatch, tmp_path, capsys):
+    monkeypatch.setattr(cli, "ollama_window", lambda host, model: 32768)
+    chat(monkeypatch, tmp_path, UsageClient([]), ["/context", "exit"], "--context-budget", "2048")
+    assert "Window 2,048 (set)" in capsys.readouterr().out
