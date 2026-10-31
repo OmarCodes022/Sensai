@@ -44,7 +44,7 @@ export function createTurn({ ctx, transcript, composer, model, reconnect, onReus
   function tick() {
     if (!st.paused) st.elapsed += 0.25;
     const s = Math.floor(st.elapsed);
-    composer.setRing((st.elapsed / st.budget) * 100);
+    if (!st.think) composer.setRing((st.elapsed / st.budget) * 100);
     st.block?.setElapsed(s);
     composer.setElapsed(st.block?.hasContent() ? t('chat.replying', { s }) : t('chat.thinkingS', { s }));
   }
@@ -65,7 +65,7 @@ export function createTurn({ ctx, transcript, composer, model, reconnect, onReus
       case 'turn_start': st.budget = ev.budget_seconds || limits().turn_seconds || 120; ensureBlock(ev.persona); break;
       case 'text': ensureBlock().appendText(ev.delta); break;
       case 'tool_call': {
-        const card = createToolCard(ev, { max: limits().tool_rounds ?? 5, showJson: store.get().prefs.showToolJson });
+        const card = createToolCard(ev, { max: st.think ? null : limits().tool_rounds ?? 5, showJson: store.get().prefs.showToolJson });
         st.calls.set(ev.id, ev); st.cards.set(ev.id, card); st.item.tools.push({ name: ev.name, arguments: ev.arguments });
         ensureBlock().addTool(card.el); announce(t('tool.started', { name: ev.name })); break;
       }
@@ -160,6 +160,8 @@ export function createTurn({ ctx, transcript, composer, model, reconnect, onReus
     st.dropped = model.dropped;
     try {
       const asked = /^\/think\s+([\s\S]+)$/i.exec(text);  // /think <request> runs the step-by-step loop
+      // Its budget is per step and its rounds are not capped at the turn's limit: no ring, no "of 5".
+      me.think = !!asked; composer.showRing(!asked);
       await api.chat(asked ? asked[1] : text, { signal: st.ac.signal, onEvent: handle, think: !!asked });
       if (st.failed) { /* error card already shown */ }
       else if (st.status === 'completed') complete();

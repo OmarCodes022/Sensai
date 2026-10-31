@@ -387,6 +387,7 @@
  "tool.finished": "Tool {name} finished",
  "tool.label": "Tool call: {name}",
  "tool.round": "Round {n} of {max}",
+ "tool.roundN": "Round {n}",
  "tool.started": "Using tool {name}",
  "tool.timedOut": "Stopped after {s} s",
  "tool.using": "Using tool:",

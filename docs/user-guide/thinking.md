@@ -97,5 +97,6 @@ exactly as before.
 Type `/think <request>` in the chat box. The reply shows the same steps as bold headings
 (Plan, Draft, Check, Revise, Final answer) and each tool call as a normal tool card, with
 the usual approval for `run_python`. Only your request and the final answer are saved, so
-after a reload the steps are gone. Stop works as for any reply. The same limits apply
-(8 model steps, 3 checks, one deadline per step).
+after a reload the steps are gone. Stop works as for any reply. Tool cards show `Round n`
+without a maximum, and the Stop button has no budget ring, because the limit applies to
+each step. The same limits apply (8 model steps, 3 checks, one deadline per step).
