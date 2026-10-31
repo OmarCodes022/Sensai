@@ -15,7 +15,7 @@ export const ROUTES = [
   { name: 'brand', icon: 'star', cap: 'facts', tasks: ['T32', 'T07'] },
   { name: 'documents', icon: 'folder', cap: 'documents', tasks: ['T35', 'T36', 'T43'] },
   { name: 'insights', icon: 'chart', cap: 'stats', tasks: ['T33'] },
-  { name: 'safety', icon: 'shield-check', cap: 'guardrails', tasks: ['T38', 'T10', 'T47'] },
+  { name: 'safety', icon: 'shield-check', cap: 'evaluation', tasks: ['T47', 'T10'] },  // Guardrails (T38) work in chat; this page comes with EV1.
   { name: 'schedule', icon: 'clock', cap: 'schedule', tasks: ['T51'] },
   { name: 'keynote', icon: 'play', ui: true },
 ];
