@@ -866,5 +866,18 @@
  "brand.deleted": "{id} supprimé",
  "brand.saved": "{id} enregistré",
  "brand.noClaims": "Aucun registre des allégations",
- "brand.noClaimsBody": "Placez brand.json dans le dossier de données pour voir ici les allégations approuvées."
+ "brand.noClaimsBody": "Placez brand.json dans le dossier de données pour voir ici les allégations approuvées.",
+ "files.title": "Accès aux fichiers",
+ "files.on": "Activé : {allow} règles d'autorisation et {deny} d'interdiction depuis {file}. Le modèle peut y utiliser read_file, write_file et create_file ; /read et /save suivent les mêmes règles.",
+ "files.off": "Désactivé : aucun .sensai/settings.json dans le dossier où Sensai a été lancé.",
+ "files.read": "{n} caractères lus depuis {path}. Ajoutez votre question puis envoyez.",
+ "files.created": "{path} créé",
+ "files.replaced": "{path} remplacé",
+ "files.usageRead": "Indiquez le chemin à lire, par exemple : /read notes/launch.md",
+ "files.usageSave": "Indiquez où enregistrer la dernière réponse, par exemple : /save drafts/caption.md",
+ "tool.desc.read_file": "Lire un fichier texte autorisé.",
+ "tool.desc.write_file": "Remplacer le texte d'un fichier autorisé existant.",
+ "tool.desc.create_file": "Créer un fichier texte là où c'est autorisé.",
+ "tool.desc.save_fact": "Enregistrer ou corriger un fait de la marque.",
+ "tool.desc.delete_fact": "Supprimer un fait de la marque qui n'est plus vrai."
 }

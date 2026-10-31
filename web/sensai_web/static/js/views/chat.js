@@ -45,6 +45,12 @@ export function mount(root, ctx) {
     think: (args) => (args ? turn.send(`/think ${args}`) : toast(t('slash.thinkUsage'))),
     edit: (args) => (/^\d+\s+\S/.test(args || '') ? turn.send(`/edit ${args}`) : toast(t('slash.editUsage'))),
     facts: () => router.go('#/brand'),
+    // File access (T4): /read puts the file into the box for your next message; /save writes the last reply.
+    read: (path) => (!path ? toast(t('files.usageRead')) : api.readFile(path).then((r) => {
+      composer.fill(`File ${r.path}:\n${r.text}\n\n`); toast(t('files.read', { n: r.chars, path: r.path }));
+    }).catch((e) => toast(e.message, { tone: 'rose' }))),
+    save: (path) => (!path ? toast(t('files.usageSave')) : api.saveFile(path).then((r) => toast(t(`files.${r.result.toLowerCase()}`, { path: r.path })))
+      .catch((e) => toast(e.message, { tone: 'rose' }))),
     new: () => actions.newChat(),
     help: () => openShortcuts(),
     docs: (args) => docCommands.docs(args),

@@ -866,5 +866,18 @@
  "brand.deleted": "Deleted {id}",
  "brand.saved": "Saved {id}",
  "brand.noClaims": "No claims register",
- "brand.noClaimsBody": "Put brand.json in the data folder to see the approved claims here."
+ "brand.noClaimsBody": "Put brand.json in the data folder to see the approved claims here.",
+ "files.title": "File access",
+ "files.on": "On: {allow} allow and {deny} deny rules from {file}. The model can use read_file, write_file and create_file there; /read and /save use the same rules.",
+ "files.off": "Off: there is no .sensai/settings.json in the folder where Sensai was started.",
+ "files.read": "Read {n} characters from {path}. Add your question and send.",
+ "files.created": "Created {path}",
+ "files.replaced": "Replaced {path}",
+ "files.usageRead": "Write the path to read, for example: /read notes/launch.md",
+ "files.usageSave": "Write where to save the last reply, for example: /save drafts/caption.md",
+ "tool.desc.read_file": "Read a text file the creator allowed.",
+ "tool.desc.write_file": "Replace the text of an allowed existing file.",
+ "tool.desc.create_file": "Create a new text file where it is allowed.",
+ "tool.desc.save_fact": "Save or correct a brand fact.",
+ "tool.desc.delete_fact": "Delete a brand fact that is no longer true."
 }
