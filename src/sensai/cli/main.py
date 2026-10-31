@@ -57,10 +57,32 @@ def _mcp_notice(text: str) -> str:
     return sanitize(text).replace("reload MCP", "use /mcp reload")
 
 
+def _mcp_load(mcp: Catalogue, read, write) -> bool:
+    """Reload; a config file the user has not trusted yet runs nothing until they say so."""
+    changed = mcp.reload()
+    if mcp.untrusted is None:
+        return changed
+    write(sanitize(f"This MCP config is not trusted yet: {mcp.config_path()}"))
+    write("Trusting it runs these commands on this computer, with your environment:")
+    for line in mcp.untrusted["commands"]:
+        write(f"  {sanitize(line)}")
+    try:
+        answer = read("Trust this file and run them? [y/N] ")
+    except (EOFError, KeyboardInterrupt):
+        answer = ""
+    if answer.strip().lower() in ("y", "yes", "o", "oui"):
+        mcp.trust(mcp.untrusted["digest"])
+        return mcp.reload()
+    write("MCP tools stay off. Use /mcp reload to be asked again.")
+    return changed
+
+
 def _mcp_status(mcp: Catalogue, write) -> None:
     """Where the configuration is, how its servers are, and how to add one."""
     found = "" if mcp.config_found() else " (not found, so no MCP tools)"
     write(sanitize(f"MCP config: {mcp.config_path()}{found}"))
+    if mcp.untrusted:
+        write("Not trusted yet, so nothing has run. Use /mcp reload to review its commands.")
     for notice in mcp.notices():
         write(_mcp_notice(notice))
     write("To add a server:")
@@ -68,22 +90,23 @@ def _mcp_status(mcp: Catalogue, write) -> None:
     write(EXAMPLE_CONFIG.rstrip())
     write("2. Only add servers you trust: each command runs on this computer, with your environment.")
     write("   This example needs Sensai's Python environment active, and uv for the time server.")
-    write("3. Run /mcp reload, then /tools. Each call asks for your approval.")
+    write("3. Run /mcp reload and trust the file, then /tools. Each call asks for your approval.")
     write(f"Full guide: {GUIDE_URL}")
 
 
-def _mcp_reload(mcp: Catalogue, session: ChatSession, tool_registry: ToolRegistry, write) -> None:
+def _mcp_reload(mcp: Catalogue, session: ChatSession, tool_registry: ToolRegistry, read, write) -> None:
     """Replace the MCP tools only; the conversation stays."""
     old_names = [d.name for d in mcp.definitions()]
     core = session.messages[0].content.removesuffix(tool_instructions(tool_registry.definitions())).rstrip()
-    if mcp.reload():
+    if _mcp_load(mcp, read, write):
         for name in old_names:
             tool_registry.unregister(name)
         mcp.register(tool_registry)
         session.set_system_prompt(_tool_prompt(core, tool_registry))
     for notice in mcp.notices():
         write(_mcp_notice(notice))
-    write("MCP configuration reloaded." if not mcp.error else "MCP reload failed.")
+    if not mcp.untrusted:
+        write("MCP configuration reloaded." if not mcp.error else "MCP reload failed.")
 
 
 def _setup_docs(args, settings, tool_registry) -> DocLibrary | None:
@@ -331,7 +354,7 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
             elif len(command) == 1:
                 _mcp_status(mcp, write)
             elif command[1].strip() == "reload":
-                _mcp_reload(mcp, session, tool_registry, write)
+                _mcp_reload(mcp, session, tool_registry, read, write)
             else:
                 write("usage: /mcp [reload]")
             continue
@@ -579,7 +602,7 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
                                    data_dir=args.data_dir)
             docs = _setup_docs(args, settings, tool_registry)
             mcp = Catalogue(settings.mcp_config)
-            mcp.reload()
+            _mcp_load(mcp, terminal.read, print)
             mcp.register(tool_registry)
             for notice in mcp.notices():
                 print(_mcp_notice(notice))

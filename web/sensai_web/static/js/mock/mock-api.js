@@ -135,6 +135,7 @@ const impl = {
   async stopChat() { active?.abort(); return { stopped: true }; },
   tools: async () => ({ items: state.noTools ? [] : TOOLS, servers: [], config: '/home/you/sensai/mcp.json', found: false, example: '{\n  "mcpServers": {}\n}\n', guide: '#/tools' }),
   reloadTools: async () => ({ items: state.noTools ? [] : TOOLS, servers: [], config: '/home/you/sensai/mcp.json', found: false, example: '{\n  "mcpServers": {}\n}\n', guide: '#/tools' }),
+  trustTools: async () => ({ items: state.noTools ? [] : TOOLS, servers: [], config: '/home/you/sensai/mcp.json', found: true, example: '{\n  "mcpServers": {}\n}\n', guide: '#/tools' }),
   async run(code) {
     const loop = /while\s+True/.test(code);
     return { exit_code: loop ? -9 : 0, duration_s: loop ? 15 : 0.3, timed_out: loop, truncated: false, stdout: loop ? '' : '1021.4\n', stderr: '', report: loop ? 'Time limit reached (15 s)' : 'Exit code 0 · 0.3 s' };

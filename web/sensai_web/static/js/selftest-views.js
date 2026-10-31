@@ -59,7 +59,26 @@ export const VIEW_TESTS = [
     eq(findCommand('mcp', {}).live, true);
     eq(mcpReloadFailed({ servers: [{ name: 'a', error: null }] }), false);
     eq(mcpReloadFailed({ error: 'bad file', servers: [] }), true);
+    eq(mcpReloadFailed({ untrusted: { digest: 'a', commands: [] }, servers: [] }), true);
     eq(mcpReloadFailed({ servers: [{ name: 'a', error: 'down' }] }), true);
+  }],
+  ['tools: an untrusted config shows its commands and trusts only on a click', async () => {
+    const root = document.createElement('div'); document.body.append(root);
+    const trusted = [];
+    const untrusted = { digest: 'abc', commands: ['evil: sh -c x'] };
+    const dispose = mountTools(root, {
+      api: { tools: async () => ({ items: [], servers: [], untrusted }), trustTools: async (d) => { trusted.push(d); return { items: [], servers: [] }; }, runData: async () => ({ files: [] }) },
+      store: { get: () => ({ session: null }), subscribe: () => () => {} },
+    });
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      if (!root.querySelector('[role=alert] pre').textContent.includes('evil: sh -c x')) throw new Error('commands missing');
+      eq(trusted, []);
+      root.querySelector('[role=alert] button').click();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      eq(trusted, ['abc']);
+      if (root.textContent.includes('evil: sh -c x')) throw new Error('question still showing after trust');
+    } finally { dispose(); root.remove(); }
   }],
   ['tools: without MCP config the setup steps are open and show the file and example', async () => {
     const root = document.createElement('div'); document.body.append(root);

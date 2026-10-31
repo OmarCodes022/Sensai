@@ -856,10 +856,12 @@
  "tools.mcp.setup": "Ajouter un serveur MCP",
  "tools.mcp.step1": "Indiquez vos serveurs dans le fichier de configuration. Par exemple :",
  "tools.mcp.step2": "N'ajoutez que des serveurs de confiance : chaque commande s'exécute sur cet ordinateur, avec votre environnement. Cet exemple demande l'environnement Python de Sensai activé, et uv pour le serveur d'heure.",
- "tools.mcp.step3": "Utilisez Recharger MCP, ou /mcp reload dans le chat. Les outils apparaissent ci-dessous, et chaque appel demande votre accord.",
+ "tools.mcp.step3": "Utilisez Recharger MCP, ou /mcp reload dans le chat, et approuvez le fichier. Les outils apparaissent ci-dessous, et chaque appel demande votre accord.",
  "tools.mcp.guide": "Lire le guide complet",
  "tools.mcp.reloaded": "MCP rechargé : {n} serveur(s) configuré(s).",
  "slash.mcp": "Afficher l'état et la configuration MCP, ou recharger avec /mcp reload",
  "approval.reasonMcp": "Le modèle veut appeler un outil d'un serveur MCP, qui s'exécute sur votre ordinateur.",
- "tools.mcp.reloadFailed": "Le rechargement MCP a rencontré un problème. Voir la vue Outils."
+ "tools.mcp.reloadFailed": "Le rechargement MCP a rencontré un problème. Voir la vue Outils.",
+ "tools.mcp.untrusted": "Ce fichier de configuration n'est pas encore approuvé : rien de ce qu'il contient n'a été exécuté. L'approuver exécute ces commandes sur cet ordinateur, avec votre environnement :",
+ "tools.mcp.trust": "Approuver ce fichier et les exécuter"
 }

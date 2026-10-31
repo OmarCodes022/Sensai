@@ -21,7 +21,7 @@ export function matchCommands(q, caps) {
   return [...pre, ...all.filter((c) => !pre.includes(c) && s && c.name.includes(s))];
 }
 
-/** A 200 from reload can still carry a bad config file or failed servers. */
-export const mcpReloadFailed = (d) => !!d.error || (d.servers || []).some((s) => s.error);
+/** A 200 from reload can still carry a bad config file, failed servers or a file waiting for trust. */
+export const mcpReloadFailed = (d) => !!d.error || !!d.untrusted || (d.servers || []).some((s) => s.error);
 
 export const findCommand = (word, caps) => withLive(caps).find((c) => c.name === word.toLowerCase());

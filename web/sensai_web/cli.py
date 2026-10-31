@@ -31,6 +31,8 @@ def serve(server: WebServer) -> None:
     where = f", remote Ollama via {cfg.ssh_host}" if cfg.ssh_host else ""
     print(f"Sensai is running at http://{host}:{server.server_address[1]}/  "
           f"(model {cfg.model}{where}, Ctrl+C to stop)")
+    if server.app.mcp.untrusted:
+        print("MCP config not trusted yet, so nothing from it has run: review it in the Tools view.")
     server.serve_forever()
 
 

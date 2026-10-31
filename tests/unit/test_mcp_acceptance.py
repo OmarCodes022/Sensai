@@ -21,6 +21,12 @@ ROOT = Path(__file__).resolve().parents[2]
 PEER = ROOT / "tests/helpers/mcp_acceptance_server.py"
 
 
+@pytest.fixture(autouse=True)
+def trusted_config(monkeypatch):
+    """These tests are about servers; the trust question has its own tests."""
+    monkeypatch.setattr(Catalogue, "_trusted", lambda self, digest: True)
+
+
 def config(path, **env):
     path.write_text(json.dumps({"mcpServers": {"fixture": {
         "command": sys.executable, "args": [str(PEER)], "env": env}}}), encoding="utf-8")

@@ -11,6 +11,12 @@ from sensai.mcp_server import weekly_engagement
 from sensai.tools import ToolRegistry
 
 
+@pytest.fixture(autouse=True)
+def trusted_config(monkeypatch):
+    """These tests are about servers; the trust question has its own tests."""
+    monkeypatch.setattr(Catalogue, "_trusted", lambda self, digest: True)
+
+
 def test_real_packaged_server_roundtrip(tmp_path):
     path = tmp_path / 'mcp.json'
     path.write_text(json.dumps({'mcpServers': {'sensai': {

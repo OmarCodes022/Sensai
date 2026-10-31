@@ -29,6 +29,12 @@ def isolated_session_storage(monkeypatch, tmp_path_factory):
 
 
 @pytest.fixture(autouse=True)
+def isolated_mcp_trust(monkeypatch, tmp_path_factory):
+    """Answers to the MCP trust question must never touch the real ~/.config."""
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path_factory.mktemp("config")))
+
+
+@pytest.fixture(autouse=True)
 def no_shared_sample_files(monkeypatch):
     """The repository's data/profile.json and data/personas.json must not leak into tests."""
     monkeypatch.setattr(saved_sessions, "DEFAULT_PROFILE_FILE", "no-such-profile.json")

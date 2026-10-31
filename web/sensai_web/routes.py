@@ -204,13 +204,29 @@ def approve(app: WebApp, request, id: str):
 def tools(app: WebApp, request):
     return {"items": tool_list(documents=app.docs.enabled, mcp=app.mcp),
             "servers": app.mcp.servers, "error": app.mcp.error, "config": app.mcp.config_path(),
-            "found": app.mcp.config_found(), "example": EXAMPLE_CONFIG, "guide": GUIDE_URL}
+            "found": app.mcp.config_found(), "example": EXAMPLE_CONFIG, "guide": GUIDE_URL,
+            "untrusted": app.mcp.untrusted, "trust_error": app.mcp.trust_error}
 
 
 @route("POST", r"/api/tools/reload")
 def reload_tools(app: WebApp, request):
     with app.mutex:
         app.require_idle()
+    return _load_mcp(app, request)
+
+
+@route("POST", r"/api/tools/trust")
+def trust_tools(app: WebApp, request):
+    digest = request.json().get("digest")
+    if not isinstance(digest, str):
+        raise ApiError(400, "bad_request", "digest must be a string.")
+    with app.mutex:
+        app.require_idle()
+        app.mcp.trust(digest)  # A digest other than the one on show trusts nothing: the file changed.
+    return _load_mcp(app, request)
+
+
+def _load_mcp(app: WebApp, request):
     app.mcp.reload()  # Outside the lock: discovery can take 30 s per server.
     with app.mutex:
         if app.turn is None:  # Otherwise the next turn's refresh_prompt catches up.

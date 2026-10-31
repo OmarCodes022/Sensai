@@ -1,10 +1,12 @@
 """Small MCP 2025-11-25 stdio client; every exchange runs in tool isolation."""
 from dataclasses import dataclass, field
 from functools import partial
+import hashlib
 import json
 import os
 from pathlib import Path
 import re
+import shlex
 import subprocess
 
 from sensai.core.ports import ToolCall, ToolDefinition, ToolResult
@@ -166,12 +168,63 @@ def _valid_schema(schema):
     return True
 
 
+def _trust_file():
+    """Outside any project, and not a setting: a folder's own .env must not choose it."""
+    base = os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config"
+    return Path(base) / "sensai" / "trusted-mcp.json"
+
+
+def _read_trusted():
+    try:
+        trusted = json.loads(_trust_file().read_text(encoding="utf-8"))
+    except (OSError, ValueError, RecursionError):
+        return {}
+    return trusted if isinstance(trusted, dict) else {}
+
+
+def _describe(name, spec):
+    """One escaped line for a trust question; env values can be secrets, so only their names."""
+    if not isinstance(spec, dict) or not isinstance(spec.get("command"), str):
+        line = f"{name}: (invalid entry)"
+    else:
+        args = spec.get("args", [])
+        line = f"{name}: {shlex.join([spec['command'], *map(str, args if isinstance(args, list) else [])])}"
+        env = spec.get("env")
+        if isinstance(env, dict) and env:
+            line += f" (sets {', '.join(map(str, env))})"
+    return line.encode("unicode_escape").decode("ascii")
+
+
 class Catalogue:
     def __init__(self, path="mcp.json"):
         self.path = path
         self.tools = []
         self.servers = []
         self.error = None
+        self.untrusted = None  # {"digest", "commands"} while the file waits for the user's trust.
+        self.trust_error = None
+        self._accepted = set()
+
+    def _trusted(self, digest):
+        path = self.config_path()
+        return (path, digest) in self._accepted or _read_trusted().get(path) == digest
+
+    def trust(self, digest):
+        """Remember the file content the user was shown; the next reload then runs it."""
+        if not self.untrusted or digest != self.untrusted["digest"]:
+            return False
+        path, self.trust_error = self.config_path(), None
+        self._accepted.add((path, digest))
+        target = _trust_file()
+        try:
+            target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+            partial_file = target.with_suffix(".tmp")
+            partial_file.touch(mode=0o600)
+            partial_file.write_text(json.dumps({**_read_trusted(), path: digest}), encoding="utf-8")
+            partial_file.replace(target)
+        except OSError:
+            self.trust_error = "Could not save MCP trust; Sensai will ask again next time"
+        return True
 
     def config_path(self):
         return str(Path(self.path).resolve())
@@ -187,16 +240,24 @@ class Catalogue:
             registry.register(definition, handler, timeout=TIMEOUT, confirm=True)
 
     def reload(self):
+        self.untrusted = None
         try:
             try:
-                config = json.loads(Path(self.path).read_text(encoding="utf-8"))
+                raw = Path(self.path).read_bytes()
             except FileNotFoundError:
-                config = {"mcpServers": {}}
+                raw = b'{"mcpServers": {}}'
+            config = json.loads(raw.decode("utf-8"))
             if not isinstance(config, dict) or not isinstance(config.get("mcpServers"), dict):
                 raise ValueError()
         except (OSError, ValueError, TypeError, RecursionError):
             self.error = "Invalid MCP configuration; fix it and reload MCP"
             return False
+        digest = hashlib.sha256(raw).hexdigest()
+        if config["mcpServers"] and not self._trusted(digest):
+            self.tools, self.servers, self.error = [], [], None
+            self.untrusted = {"digest": digest, "commands": [
+                _describe(name, spec) for name, spec in config["mcpServers"].items()]}
+            return True
         tools, statuses = [], []
         for name, spec in config["mcpServers"].items():
             failure = "Invalid server configuration"
@@ -237,4 +298,4 @@ class Catalogue:
     def notices(self):
         lines = [f"MCP: {s['name']} ({s['count']} tool{'' if s['count'] == 1 else 's'})" if not s["error"] else
                  f"MCP server {s['name']} unavailable: {s['error']}" for s in self.servers]
-        return ([self.error] if self.error else []) + lines
+        return [message for message in (self.error, self.trust_error) if message] + lines

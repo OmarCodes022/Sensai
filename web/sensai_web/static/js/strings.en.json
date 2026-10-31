@@ -856,10 +856,12 @@
  "tools.mcp.setup": "How to add an MCP server",
  "tools.mcp.step1": "Put your servers in the config file. For example:",
  "tools.mcp.step2": "Only add servers you trust: each command runs on this computer, with your environment. This example needs Sensai's Python environment active, and uv for the time server.",
- "tools.mcp.step3": "Use Reload MCP, or /mcp reload in chat. Tools appear below, and each call asks for your approval.",
+ "tools.mcp.step3": "Use Reload MCP, or /mcp reload in chat, and trust the file. Tools appear below, and each call asks for your approval.",
  "tools.mcp.guide": "Read the full guide",
  "tools.mcp.reloaded": "MCP reloaded: {n} server(s) configured.",
  "slash.mcp": "Show MCP status and setup, or reload it with /mcp reload",
  "approval.reasonMcp": "The model wants to call a tool from an MCP server, which runs on your computer.",
- "tools.mcp.reloadFailed": "MCP reload found a problem. See the Tools view."
+ "tools.mcp.reloadFailed": "MCP reload found a problem. See the Tools view.",
+ "tools.mcp.untrusted": "This config file is not trusted yet, so nothing from it has run. Trusting it runs these commands on this computer, with your environment:",
+ "tools.mcp.trust": "Trust this file and run them"
 }

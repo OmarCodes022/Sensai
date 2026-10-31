@@ -29,14 +29,18 @@ function registry(items) {
 }
 
 /** Read-only on purpose: each entry runs a local command, so the user edits the file and this page explains how. */
-function mcpPanel(d) {
+function mcpPanel(d, onTrust) {
   const servers = d.servers || [];
   return [
+    d.untrusted ? h('div', { class: 'stack', role: 'alert' }, h('p', null, t('tools.mcp.untrusted')),
+      h('pre', { class: 'code code--wrap', tabindex: '0', dir: 'ltr' }, d.untrusted.commands.join('\n')),
+      h('div', { class: 'row' }, button(t('tools.mcp.trust'), { onClick: () => onTrust(d.untrusted.digest) }))) : null,
+    d.trust_error ? h('p', { role: 'alert' }, d.trust_error) : null,
     d.config ? h('p', null, t('tools.mcp.config', { path: d.config }), d.found ? '' : ` ${t('tools.mcp.missing')}`) : null,
     d.error ? h('p', { role: 'alert' }, d.error, ' ', t('tools.reloadHint')) : null,
     servers.map((s) => h('p', { role: s.error ? 'alert' : null },
       s.error ? `${s.name}: ${s.error} ${t('tools.reloadHint')}` : `${s.name}: ${t('tools.mcp.count', { n: s.count })}`)),
-    h('details', { class: 'card', open: !servers.length }, h('summary', null, t('tools.mcp.setup')),
+    h('details', { class: 'card', open: !servers.length && !d.untrusted }, h('summary', null, t('tools.mcp.setup')),
       h('ol', { class: 'steps stack' },
         h('li', null, t('tools.mcp.step1'), d.example ? h('pre', { class: 'code', tabindex: '0', dir: 'ltr' }, d.example) : null),
         h('li', null, t('tools.mcp.step2')),
@@ -47,13 +51,15 @@ function mcpPanel(d) {
 
 export function mount(root, { api, store }) {
   const mcp = h('div'), reg = h('div'), recent = h('div');
-  const render = (d) => { mcp.replaceChildren(...mcpPanel(d).flat().filter(Boolean)); reg.replaceChildren(registry(d.items || [])); };
-  const reload = button(t('tools.reload'), { onClick: async () => {
+  const render = (d) => { mcp.replaceChildren(...mcpPanel(d, trust).flat().filter(Boolean)); reg.replaceChildren(registry(d.items || [])); };
+  const load = async (call) => {
     reload.disabled = true;
     reload.setAttribute('aria-busy', 'true');
-    try { await loadInto(reg, () => api.reloadTools(), render, t('tools.loadError')); }
+    try { await loadInto(reg, call, render, t('tools.loadError')); }
     finally { reload.disabled = false; reload.removeAttribute('aria-busy'); }
-  } });
+  };
+  const trust = (digest) => load(() => api.trustTools(digest));
+  const reload = button(t('tools.reload'), { onClick: () => load(() => api.reloadTools()) });
   const box = createSandbox({ api, store });
   root.append(viewShell('tools', section(t('tools.mcp.title'), h('div', { class: 'row' }, reload), mcp), section(t('tools.registry'), reg), section(t('tools.recent'), recent), section(t('tools.sandboxTitle'), box.el)));
   loadInto(reg, () => api.tools(), render, t('tools.loadError'));
