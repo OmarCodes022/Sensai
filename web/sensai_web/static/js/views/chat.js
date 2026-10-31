@@ -8,6 +8,7 @@ import { createReconnect } from '../chat/reconnect.js';
 import { createRestorer } from '../chat/restore.js';
 import { createMenu } from '../chat/menu.js';
 import { createDocCommands } from '../chat/doc-commands.js';
+import { createContextCommands } from '../chat/context-commands.js';
 import { createEvent } from '../chat/messages.js';
 import { openHistory } from '../chat/history.js';
 import { createPrintHead } from '../chat/print-head.js';
@@ -35,6 +36,7 @@ export function mount(root, ctx) {
   const restorer = createRestorer({ ctx, onReuse: (text) => composer.fill(text) });
 
   const docCommands = createDocCommands({ api, transcript, router });
+  const contextCommands = createContextCommands({ api, store, transcript });
   const commands = {
     persona: () => document.querySelector('.persona-pill')?.click(),
     history: () => openHistory(composer.textarea, { api, plannedEdit: !store.get().capabilities.branching, onPick: jump }),
@@ -47,6 +49,8 @@ export function mount(root, ctx) {
     add: () => docCommands.add(),
     remove: (args) => docCommands.remove(args),
     reindex: () => docCommands.reindex(),
+    context: () => contextCommands.context(),
+    compact: () => contextCommands.compact(),
   };
   const composer = createComposer({
     getUserTexts: () => model.items.filter((i) => i.kind === 'user').map((i) => i.text),

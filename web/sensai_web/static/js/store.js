@@ -26,6 +26,7 @@ export const initialState = () => ({
   personasSource: 'builtin',
   activePersona: null,
   session: null,
+  context: null,
   sessions: { items: [], state: 'idle' }, // state: idle | loading | error
   prefs: null,
   status: { backend: 'checking', mock: false, streaming: false, locked: false, health: null },

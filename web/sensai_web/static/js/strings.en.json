@@ -846,5 +846,19 @@
  "profile.formHelp": "One line per thing Sensai should remember, for example voice or audience.",
  "profile.err.rowBlank": "Fill in both the name and the text of every line.",
  "profile.err.rowDup": "The name \"{name}\" is used twice.",
- "slash.thinkUsage": "Write what to think about, for example: /think what is my engagement rate?"
+ "slash.thinkUsage": "Write what to think about, for example: /think what is my engagement rate?",
+ "slash.compact": "Summarize older messages now",
+ "context.title": "Context",
+ "context.window": "Window",
+ "context.lastTurn": "Last turn",
+ "context.summaries": "Summaries",
+ "context.saved": "Tokens saved",
+ "context.source.set": "set",
+ "context.source.ollama": "from Ollama",
+ "context.source.default": "default",
+ "context.hint": "Older messages are summarized when a turn reaches {pct}% of the window. Type /compact to do it now.",
+ "context.compacting": "Context at {pct}%, summarizing {n} older messages…",
+ "context.compactedEvent": "{n} older messages summarized. The last 4 messages are kept word for word.",
+ "context.compacted": "Compacted: about {before} -> {after} tokens",
+ "context.compactedBody": "{n} older messages were replaced by one summary. They stay visible here until you reload."
 }
