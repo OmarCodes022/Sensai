@@ -27,6 +27,7 @@ nav:
       - Reasoning step by step: user-guide/thinking.md
       - Document search: user-guide/documents.md
       - Brand facts: user-guide/brand-facts.md
+      - Guardrails: user-guide/guardrails.md
   - Developer guide:
       - Architecture: developer-guide/architecture.md
       - File structure: developer-guide/file-structure.md

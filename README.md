@@ -16,6 +16,7 @@ Docs: <https://omarcodes022.github.io/Sensai/> (sources in [docs/](docs/README.m
 | Branching and interrupt | `/edit N <new text>` continues from message N as a new session; Ctrl+C, Esc or Stop interrupts a reply | [Sessions](docs/user-guide/sessions.md#editing-an-earlier-message-branching) |
 | Tools | the model calls `calculate` and `run_python` (you approve each run); a failed run goes back to the model, which fixes its code, up to 3 runs per question | [Tools and sandbox](docs/user-guide/tools.md) |
 | Step-by-step reasoning | `/think <request>`: a plan, tool calls, a draft, a check against your rules, revisions | [Reasoning step by step](docs/user-guide/thinking.md) |
+| Content and privacy guardrails | emails, phones and @handles redacted; injections and health details refused before the model; unapproved claims stopped | [Guardrails](docs/user-guide/guardrails.md) |
 | Brand facts memory | the model saves, corrects and deletes facts with `save_fact` / `delete_fact`; `/facts`; web Brand facts page | [Brand facts](docs/user-guide/brand-facts.md) |
 | Brand document search | `/add <file>`, `/docs`; files in `data/docs/` are indexed by themselves | [Document search](docs/user-guide/documents.md) |
 | Web interface | `sensai-web <model>` | [below](#web-interface) |
@@ -116,6 +117,7 @@ variables win over `.env`, and command-line options win over both.
 | `SENSAI_DB` | session database | `sensai.sqlite3` |
 | `SENSAI_CREATOR` | key that separates creators' sessions and profiles | `default` |
 | `SENSAI_DATA_DIR` | files the sandbox can read | `./data` if it exists |
+| `SENSAI_GUARDRAILS_FILE`, `SENSAI_BRAND_FILE` | extra guardrail rules (JSON) and the brand file with the approved claims | none, `./data/brand.json` if it exists |
 | `SENSAI_DOCS`, `SENSAI_EMBED_MODEL` | document folder (empty switches search off) and embedding model | `./data/docs`, `nomic-embed-text` |
 | `SENSAI_OPERATION_TIMEOUT` | seconds per turn | `120` |
 | `SENSAI_CONTEXT_LENGTH` | context tokens (more uses more VRAM) | Ollama's default |

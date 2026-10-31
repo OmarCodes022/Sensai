@@ -1,9 +1,11 @@
 # Privacy and product-claim policy (specification)
 
-This is a **configurable policy specification**, not an active classifier,
-redactor, validation gate, four-output workflow or optional product feature.
-Enforcement belongs to a future input/output guardrail (Content & Privacy
-Guardrails, EV2), which does not exist yet. Brand-specific facts and actual evidence may be
+This is the **configurable policy specification**. Part of it is now enforced in code
+by the content and privacy guardrails (EV2, `src/sensai/guardrails/`): identifiers are
+redacted, prompt injections and personal health details are refused before the model, and
+reply lines with claims that are not approved and in date are stopped. How they work and how
+to change the rules: [Guardrails](../user-guide/guardrails.md). The four-output workflow is
+still not implemented. Brand-specific facts and actual evidence may be
 refined independently; every example below is fictional and is not an
 approval of a real skincare claim.
 
