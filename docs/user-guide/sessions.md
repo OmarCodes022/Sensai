@@ -57,6 +57,27 @@ A line is cut after 100 characters, and a message of several lines shows its
 first line; both end with ` …`. A session without messages prints
 `Aucun message dans cette session.`
 
+## Editing an earlier message (branching)
+
+`/edit N <new text>` continues the conversation from your message number N (as in
+`/history`) with the new text, as a **new saved session**. Everything before message N
+is kept; message N and what followed are left out. The original conversation is never
+changed and can still be resumed.
+
+```text
+> /edit 2 Write the caption in English instead.
+New branch m4tq8z from k7f2qa (k7f2qa is kept unchanged).
+```
+
+The branch is titled like the original plus `(branch)`. A wrong number or missing text
+prints a short error and changes nothing. If the reply is interrupted (Ctrl+C or Esc) or
+fails, nothing is saved and you stay in the original conversation. Ctrl+C or Esc during
+any reply still stops it and drops the unfinished turn, so you can redirect right away.
+
+In the web chat, type `/edit N <new text>`, or click the branch icon under one of your
+messages to fill the box with `/edit N` and its text. When the reply completes, the page
+opens the branch; the Stop button interrupts as usual.
+
 ## In the web interface
 
 The **Sessions** page can rename, export (Markdown file) and delete a saved conversation;

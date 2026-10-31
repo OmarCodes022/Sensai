@@ -93,13 +93,13 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 4. Add strings to BOTH `strings.en.json` and `strings.fr.json` with identical keys, and a nav key `nav.<name>`.
 5. Keep files under 300 lines; build DOM with `h()` (never `innerHTML`).
 
-## String keys (848 per language, identical in en and fr)
+## String keys (851 per language, identical in en and fr)
 
 - `common` (25): `na`, `planned`, `mockData`, `cancel`, `confirm`, `close`, `copy`, `copied`, `copyFailed`, `copyCommand`, `retry`, `clear`, `loading`, `remove`, `copyDetails`, `stop`, `send`, `run`, `refuse`, `viewAll`, `saved`, `nothingSent`, `dismiss`, `loadError`, `save`
 - `nav` (14): `chat`, `sessions`, `personas`, `profile`, `tools`, `settings`, `campaign`, `brand`, `documents`, `insights`, `safety`, `schedule`, `keynote`, `views`
 - `theme` (3): `system`, `light`, `dark`
 - `topbar` (4): `toggleSidebar`, `toggleInspector`, `search`, `themeNext`
-- `chat` (33): `new`, `placeholder`, `hint`, `empty`, `thinking`, `greeting`, `greetingName`, `interrupted`, `interruptedToast`, `timeLimit`, `noMessages`, `ariaLabel`, `budget`, `composerLabel`, `interruptedDivider`, `jump`, `loadError`, `noSuchMessage`, `replyComplete`, `replying`, `resumedFrom`, `source`, `sourceNone`, `starters`, `thinkingS`, `timedOutDivider`, `title`, `transcript`, `waitReply`, `disabled.offline`, `disabled.locked`, `disabled.approval`, `disabled.resuming`
+- `chat` (34): `new`, `placeholder`, `hint`, `empty`, `thinking`, `greeting`, `greetingName`, `interrupted`, `interruptedToast`, `timeLimit`, `noMessages`, `ariaLabel`, `budget`, `composerLabel`, `interruptedDivider`, `jump`, `loadError`, `noSuchMessage`, `replyComplete`, `replying`, `resumedFrom`, `source`, `sourceNone`, `starters`, `thinkingS`, `timedOutDivider`, `title`, `transcript`, `waitReply`, `disabled.offline`, `disabled.locked`, `disabled.approval`, `disabled.resuming`, `branched`
 - `everything` (1): `local`
 - `draft` (1): `label`
 - `session` (7): `new`, `id`, `copyId`, `idCopied`, `saved`, `notSaved`, `savedAfter`
@@ -133,10 +133,10 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 - `hint` (4): `largePaste`, `privacy`, `privacyGuarded`, `undo`
 - `history` (3): `note`, `noteEdit`, `title`
 - `menu` (12): `copyMd`, `download`, `go`, `hideTokens`, `hideTools`, `jump`, `jumpLabel`, `print`, `serverExport`, `showTokens`, `showTools`, `title`
-- `msg` (11): `assistantLabel`, `copyMd`, `copyPlain`, `details`, `interruptedHidden`, `notSent`, `reuse`, `you`, `youN`, `sources`, `outdated`
+- `msg` (12): `assistantLabel`, `copyMd`, `copyPlain`, `details`, `interruptedHidden`, `notSent`, `reuse`, `you`, `youN`, `sources`, `outdated`, `branch`
 - `py` (16): `code`, `cpuLimit`, `errors`, `exit`, `fileLimit`, `gotoLine`, `limitCpu`, `limitMem`, `limitWall`, `noErrors`, `noOutput`, `output`, `signal`, `tabs`, `timeLimit`, `truncated`
 - `reconnect` (2): `done`, `text`
-- `slash` (30): `label`, `none`, `plannedMsg`, `foot.move`, `foot.complete`, `foot.pick`, `foot.close`, `persona`, `history`, `tools`, `run`, `new`, `help`, `read`, `save`, `docs`, `reindex`, `search`, `facts`, `context`, `campaign`, `export`, `share`, `unshare`, `think`, `team`, `edit`, `add`, `remove`, `thinkUsage`
+- `slash` (31): `label`, `none`, `plannedMsg`, `foot.move`, `foot.complete`, `foot.pick`, `foot.close`, `persona`, `history`, `tools`, `run`, `new`, `help`, `read`, `save`, `docs`, `reindex`, `search`, `facts`, `context`, `campaign`, `export`, `share`, `unshare`, `think`, `team`, `edit`, `add`, `remove`, `thinkUsage`, `editUsage`
 - `starter` (9): `redaction.1`, `redaction.2`, `redaction.3`, `communaute.1`, `communaute.2`, `communaute.3`, `analyse.1`, `analyse.2`, `analyse.3`
 - `tool` (21): `arguments`, `finished`, `label`, `round`, `roundN`, `started`, `timedOut`, `using`, `status.running`, `status.waiting`, `status.ok`, `status.error`, `status.refused`, `status.timeout`, `status.cancelled`, `status.stopped`, `attempt`, `attemptLast`, `stopped`, `desc.calculate`, `desc.run_python`
 - `personas` (24): `builtin`, `custom`, `none`, `active`, `use`, `inUse`, `role`, `scope`, `guard`, `editHelp`, `new`, `edit`, `remove`, `saved`, `removed`, `newTitle`, `editTitle`, `fieldName`, `fieldId`, `idHelp`, `idFixed`, `scopeHelp`, `needId`, `idTaken`
