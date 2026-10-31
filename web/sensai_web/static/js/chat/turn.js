@@ -83,7 +83,7 @@ export function createTurn({ ctx, transcript, composer, model, reconnect, onReus
       case 'title': store.set({ session: { ...store.get().session, title: ev.title } }); document.title = `${stripInvisible(ev.title)} - Sensai`; break;
       case 'saved': store.set({ session: { ...store.get().session, saved: true } }); announce(t('session.saved')); break;
       case 'warning': warn(ev); break;
-      case 'redacted': st.user.addNote(chip(t('guard.redacted', { classes: (ev.parts || []).map((p) => p.class).join(', ') }), { tone: 'plum', icon: 'eye-off' })); break;
+      case 'redacted': if (ev.sent_as) st.user.setText(ev.sent_as); st.user.addNote(chip(t('guard.redacted', { classes: (ev.parts || []).map((p) => p.class).join(', ') }), { tone: 'plum', icon: 'eye-off' })); break;
       case 'blocked': st.blocked = true; addError({ code: 'guardrail_refused', message: ev.message, reason: ev.reason }); break;
       case 'sources': st.block?.setSources(ev.items); break;
       case 'step': ensureBlock().addStep(ev.step, ev.text); break;

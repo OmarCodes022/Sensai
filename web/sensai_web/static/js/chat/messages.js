@@ -41,6 +41,8 @@ export function createUser(item, opts = {}) {
     markNotSent(canRetry) { note.hidden = false; retry.hidden = !canRetry; num.textContent = ''; delete el.dataset.n; el.classList.add('msg--unsent'); },
     clearNotSent() { note.hidden = true; retry.hidden = true; el.classList.remove('msg--unsent'); },
     addNote(node) { extra.append(node); },
+    /** The text as it was sent (identifiers redacted by the guardrails). */
+    setText(text) { item.text = text; bubble.textContent = text; },
   };
   if (item.n) api.setNumber(item.n); else el.setAttribute('aria-label', t('msg.you'));
   return api;
