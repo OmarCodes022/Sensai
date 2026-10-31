@@ -85,7 +85,7 @@ def display_items(messages: Sequence[Message], persona: str | None,
                 items.append(reply)
             visible, block = split_block(message.content)
             block = normalize_tool_block(block, TOOL_NAMES)
-            reply["text"] += visible
+            reply["text"] += visible if block is None or "tool" in block else message.content  # Plain JSON is an answer.
             if block is not None and "tool" in block:
                 arguments = block.get("arguments")
                 pending = {"kind": "tool", "id": f"c{len(reply['tools']) + 1}", "name": str(block["tool"]),
