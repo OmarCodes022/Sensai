@@ -93,6 +93,7 @@ export function createTurn({ ctx, transcript, composer, model, reconnect, onReus
       case 'redacted': if (ev.sent_as) st.user.setText(ev.sent_as); st.user.addNote(chip(t('guard.redacted', { classes: (ev.parts || []).map((p) => p.class).join(', ') }), { tone: 'plum', icon: 'eye-off' })); break;
       case 'blocked': st.blocked = true; addError({ code: 'guardrail_refused', message: ev.message, reason: ev.reason }); break;
       case 'sources': st.block?.setSources(ev.items); break;
+      case 'web_sources': ensureBlock().setWebSources(ev.items); break;
       case 'step': ensureBlock().addStep(ev.step, ev.text); break;
       case 'branch': st.branch = ev; break;
       case 'memory': ensureBlock().addNote(h('div', { class: 'row' }, (ev.changes || []).map((c) => chip(t('brand.memory', { change: c }), { tone: 'plum', icon: 'database' })))); break;

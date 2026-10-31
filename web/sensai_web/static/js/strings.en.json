@@ -901,5 +901,11 @@
  "question.skip": "Skip",
  "question.answerAll": "Answer every question, or skip.",
  "question.answered": "Answered.",
- "question.skipped": "Skipped."
+ "question.skipped": "Skipped.",
+ "msg.webSources": "Web sources",
+ "search.usage": "Write what to search for, for example: /search skincare trends this month",
+ "search.title": "Web results for \"{q}\"",
+ "search.noModel": "Shown without asking the model.",
+ "search.none": "No web results.",
+ "search.failed": "Web search failed"
 }

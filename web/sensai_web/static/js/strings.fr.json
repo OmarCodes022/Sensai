@@ -901,5 +901,11 @@
  "question.skip": "Passer",
  "question.answerAll": "Répondez à chaque question, ou passez.",
  "question.answered": "Répondu.",
- "question.skipped": "Passé."
+ "question.skipped": "Passé.",
+ "msg.webSources": "Sources web",
+ "search.usage": "Indiquez ce qu'il faut chercher, par exemple : /search tendances soin ce mois-ci",
+ "search.title": "Résultats web pour « {q} »",
+ "search.noModel": "Affiché sans demander au modèle.",
+ "search.none": "Aucun résultat web.",
+ "search.failed": "La recherche web a échoué"
 }

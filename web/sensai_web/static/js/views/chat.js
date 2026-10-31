@@ -8,6 +8,7 @@ import { createReconnect } from '../chat/reconnect.js';
 import { createRestorer } from '../chat/restore.js';
 import { createMenu } from '../chat/menu.js';
 import { createDocCommands } from '../chat/doc-commands.js';
+import { createSearchCommand } from '../chat/search-command.js';
 import { createEvent } from '../chat/messages.js';
 import { openHistory } from '../chat/history.js';
 import { createPrintHead } from '../chat/print-head.js';
@@ -37,6 +38,7 @@ export function mount(root, ctx) {
   const restorer = createRestorer({ ctx, onReuse: (text) => composer.fill(text), onEdit });
 
   const docCommands = createDocCommands({ api, transcript, router });
+  const webSearch = createSearchCommand({ api, transcript });
   const commands = {
     persona: () => document.querySelector('.persona-pill')?.click(),
     history: () => openHistory(composer.textarea, { api, canEdit: !!store.get().capabilities.branching, onPick: jump }),
@@ -46,6 +48,7 @@ export function mount(root, ctx) {
     edit: (args) => (/^\d+\s+\S/.test(args || '') ? turn.send(`/edit ${args}`) : toast(t('slash.editUsage'))),
     facts: () => router.go('#/brand'),
     campaign: () => router.go('#/campaign'),
+    search: (query) => webSearch(query),
     // File access (T4): /read puts the file into the box for your next message; /save writes the last reply.
     read: (path) => (!path ? toast(t('files.usageRead')) : api.readFile(path).then((r) => {
       composer.fill(`File ${r.path}:\n${r.text}\n\n`); toast(t('files.read', { n: r.chars, path: r.path }));
