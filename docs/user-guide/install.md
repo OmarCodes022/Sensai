@@ -43,7 +43,7 @@ command-line options win over both. Only the model is required.
 | `SENSAI_DATA_DIR` | none | Folder whose files are copied into each Python sandbox run | none |
 | `SENSAI_TIMEOUT` | `60` | Network timeout, in seconds, for each request to Ollama | none |
 | `SENSAI_OPERATION_TIMEOUT` | `120` | Maximum seconds for one complete turn | `--operation-timeout` |
-| `SENSAI_CONTEXT_LENGTH` | Ollama's default | Context size in tokens; larger values use more memory | none |
+| `SENSAI_CONTEXT_LENGTH` | `8192` | Context size in tokens; Sensai's own instructions take about 2,000, so less fills after one turn. Larger values use more memory | none |
 
 For a local model, this is enough:
 
@@ -66,7 +66,7 @@ Type a message and the reply streams below it; type `exit` to leave.
 - `.venv/bin/sensai --help` lists every option.
 - `.env` and the default `sensai.sqlite3` are looked up in the folder you
   start Sensai from.
-- For long chats or thinking models, set `SENSAI_CONTEXT_LENGTH=8192`.
+- The window is 8192 tokens by default. On a small machine, a lower value uses less memory but fills sooner.
 - `.env.example` lists the variables with short comments.
 - The packaged prompt is `src/sensai/chat/system_prompt.txt`; it works from any
   folder.

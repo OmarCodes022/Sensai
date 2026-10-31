@@ -9,9 +9,8 @@ are not lost.
 
 - After each reply Sensai takes the token count Ollama reported for the turn,
   or estimates it as characters / 4 when Ollama reports none.
-- The window is the one you set (`--context-budget`, or
-  `SENSAI_CONTEXT_LENGTH`), else the one Ollama really loaded (read from
-  `/api/ps` after the first reply), else 4,096.
+- The window is the one you set with `--context-budget` or
+  `SENSAI_CONTEXT_LENGTH`: 8192 by default, sent to Ollama as `num_ctx`.
 - When a turn reaches 80% of the window, Sensai asks the model, in one extra
   request, to summarize every message between the system prompt and the last
   4 messages. Those messages are replaced by one message starting with
