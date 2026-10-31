@@ -191,6 +191,7 @@ def test_cli_reload_replaces_tools_without_losing_history(tmp_path):
     assert len(client.requests) == 2
     assert "fixture.first" in client.requests[0][1][0].content
     assert "fixture.first" not in client.requests[1][1][0].content
+    assert [m.role for m in client.requests[1][1]].count("system") == 1  # Reloading is not a persona switch.
     assert [m.content for m in session.messages[1:]] == ["first", "first answer", "second", "second answer"]
 
 

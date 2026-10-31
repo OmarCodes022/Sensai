@@ -121,7 +121,8 @@ def _mcp_reload(mcp: Catalogue, session: ChatSession, tool_registry: ToolRegistr
         for name in old_names:
             tool_registry.unregister(name)
         mcp.register(tool_registry)
-        session.set_system_prompt(_tool_prompt(core, tool_registry))
+        # Not set_system_prompt: that marks a persona switch and re-sends the prompt on every turn.
+        session.messages[0] = Message(role="system", content=_tool_prompt(core, tool_registry))
     for notice in mcp.notices():
         write(_mcp_notice(notice))
     if not mcp.untrusted:
