@@ -143,11 +143,6 @@ class WebApp:
             self.base_prompt = load_system_prompt(cfg.prompt_path)
         except (OSError, ValueError) as exc:
             raise StartupError(f"cannot load personas or prompt: {exc}") from None
-        self.schedule_stop = Event()  # Scheduling (X5): drafts on a timer, in a background thread.
-        try:
-            self.scheduler = start_schedule(self, settings, GuardedClient(make_client(settings), self.guard))
-        except ValueError as exc:
-            raise StartupError(f"schedule: {exc}") from None
         if cfg.data_dir and not os.path.isdir(cfg.data_dir):
             raise StartupError(f"data folder not found: {cfg.data_dir}")
         self.preferences: dict[str, str] = {}
@@ -157,6 +152,11 @@ class WebApp:
             self.docs.sync()  # Whatever is in the documents folder starts indexing right away.
         except (PortError, sqlite3.Error, OSError, ValueError) as exc:
             raise StartupError(str(exc)) from None
+        self.schedule_stop = Event()  # Scheduling (X5): last, its first run reads the profile and facts.
+        try:
+            self.scheduler = start_schedule(self, settings, GuardedClient(make_client(settings), self.guard))
+        except ValueError as exc:
+            raise StartupError(f"schedule: {exc}") from None
 
     # Storage
 

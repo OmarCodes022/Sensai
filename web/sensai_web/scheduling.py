@@ -3,7 +3,8 @@ import os
 import threading
 from datetime import datetime
 
-from sensai.schedule import Scheduler, load_tasks, make_runner
+from sensai.chat.saved_sessions import profile_block
+from sensai.schedule import Scheduler, brand_block, load_tasks, make_runner
 from sensai_web.errors import ApiError
 
 
@@ -12,7 +13,11 @@ def start(app, settings, client) -> Scheduler | None:
     if not settings.schedule_file:
         return None
     tasks = load_tasks(settings.schedule_file, app.catalogue.registry)  # ValueError: refused before anything runs
-    run = make_runner(client, app.cfg.model, app.base_prompt, app.catalogue.registry, settings.operation_timeout)
+    def context() -> str:  # As in a chat: the profile, the saved brand facts, then the products and claims.
+        return "\n\n".join(part for part in (profile_block(app.preferences), app.memory.block(),
+                                               brand_block(settings.brand_file)) if part)
+
+    run = make_runner(client, app.cfg.model, app.base_prompt, app.catalogue.registry, settings.operation_timeout, context)
     scheduler = Scheduler(tasks, run, app.cfg.model, settings.drafts_dir, write=lambda line: None)
     scheduler.file = settings.schedule_file
     threading.Thread(target=scheduler.loop, args=(app.schedule_stop,), daemon=True, name="sensai-schedule").start()
