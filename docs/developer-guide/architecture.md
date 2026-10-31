@@ -129,7 +129,7 @@ CLI always passes), and `ControlledTool` runs each tool registered with a
 numeric timeout. The parent checks the token and polls a socket pair at least
 every 20 ms; the child sends chunks, results and typed errors as
 newline-delimited JSON. To stop a child, the parent sends SIGTERM to its
-group, waits 200 ms, sends SIGKILL and reaps it. Factories and handlers cross
+group, waits at most 500 ms, sends SIGKILL and reaps it. Factories and handlers cross
 the process boundary, so they must be importable and pickleable.
 
 The sandbox adds its own layer: `run_python()` runs `sys.executable -I main.py`

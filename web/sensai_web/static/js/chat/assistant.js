@@ -56,6 +56,8 @@ export function createAssistant(opts) {
     setElapsed(s) { think.lastChild.textContent = ` ${s} s`; },
     addNote(node) { settled(); group.el.hidden = false; group.el.append(node); },
     addTool(node) { settled(); group.el.hidden = false; group.add(node); },
+    /** An approval blocks the turn: reopen the group if it was collapsed, or the card stays hidden. */
+    addApproval(node) { settled(); group.el.hidden = false; group.el.open = true; group.add(node); },
     addStep(step, line) { settled(); steps.hidden = false; steps.append(h('li', null, h('span', { class: 'chip chip--outline' }, step), ' ', line)); },
     setSources(items) {
       sources = items;

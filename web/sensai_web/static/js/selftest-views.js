@@ -9,6 +9,7 @@ import { stripInvisible, visibleEscapes } from './safetext.js';
 import { createToolCard } from './chat/tool-card.js';
 import { mockApi, control } from './mock/mock-api.js';
 import { pythonBody } from './chat/py-card.js';
+import { createAssistant } from './chat/assistant.js';
 import { parseHash } from './router.js';
 import { formatNumber, formatDuration, formatPercent } from './format.js';
 
@@ -98,5 +99,16 @@ export const VIEW_TESTS = [
       const last = items[items.length - 1];
       if (last.text.includes('**') || last.tools.length) throw new Error(`saved more than the answer: ${last.text}`);
     } finally { control.select(before.scenario); control.set({ speed: before.speed }); document.querySelector('.devpanel')?.remove(); }
+  }],
+  ['an approval reopens a collapsed tool group', () => {
+    const block = createAssistant({ persona: { name: 'Sensai', id: 'x' } });
+    const group = block.el.querySelector('.toolgroup');
+    block.addTool(document.createElement('div'));
+    group.open = false;
+    block.addTool(document.createElement('div'));
+    if (group.open) throw new Error('a tool card must not reopen a group the creator collapsed');
+    const card = document.createElement('section');
+    block.addApproval(card);
+    if (!group.open || !group.contains(card)) throw new Error('the approval stayed hidden');
   }],
 ];
