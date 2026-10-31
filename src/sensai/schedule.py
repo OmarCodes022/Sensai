@@ -3,7 +3,7 @@
     python -m sensai.schedule schedule.local.json
 
 Each task runs when the scheduler starts, then every `every_minutes`. A run is one chat request
-with the shared prompt and the task's persona, under the usual time limit; the reply goes through
+with the shared prompt, the brand's products and approved claims, and the task's persona, under the usual time limit; the reply goes through
 the guardrails' check before it is saved in drafts/. A failed run is reported and retried at the
 next interval.
 """
@@ -128,13 +128,34 @@ class Scheduler:
             stop.wait(tick_seconds)
 
 
-def make_runner(client, model: str, base_prompt: str, personas, timeout: float):
-    """run(task) -> reply text: one chat request with the shared prompt and the task's persona."""
+def brand_block(brand_file: str | None) -> str:
+    """The products and the claims a draft may use: without them a run invents products and results."""
+    if not brand_file:
+        return ""
+    from sensai.guardrails.rules import load_claims
+
+    with open(brand_file, encoding="utf-8") as f:
+        products = json.load(f).get("products", [])
+    usable = {claim.claim_id for claim in load_claims(brand_file).approved}
+    lines = ["Products (write only about these):"]
+    for product in products:
+        claims = [f'"{c["text"]}"' for c in product.get("claims", []) if c.get("id") in usable]
+        lines.append(f"- {product['name']}: " + ("; ".join(claims) if claims else "no approved claim yet"))
+    lines.append("Use these claims word for word and no others. Never invent products, ingredients, results "
+                 "or testimonials; if something is missing, say what is missing.")
+    return "\n".join(lines)
+
+
+def make_runner(client, model: str, base_prompt: str, personas, timeout: float, context=lambda: ""):
+    """run(task) -> reply text: one chat request with the shared prompt, `context()` and the task's persona.
+
+    `context` is read at every run, so profile, fact or brand file changes reach the next draft.
+    """
     from sensai.chat.session import ChatSession
 
     def run(task: Task) -> str:
         persona = personas.get(task.persona) if task.persona else None
-        prompt = f"{base_prompt}\n\n{persona.system_prompt}" if persona else base_prompt
+        prompt = "\n\n".join(part for part in (base_prompt, context(), persona.system_prompt if persona else "") if part)
         session = ChatSession(client, model, prompt)
         text = "".join(session.send(task.prompt, CancellationToken(time.monotonic() + timeout)))
         if not text.strip():
@@ -166,7 +187,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {exc}")
         return 2
     client = GuardedClient(create_client(settings), guard)
-    run = make_runner(client, settings.model, load_system_prompt(settings.prompt_path), personas, settings.operation_timeout)
+    run = make_runner(client, settings.model, load_system_prompt(settings.prompt_path), personas, settings.operation_timeout,
+                      context=lambda: brand_block(settings.brand_file))
     scheduler = Scheduler(tasks, run, settings.model, settings.drafts_dir)
     print(f"Scheduler started: {len(tasks)} task{'s' * (len(tasks) != 1)}. Ctrl+C to stop.")
     try:
