@@ -68,6 +68,16 @@ answer are saved with the session.
 
 [Tools and sandbox](../user-guide/tools.md)
 
+## Long conversations (M2)
+
+When a conversation fills 80% of the model's window, Sensai summarizes the
+oldest messages into one, keeping the system prompt, the persona and the last
+4 messages as they are. Nadia can plan a week of posts in one long chat and
+still get her launch date right at the end. `/context` shows how full the
+window is, and `/compact` summarizes on demand, in the terminal and the page.
+
+[Long conversations](../user-guide/context.md)
+
 ## Reasoning step by step (A1)
 
 With `/think`, Sensai works through a request in visible steps: it writes a
