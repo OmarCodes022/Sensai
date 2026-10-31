@@ -909,5 +909,12 @@
  "search.none": "No web results.",
  "search.failed": "Web search failed",
  "msg.keptOf": "kept {k} of {n} passages, the rest scored below 6/10",
- "msg.keptBasic": "kept {k} of {n} passages (basic ranking)"
+ "msg.keptBasic": "kept {k} of {n} passages (basic ranking)",
+ "export.title": "Exported to this computer",
+ "export.conversation": "Conversation",
+ "export.campaign": "Campaign",
+ "export.refused": "{name} not exported: the guardrails refused it ({reason}). The previous export is unchanged.",
+ "export.noCampaign": "No campaign yet: only the conversation was exported.",
+ "export.private": "Private files in exports/: nothing was uploaded or shared.",
+ "export.failed": "Export failed"
 }

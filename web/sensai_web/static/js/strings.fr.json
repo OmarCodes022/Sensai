@@ -909,5 +909,12 @@
  "search.none": "Aucun résultat web.",
  "search.failed": "La recherche web a échoué",
  "msg.keptOf": "{k} passages gardés sur {n}, les autres ont moins de 6/10",
- "msg.keptBasic": "{k} passages gardés sur {n} (classement simple)"
+ "msg.keptBasic": "{k} passages gardés sur {n} (classement simple)",
+ "export.title": "Exporté sur cet ordinateur",
+ "export.conversation": "Conversation",
+ "export.campaign": "Campagne",
+ "export.refused": "{name} non exportée : les garde-fous l'ont refusée ({reason}). L'export précédent est inchangé.",
+ "export.noCampaign": "Pas encore de campagne : seule la conversation a été exportée.",
+ "export.private": "Fichiers privés dans exports/ : rien n'a été envoyé ni partagé.",
+ "export.failed": "L'export a échoué"
 }

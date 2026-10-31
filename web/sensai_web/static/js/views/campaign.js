@@ -10,6 +10,7 @@ import { toast } from '../components/toast.js';
 import { viewShell } from '../components/view.js';
 import { formatNumber } from '../format.js';
 import { announce } from '../a11y.js';
+import { exportLine } from '../chat/export-command.js';
 import { t } from '../i18n.js';
 
 const TABS = [['posts', 'posts'], ['replies', 'dm'], ['report', 'report'], ['calendar', 'calendar']];
@@ -70,7 +71,11 @@ export function mount(root, { api }) {
   function paint() {
     if (!doc) return;
     head.replaceChildren(h('strong', { class: 'num' }, doc.week), h('span', { class: 'muted' }, `${doc.start} to ${doc.end} · ${doc.timezone}`),
-      h('span', { class: 'grow' }), h('code', { class: 'muted' }, doc.file));
+      h('span', { class: 'grow' }), h('code', { class: 'muted' }, doc.file),
+      button(t('campaign.export'), { icon: 'download', onClick: async () => {
+        try { const r = await api.exportAll(); out.replaceChildren(exportLine(t('export.campaign'), r.campaign), exportLine(t('export.conversation'), r.conversation)); }
+        catch (e) { out.replaceChildren(h('p', { class: 'field__error', role: 'alert' }, e.message)); }
+      } }));
     const label = (id, key) => { const st = doc.sections[id].status; return h('span', { class: 'row' }, t(`campaign.tab.${key}`), chip(t(`campaign.status.${st}`), { tone: st === 'approved' ? 'sage' : 'amber', icon: st === 'approved' ? 'lock' : null })); };
     const items = TABS.map(([id, key]) => ({ id, label: label(id, key), render: () => {
       const s = doc.sections[id];
@@ -90,7 +95,7 @@ export function mount(root, { api }) {
 
   function confirmCard(r) {
     const decide = async (ok) => {
-      try { const res = await api.campaignConfirm(r.token, ok); doc = res.doc; paint(); done(ok ? t('campaign.applied', { action: r.action, file: r.where }) : t('campaign.noChange')); }
+      try { const res = await api.campaignConfirm(r.token, ok); doc = res.doc; paint(); done(ok ? t('campaign.applied', { action: r.action, file: r.where }) : t('campaign.noChange')); if (res.export) out.append(exportLine(t('export.campaign'), res.export)); }
       catch (e) { out.replaceChildren(h('p', { class: 'field__error', role: 'alert' }, e.message)); }
     };
     out.replaceChildren(h('div', { class: 'card approval-mini stack', role: 'group', 'aria-label': t('campaign.applyQ') },
@@ -107,7 +112,7 @@ export function mount(root, { api }) {
     try {
       const r = await api.campaignEdit(which.value, request.value);
       if (r.status === 'confirm') confirmCard(r);
-      else { doc = r.doc; selected = which.value; paint(); request.value = ''; done(t('campaign.applied', { action: r.action, file: r.where })); }
+      else { doc = r.doc; selected = which.value; paint(); request.value = ''; done(t('campaign.applied', { action: r.action, file: r.where })); if (r.export) out.append(exportLine(t('export.campaign'), r.export)); }
     } catch (e) { out.replaceChildren(h('p', { class: 'field__error', role: 'alert' }, e.message)); }
     finally { ask.disabled = false; }
   });
