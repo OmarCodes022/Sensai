@@ -24,3 +24,5 @@ site/
 campaigns/
 exports/
 drafts/
+# Local MCP commands and environment overrides
+mcp.json

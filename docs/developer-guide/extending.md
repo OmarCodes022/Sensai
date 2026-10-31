@@ -15,9 +15,10 @@ I'll calculate that.
 {"tool": "calculate", "arguments": {"expression": "(14 + 6) / 100"}}
 ```
 
-`BlockReader` (`src/sensai/chat/blocks.py`) holds back a line that starts
-with `{` while it can still become that final object, so the user never sees
-it. `run_with_tools()` parses it, runs it through `ToolRegistry.execute()` and
+Models often indent that object or wrap it in a code fence, so a final tool
+call written that way counts too; other indented or fenced JSON stays visible.
+`BlockReader` (`src/sensai/chat/blocks.py`) holds back a line that can still
+become that final object, so the user never sees it. `run_with_tools()` parses it, runs it through `ToolRegistry.execute()` and
 sends the result as the next user message, starting with
 `Tool result from <name>:` or `Tool error from <name>:`. A question allows
 five rounds (`MAX_TOOL_CALLS`); the last result also asks for a final answer

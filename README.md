@@ -14,6 +14,7 @@ Docs: <https://omarcodes022.github.io/Sensai/> (sources in [docs/](docs/README.m
 | Personas | `--persona analyse`, `/persona` to switch mid-chat | [Personas](docs/user-guide/personas.md) |
 | Saved sessions and profile | `--list-sessions`, `--session <id>`, `--profile-file` | [Sessions](docs/user-guide/sessions.md) |
 | Branching and interrupt | `/edit N <new text>` continues from message N as a new session; Ctrl+C, Esc or Stop interrupts a reply | [Sessions](docs/user-guide/sessions.md#editing-an-earlier-message-branching) |
+| MCP (T1 ★★★) | Configure external tools in `mcp.json`, with approval for each call in terminal and web chat | [MCP setup](docs/user-guide/mcp.md) |
 | Tools | the model calls `calculate` and `run_python` (you approve each run); a failed run goes back to the model, which fixes its code, up to 3 runs per question | [Tools and sandbox](docs/user-guide/tools.md) |
 | Step-by-step reasoning | `/think <request>`: a plan, tool calls, a draft, a check against your rules, revisions | [Reasoning step by step](docs/user-guide/thinking.md) |
 | Scheduled drafts | recurring requests from `schedule.local.json` run on their own and save dated drafts; `python -m sensai.schedule`, or the web Schedule page | [Scheduling](docs/user-guide/scheduling.md) |
@@ -59,7 +60,7 @@ commands (like `sensai-web`) are registered. Full install guide:
 .venv/bin/sensai-remote                           # same, through an SSH tunnel
 ```
 
-In a chat: `/persona [id]`, `/tools`, `/history`, `/edit N <text>`, `/facts`, `/campaign`, `/export`, `/search`, `/read`, `/save`, `/run <file.py>`, `/docs [text]`,
+In a chat: `/persona [id]`, `/tools`, `/mcp` (status and setup; `/mcp reload` after editing), `/history`, `/edit N <text>`, `/facts`, `/campaign`, `/export`, `/search`, `/read`, `/save`, `/run <file.py>`, `/docs [text]`,
 `/add`, `/remove`, `/reindex`, and `exit` to leave. Each turn has a 120 s budget.
 Remote Ollama: [SSH setup](docs/operations/remote-ollama.md).
 

@@ -24,6 +24,7 @@ resumes the same session where she left off.
 | Sessions and profile (M1) | Saves every chat, resumes it later and adds your profile to every chat | [Sessions and profile](user-guide/sessions.md) |
 | Tools | Lets the model call a calculator and answer with the result | [Tools and sandbox](user-guide/tools.md) |
 | Python sandbox | Runs the model's Python code on your data files, after you approve it | [Tools and sandbox](user-guide/tools.md) |
+| MCP tools (T1) | Connects the servers listed in `mcp.json`, with your approval for each call | [MCP tools](user-guide/mcp.md) |
 | Reasoning loops (A1) | `/think` plans, uses tools, drafts, checks and revises, showing every step | [Reasoning step by step](user-guide/thinking.md) |
 
 ## Quick start

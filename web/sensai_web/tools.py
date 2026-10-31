@@ -11,6 +11,7 @@ from sensai.rag_advanced import advanced_search
 from sensai.sandbox import PYTHON_ATTEMPTS, RUN_PYTHON
 from sensai.chat.facts import DELETE_FACT, SAVE_FACT, FactMemory
 from sensai.chat.questions import ASK_USER
+from sensai.mcp_client import TIMEOUT as MCP_TIMEOUT
 from sensai.search import WEB_SEARCH
 from sensai.security.file_tools import FILE_TOOLS, FileTools
 from sensai.tools import CALCULATE, ToolRegistry, calculate
@@ -26,11 +27,15 @@ TOOL_TABLE = {CALCULATE.name: (30, False, None), RUN_PYTHON.name: (30, True, PYT
 INVALID = "<invalid>"
 
 
-def tool_list(documents: bool = False, files: bool = False, web: bool = False) -> list[dict]:
-    return [{"name": d.name, "description": d.description, "parameters": d.parameters,
-             "timeout": TOOL_TABLE[d.name][0], "confirm": TOOL_TABLE[d.name][1], "max_calls": TOOL_TABLE[d.name][2]}
-            for d in (CALCULATE, RUN_PYTHON, SAVE_FACT, DELETE_FACT, *((SEARCH_DOCS,) if documents else ()),
-                      *(FILE_TOOLS if files else ()), ASK_USER, *((WEB_SEARCH,) if web else ()))]
+def tool_list(documents: bool = False, files: bool = False, web: bool = False, mcp=None) -> list[dict]:
+    items = [{"name": d.name, "description": d.description, "parameters": d.parameters,
+              "timeout": TOOL_TABLE[d.name][0], "confirm": TOOL_TABLE[d.name][1], "max_calls": TOOL_TABLE[d.name][2]}
+             for d in (CALCULATE, RUN_PYTHON, SAVE_FACT, DELETE_FACT, *((SEARCH_DOCS,) if documents else ()),
+                       *(FILE_TOOLS if files else ()), ASK_USER, *((WEB_SEARCH,) if web else ()))]
+    if mcp is not None:
+        items.extend({"name": d.name, "description": d.description, "parameters": d.parameters,
+                      "timeout": MCP_TIMEOUT, "confirm": True, "max_calls": None} for d in mcp.definitions())
+    return items
 
 
 class ObservedRegistry(ToolRegistry):
@@ -42,7 +47,7 @@ class ObservedRegistry(ToolRegistry):
 
     def __init__(self, approval: WebApproval, emit: Callable[[dict], None], data_dir: str | None,
                  meta_dir: str, library: DocLibrary | None = None, memory: FactMemory | None = None,
-                 files: FileTools | None = None, form=None, web=None, ranker=None):
+                 files: FileTools | None = None, form=None, web=None, ranker=None, mcp=None):
         super().__init__(approval)
         self._approval = approval
         self._emit = emit
@@ -56,16 +61,18 @@ class ObservedRegistry(ToolRegistry):
         if memory is not None:  # In this process: the queue of fact changes is here.
             self.register(SAVE_FACT, memory.save, timeout=None)
             self.register(DELETE_FACT, memory.delete, timeout=None)
+        self._hits: list[dict] = []
+        self._ranker, self._doc_report = ranker, None
+        if library is not None and library.enabled:
+            self.register(SEARCH_DOCS, partial(self._search, library), timeout=None)  # The order of WebApp.tools_text.
         for definition in (FILE_TOOLS if files is not None else ()):  # In this process, with the loaded policy.
             self.register(definition, getattr(files, definition.name), timeout=None)
         if form is not None:  # Waits for the page in this process.
             self.register(ASK_USER, form, timeout=None)
         if web is not None:  # Keeps this turn's results here for the source list.
             self.register(WEB_SEARCH, web, timeout=None)
-        self._hits: list[dict] = []
-        self._ranker, self._doc_report = ranker, None
-        if library is not None and library.enabled:
-            self.register(SEARCH_DOCS, partial(self._search, library), timeout=None)  # In this process: the index is here.
+        if mcp is not None:  # After search_docs: the order of WebApp.tools_text, which /think's rules rely on.
+            mcp.register(self)
 
     def execute(self, call: ToolCall, cancellation=None) -> ToolResult:
         call_id = self._announce(call)

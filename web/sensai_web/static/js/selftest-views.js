@@ -1,4 +1,7 @@
 // Self tests for the view logic added with the live and planned views. Browser only (views import DOM helpers).
+import { mount as mountTools } from './views/tools.js';
+import { createApproval } from './chat/approval.js';
+import { mcpReloadFailed, findCommand } from './chat/commands.js';
 import { validateProfile } from './profile/validate.js';
 import { claimStatus } from './views/preview/brand.js';
 import { score } from './views/preview/documents.js';
@@ -16,6 +19,82 @@ import { formatNumber, formatDuration, formatPercent } from './format.js';
 const eq = (a, b, m = '') => { if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${m} expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`); };
 
 export const VIEW_TESTS = [
+  ['tools: reload refreshes registry and reports server failures', async () => {
+    const root = document.createElement('div'); document.body.append(root);
+    let finish;
+    const reply = new Promise((resolve) => { finish = resolve; });
+    const tool = { name: 'fixture.first', description: 'Fixture tool', timeout: 30, confirm: true };
+    const dispose = mountTools(root, {
+      api: { tools: async () => ({ items: [] }), reloadTools: () => reply, runData: async () => ({ files: [] }) },
+      store: { get: () => ({ session: null }), subscribe: () => () => {} },
+    });
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const reload = root.querySelector('button'); reload.click();
+      eq(reload.disabled, true);
+      finish({ items: [tool], servers: [{ name: 'broken', error: 'unavailable' }] });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      eq(reload.disabled, false);
+      if (!root.textContent.includes('Fixture tool') || !root.textContent.includes('broken: unavailable')) throw new Error('reload result missing');
+      eq(root.querySelector('details').open, false, 'setup stays folded once a server is configured');
+    } finally { dispose(); root.remove(); }
+  }],
+  ['tools: an MCP tool name keeps every part after the server', async () => {
+    const root = document.createElement('div'); document.body.append(root);
+    const dispose = mountTools(root, {
+      api: { tools: async () => ({ items: [{ name: 'fs.files.read', description: 'Read', timeout: 30, confirm: true }] }), runData: async () => ({ files: [] }) },
+      store: { get: () => ({ session: null }), subscribe: () => () => {} },
+    });
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      if (!root.textContent.includes('files.read')) throw new Error('tool name cut');
+    } finally { dispose(); root.remove(); }
+  }],
+  ['an MCP approval does not say the model runs code', () => {
+    const say = (action) => createApproval({ id: 'a', call_id: 'c', action, preview: { lines: [] } }, { getCall: () => null, onDecide: () => {} }).el.textContent;
+    if (!say('time.get_current_time').includes('MCP')) throw new Error('MCP wording missing');
+    if (say('run_python').includes('MCP')) throw new Error('run_python wording changed');
+  }],
+  ['chat: /mcp is live and a reload reports failures', () => {
+    eq(findCommand('mcp', {}).live, true);
+    eq(mcpReloadFailed({ servers: [{ name: 'a', error: null }] }), false);
+    eq(mcpReloadFailed({ error: 'bad file', servers: [] }), true);
+    eq(mcpReloadFailed({ untrusted: { digest: 'a', commands: [] }, servers: [] }), true);
+    eq(mcpReloadFailed({ servers: [{ name: 'a', error: 'down' }] }), true);
+  }],
+  ['tools: an untrusted config shows its commands and trusts only on a click', async () => {
+    const root = document.createElement('div'); document.body.append(root);
+    const trusted = [];
+    const untrusted = { digest: 'abc', folder: '/some/folder', commands: ['evil: sh -c x'] };
+    const dispose = mountTools(root, {
+      api: { tools: async () => ({ items: [], servers: [], untrusted }), trustTools: async (d) => { trusted.push(d); return { items: [], servers: [] }; }, runData: async () => ({ files: [] }) },
+      store: { get: () => ({ session: null }), subscribe: () => () => {} },
+    });
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      if (!root.querySelector('[role=alert] pre').textContent.includes('evil: sh -c x')) throw new Error('commands missing');
+      if (!root.querySelector('[role=alert]').textContent.includes('/some/folder')) throw new Error('folder missing');
+      eq(trusted, []);
+      root.querySelector('[role=alert] button').click();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      eq(trusted, ['abc']);
+      if (root.textContent.includes('evil: sh -c x')) throw new Error('question still showing after trust');
+    } finally { dispose(); root.remove(); }
+  }],
+  ['tools: without MCP config the setup steps are open and show the file and example', async () => {
+    const root = document.createElement('div'); document.body.append(root);
+    const dispose = mountTools(root, {
+      api: { tools: async () => ({ items: [], servers: [], config: '/x/mcp.json', found: false, example: '{"mcpServers":{}}', guide: 'https://example.test/guide' }), runData: async () => ({ files: [] }) },
+      store: { get: () => ({ session: null }), subscribe: () => () => {} },
+    });
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      eq(root.querySelector('details').open, true);
+      eq(root.querySelector('details pre').textContent, '{"mcpServers":{}}');
+      eq(root.querySelector('details a').getAttribute('href'), 'https://example.test/guide');
+      if (!root.textContent.includes('/x/mcp.json')) throw new Error('config path missing');
+    } finally { dispose(); root.remove(); }
+  }],
   ['profile: object of strings is valid', () => eq(validateProfile('{"ton":"direct"}').value, { ton: 'direct' })],
   ['profile: non-string value reports its line', () => eq(validateProfile('{\n "a": "x",\n "b": 2\n}').errors, [{ line: 3, key: 'notString', args: { name: 'b' } }])],
   ['profile: arrays, null and empty are rejected', () => { eq(validateProfile('[]').errors[0].key, 'notObject'); eq(validateProfile('null').errors[0].key, 'notObject'); eq(validateProfile(' ').errors[0].key, 'empty'); }],

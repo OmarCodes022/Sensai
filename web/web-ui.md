@@ -43,7 +43,7 @@ GET  /api/sessions/{id}   session shape               POST /api/sessions/{id}/re
 GET  /api/history         {items:[{n,text}]}
 POST /api/chat {text}     application/x-ndjson stream     POST /api/chat/stop -> {stopped}
 POST /api/approvals/{id}  {approved}
-GET  /api/tools           {items:[{name,description,parameters,timeout,confirm,max_calls}]}
+GET  /api/tools           {items:[{name,description,parameters,timeout,confirm,max_calls}],servers,error,config,found,example,guide,untrusted,trust_error}     POST /api/tools/reload -> same     POST /api/tools/trust {digest} -> same
 POST /api/run {code}      {exit_code,duration_s,timed_out,truncated,stdout,stderr,denied,report,limits?}
 GET  /api/run/data        {dir,exists,files:[{name,bytes}],limits:{file_mb,total_mb,types}}
 PUT  /api/run/data/{name} {text} -> listing        DELETE /api/run/data/{name} -> listing
@@ -79,7 +79,7 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 - `#/sessions`: sortable table (`aria-sort`), persona filter, detail panel with the user's messages, Open (asks first if a reply is streaming). Cards under 768 px.
 - `#/personas`: read-only catalogue, Use button, how-to for a custom catalogue file.
 - `#/profile`: key-value list, JSON editor with live line-level validation, confirm modal, `PUT`. Never auto-saves; success is shown only after the backend answers.
-- `#/tools`: registry, recent calls (built from the stored session items), sandbox runner reusing the `run_python` result card. Cancel only stops waiting: the real `POST /api/run` has no cancel, and the UI says so.
+- `#/tools`: MCP status, a trust question for a new or changed config file, and read-only setup steps with **Reload MCP** (`/mcp` opens them, `/mcp reload` reloads from chat), registry, recent calls (built from the stored session items), sandbox runner reusing the `run_python` result card. Cancel only stops waiting: the real `POST /api/run` has no cancel, and the UI says so.
 - `#/documents`: live when `capabilities.documents` is true (otherwise Planned). Status chip and embedding model, a drop area (`.md`, `.txt`, checked in the page before sending), the list with version, chunks and status, a viewer (click a name: rendered Markdown and raw text, with source, version and chunks), a two-step remove, reindex, and a search box that shows what the model would receive (no model call). It polls `GET /api/docs` every 3 s, so files copied into the folder appear by themselves. Replies that used `search_docs` show their sources under them.
 - Composer: a **+** button (menu: Add documents, Add data files, each shown when its capability is on) and slash commands with arguments. `/add`, `/remove`, `/docs [text]` and `/reindex` are live when `capabilities.documents` is true and run in the page against `/api/docs` (cards in the transcript, no model call); the other planned commands keep their Planned chip.
 - `#/settings`: effective configuration with source chips, secret-looking keys shown as "hidden", UI preferences, reset, backend card with capability chips.
@@ -95,7 +95,7 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 4. Add strings to BOTH `strings.en.json` and `strings.fr.json` with identical keys, and a nav key `nav.<name>`.
 5. Keep files under 300 lines; build DOM with `h()` (never `innerHTML`).
 
-## String keys (928 per language, identical in en and fr)
+## String keys (960 per language, identical in en and fr)
 
 - `search` (5): `usage`, `title`, `noModel`, `none`, `failed`
 - `question` (8): `title`, `other`, `otherPlaceholder`, `send`, `skip`, `answerAll`, `answered`, `skipped`
@@ -116,7 +116,7 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 - `usage` (10): `tokens`, `tokensNa`, `inOut`, `latency`, `server`, `turns`, `notReported`, `outputTokens`, `promptTokens`, `reported`
 - `meter` (1): `text`
 - `inspector` (13): `title`, `turn`, `context`, `tools`, `sources`, `noTurn`, `noTurnBody`, `persona`, `usage`, `contextMeter`, `meterUnknown`, `sourcesBody`, `meterPartial`
-- `tools` (72): `confirm`, `none`, `loadError`, `roundLimit`, `group`, `registry`, `recent`, `sandboxTitle`, `col.name`, `col.description`, `col.timeout`, `col.confirm`, `col.max`, `col.time`, `col.tool`, `col.status`, `col.duration`, `col.message`, `noConfirm`, `noLimit`, `recentNone`, `openChat`, `codeLabel`, `helper`, `tooBig`, `notUtf8`, `loaded`, `loadFile`, `run`, `running`, `finished`, `elapsed`, `cancelled`, `dataTitle`, `noData`, `dataDir`, `limitsHelp`, `limitsTitle`, `limit.wall`, `limit.wall.d`, `limit.cpu`, `limit.cpu.d`, `limit.mem`, `limit.mem.d`, `limit.file`, `limit.file.d`, `limit.out`, `limit.out.d`, `notProtected`, `not.malicious`, `not.network`, `not.absolute`, `not.memory`, `not.cpu`, `not.fork`, `not.group`, `not.kill`, `dataHelp`, `dataFolderNew`, `dataEmpty`, `dataAdd`, `dataDrop`, `dataExample`, `dataExampleHelp`, `dataDelete`, `dataSure`, `dataAdded`, `dataRemoved`, `dataBadType`, `dataTooBig`, `dataNotText`, `dataBlank`
+- `tools` (88): `confirm`, `none`, `loadError`, `roundLimit`, `group`, `registry`, `recent`, `sandboxTitle`, `col.name`, `col.description`, `col.timeout`, `col.confirm`, `col.max`, `col.time`, `col.tool`, `col.status`, `col.duration`, `col.message`, `noConfirm`, `noLimit`, `recentNone`, `openChat`, `codeLabel`, `helper`, `tooBig`, `notUtf8`, `loaded`, `loadFile`, `run`, `running`, `finished`, `elapsed`, `cancelled`, `dataTitle`, `noData`, `dataDir`, `limitsHelp`, `limitsTitle`, `limit.wall`, `limit.wall.d`, `limit.cpu`, `limit.cpu.d`, `limit.mem`, `limit.mem.d`, `limit.file`, `limit.file.d`, `limit.out`, `limit.out.d`, `notProtected`, `not.malicious`, `not.network`, `not.absolute`, `not.memory`, `not.cpu`, `not.fork`, `not.group`, `not.kill`, `dataHelp`, `dataFolderNew`, `dataEmpty`, `dataAdd`, `dataDrop`, `dataExample`, `dataExampleHelp`, `dataDelete`, `dataSure`, `dataAdded`, `dataRemoved`, `dataBadType`, `dataTooBig`, `dataNotText`, `dataBlank`, `reload`, `reloadHint`, `mcp.title`, `mcp.config`, `mcp.missing`, `mcp.count`, `mcp.setup`, `mcp.step1`, `mcp.step2`, `mcp.step3`, `mcp.guide`, `mcp.reloaded`, `mcp.reloadFailed`, `mcp.untrusted`, `mcp.trust`, `mcp.folder`
 - `shortcuts` (14): `title`, `send`, `newline`, `stop`, `recall`, `palette`, `newChat`, `sidebar`, `inspector`, `shortcuts`, `searchSidebar`, `approval`, `views`, `theme`
 - `palette` (8): `title`, `placeholder`, `none`, `sessions`, `personas`, `views`, `commands`, `planned`
 - `cmd` (5): `newChat`, `theme`, `sidebar`, `shortcuts`, `copyId`
@@ -129,7 +129,7 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 - `router` (2): `notBuilt.title`, `notBuilt.body`
 - `planned` (48): `youWillBeAbleTo`, `acceptance`, `owners`, `mockToggle`, `mockNote`, `noPreview`, `campaign.desc`, `campaign.b1`, `campaign.c1`, `campaign.b2`, `campaign.c2`, `campaign.b3`, `campaign.c3`, `brand.desc`, `brand.b1`, `brand.c1`, `brand.b2`, `brand.c2`, `brand.b3`, `brand.c3`, `documents.desc`, `documents.b1`, `documents.c1`, `documents.b2`, `documents.c2`, `documents.b3`, `documents.c3`, `insights.desc`, `insights.b1`, `insights.c1`, `insights.b2`, `insights.c2`, `insights.b3`, `insights.c3`, `safety.desc`, `safety.b1`, `safety.c1`, `safety.b2`, `safety.c2`, `safety.b3`, `safety.c3`, `schedule.desc`, `schedule.b1`, `schedule.c1`, `schedule.b2`, `schedule.c2`, `schedule.b3`, `schedule.c3`
 - `err` (21): `connection`, `model_not_found`, `timeout`, `turn_timeout`, `llm_error`, `invalid_response`, `storage`, `profile_invalid`, `persona_unknown`, `tab_locked`, `network`, `guardrail_refused`, `code`, `details`, `editProfile`, `generic`, `hint`, `http`, `openPersonas`, `openStatus`, `time`
-- `approval` (13): `title`, `paused`, `refused`, `approved`, `honesty`, `incomplete`, `more`, `moreOne`, `reason`, `refusedShort`, `running`, `ranOk`, `ranFail`
+- `approval` (14): `title`, `paused`, `refused`, `approved`, `honesty`, `incomplete`, `more`, `moreOne`, `reason`, `refusedShort`, `running`, `ranOk`, `ranFail`, `reasonMcp`
 - `dev` (9): `export`, `fill`, `inject`, `none`, `reset`, `scenario`, `speed`, `title`, `turn`
 - `errb` (12): `connection`, `model_not_found`, `timeout`, `llm_error`, `invalid_response`, `profile_invalid`, `persona_unknown`, `tab_locked`, `guardrail_refused`, `network`, `storage`, `turn_timeout`
 - `esc` (1): `hidden`
@@ -141,7 +141,7 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 - `msg` (17): `assistantLabel`, `copyMd`, `copyPlain`, `details`, `interruptedHidden`, `notSent`, `reuse`, `you`, `youN`, `sources`, `outdated`, `edit`, `editHint`, `editSend`, `webSources`, `keptOf`, `keptBasic`
 - `py` (16): `code`, `cpuLimit`, `errors`, `exit`, `fileLimit`, `gotoLine`, `limitCpu`, `limitMem`, `limitWall`, `noErrors`, `noOutput`, `output`, `signal`, `tabs`, `timeLimit`, `truncated`
 - `reconnect` (2): `done`, `text`
-- `slash` (31): `label`, `none`, `plannedMsg`, `foot.move`, `foot.complete`, `foot.pick`, `foot.close`, `persona`, `history`, `tools`, `run`, `new`, `help`, `read`, `save`, `docs`, `reindex`, `search`, `facts`, `context`, `campaign`, `export`, `share`, `unshare`, `think`, `team`, `edit`, `add`, `remove`, `thinkUsage`, `editUsage`
+- `slash` (32): `label`, `none`, `plannedMsg`, `foot.move`, `foot.complete`, `foot.pick`, `foot.close`, `persona`, `history`, `tools`, `run`, `new`, `help`, `read`, `save`, `docs`, `reindex`, `search`, `facts`, `context`, `campaign`, `export`, `share`, `unshare`, `think`, `team`, `edit`, `add`, `remove`, `thinkUsage`, `editUsage`, `mcp`
 - `starter` (9): `redaction.1`, `redaction.2`, `redaction.3`, `communaute.1`, `communaute.2`, `communaute.3`, `analyse.1`, `analyse.2`, `analyse.3`
 - `tool` (26): `arguments`, `finished`, `label`, `round`, `roundN`, `started`, `timedOut`, `using`, `status.running`, `status.waiting`, `status.ok`, `status.error`, `status.refused`, `status.timeout`, `status.cancelled`, `status.stopped`, `attempt`, `attemptLast`, `stopped`, `desc.calculate`, `desc.run_python`, `desc.read_file`, `desc.write_file`, `desc.create_file`, `desc.save_fact`, `desc.delete_fact`
 - `personas` (24): `builtin`, `custom`, `none`, `active`, `use`, `inUse`, `role`, `scope`, `guard`, `editHelp`, `new`, `edit`, `remove`, `saved`, `removed`, `newTitle`, `editTitle`, `fieldName`, `fieldId`, `idHelp`, `idFixed`, `scopeHelp`, `needId`, `idTaken`

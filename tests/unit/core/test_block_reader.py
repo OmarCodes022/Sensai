@@ -114,3 +114,66 @@ def test_40k_string_argument_is_held_in_linear_time():
     assert shown == visible == "Hi\n"
     assert final == block
     assert elapsed < 2
+
+
+TOOL_BLOCK = '{"tool": "echo", "arguments": {"text": "a}b"}}'
+LENIENT_BLOCKS = {
+    "indented": f" {TOOL_BLOCK}",
+    "tab indented": f"\t{TOOL_BLOCK}",
+    "fenced": f"```\n{TOOL_BLOCK}\n```",
+    "fenced json": f"```json\n{TOOL_BLOCK}\n```\n",
+    "fenced and indented": f"  ```json\n  {TOOL_BLOCK}\n  ```",
+    "fenced with CRLF": f"```json\r\n{TOOL_BLOCK}\r\n```\r\n",
+    "fence never closed": f"```json\n{TOOL_BLOCK}",
+    "fenced tool_code": f"```tool_code\n{TOOL_BLOCK}\n```",  # Gemma writes this.
+    "fenced json5": f"```json5\n{TOOL_BLOCK}\n```",
+}
+
+
+def _stream(reply):
+    reader = BlockReader()
+    shown = "".join(reader.feed(character) for character in reply)
+    return shown, *reader.finish()
+
+
+@pytest.mark.parametrize("form", LENIENT_BLOCKS)
+def test_indented_or_fenced_final_tool_call_is_read_and_never_shown(form):
+    shown, visible, block = _stream(f"Let me check.\n{LENIENT_BLOCKS[form]}")
+    assert shown == visible == "Let me check.\n"
+    assert block == json.loads(TOOL_BLOCK)
+
+
+@pytest.mark.parametrize("form", LENIENT_BLOCKS)
+def test_run_with_tools_executes_indented_or_fenced_call(form):
+    session = ChatSession(FakeClient([LENIENT_BLOCKS[form]], ["done"]), "m", "s")
+    registry = ToolRegistry()
+    registry.register(ToolDefinition("echo", "", {}), _echo, timeout=None)
+    stream = run_with_tools(session, registry, "go")
+    assert "".join(stream) == "done"
+    assert any(m.content.startswith("Tool result from echo:") for m in session.messages)
+
+
+@pytest.mark.parametrize("reply", [
+    '```json\n{"name": "serum"}\n```',
+    ' {"name": "serum"}',
+    f"```json\n{TOOL_BLOCK}\n```\nPlease wait for the result.",
+    f"```json\n{TOOL_BLOCK}\n```\n```",
+    f" {TOOL_BLOCK}\n```",
+    f"An example: {TOOL_BLOCK}",
+])
+def test_other_indented_or_fenced_text_stays_visible(reply):
+    shown, visible, block = _stream(reply)
+    assert visible == reply and block is None
+    assert reply.startswith(shown)
+
+
+def test_column_zero_object_without_tool_key_is_still_a_block():
+    assert _stream('Result:\n{"name": "serum"}')[1:] == ("Result:\n", {"name": "serum"})
+
+
+@pytest.mark.parametrize("reply", [
+    "  an indented line\n", "`code` here\n", "```python\nprint(1)\n", "``two ticks\n",
+])
+def test_ordinary_indent_and_code_are_released_before_the_reply_ends(reply):
+    reader = BlockReader()
+    assert "".join(reader.feed(character) for character in reply) == reply

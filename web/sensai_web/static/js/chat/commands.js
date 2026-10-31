@@ -1,6 +1,6 @@
 // Slash commands exactly as spec 6.4. Live ones run; planned ones are dimmed with their task ID.
 export const COMMANDS = [
-  { name: 'persona', live: true }, { name: 'history', live: true }, { name: 'tools', live: true },
+  { name: 'persona', live: true }, { name: 'history', live: true }, { name: 'tools', live: true }, { name: 'mcp', live: true },
   { name: 'run', live: true }, { name: 'new', live: true }, { name: 'help', live: true },
   { name: 'add', task: 'T36', cap: 'documents' }, { name: 'remove', task: 'T36', cap: 'documents' },
   { name: 'docs', task: 'T36', cap: 'documents' }, { name: 'reindex', task: 'T36', cap: 'documents' },
@@ -20,5 +20,8 @@ export function matchCommands(q, caps) {
   const pre = all.filter((c) => c.name.startsWith(s));
   return [...pre, ...all.filter((c) => !pre.includes(c) && s && c.name.includes(s))];
 }
+
+/** A 200 from reload can still carry a bad config file, failed servers or a file waiting for trust. */
+export const mcpReloadFailed = (d) => !!d.error || !!d.untrusted || (d.servers || []).some((s) => s.error);
 
 export const findCommand = (word, caps) => withLive(caps).find((c) => c.name === word.toLowerCase());

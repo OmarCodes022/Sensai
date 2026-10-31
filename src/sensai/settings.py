@@ -45,3 +45,4 @@ class Settings(BaseSettings):
     guardrails_file: str | None = Field(None, validation_alias="SENSAI_GUARDRAILS_FILE")
     brand_file: str | None = Field(default_factory=lambda: "data/brand.json" if os.path.isfile("data/brand.json") else None,
                                    validation_alias="SENSAI_BRAND_FILE")
+    mcp_config: str = Field("mcp.json", validation_alias="SENSAI_MCP_CONFIG")

@@ -29,6 +29,9 @@ src/sensai/
 ├── settings.py            Settings read from environment variables and .env
 ├── tools.py               ToolRegistry, the tool loop (run_with_tools) and the calculate tool
 ├── sandbox.py             run_python: Python in a limited, throw-away process
+├── mcp_client.py          MCP stdio client and the tool catalogue read from mcp.json
+├── mcp_server.py          our MCP server: weekly_engagement over a CSV
+├── engagement_demo.csv    fictional figures the server reads by default
 ├── telemetry.py           usage and event hooks; the CLI uses only new_operation_id
 ├── chat/
 │   ├── __init__.py

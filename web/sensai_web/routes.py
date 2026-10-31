@@ -8,6 +8,8 @@ from urllib.parse import unquote
 
 from sensai.core.cancellation import CancellationToken
 from sensai.core.errors import LLMError
+from sensai.core.messages import Message
+from sensai.mcp_client import EXAMPLE_CONFIG, GUIDE_URL
 from sensai.memory.vector_index import VectorIndexError
 from sensai.rag import MAX_FILE_BYTES, MAX_TOTAL_BYTES, TYPES, DocError
 from sensai.sandbox import SandboxLimits
@@ -234,7 +236,39 @@ def approve(app: WebApp, request, id: str):
 
 @route("GET", r"/api/tools")
 def tools(app: WebApp, request):
-    return {"items": tool_list(documents=app.docs.enabled, files=app.files is not None, web=app.web is not None)}
+    return {"items": tool_list(documents=app.docs.enabled, files=app.files is not None, web=app.web is not None,
+                               mcp=app.mcp),
+            "servers": app.mcp.servers, "error": app.mcp.error, "config": app.mcp.config_path(),
+            "found": app.mcp.config_found(), "example": EXAMPLE_CONFIG, "guide": GUIDE_URL,
+            "untrusted": app.mcp.untrusted, "trust_error": app.mcp.trust_error}
+
+
+@route("POST", r"/api/tools/reload")
+def reload_tools(app: WebApp, request):
+    return _load_mcp(app, request)
+
+
+@route("POST", r"/api/tools/trust")
+def trust_tools(app: WebApp, request):
+    digest = request.json().get("digest")
+    if not isinstance(digest, str):
+        raise ApiError(400, "bad_request", "digest must be a string.")
+    return _load_mcp(app, request, digest)
+
+
+def _load_mcp(app: WebApp, request, digest: str | None = None):
+    """Holds the turn slot, so no turn, other reload or trust runs meanwhile (they get 429 busy)."""
+    app.begin_turn()
+    try:
+        if digest is not None:
+            app.mcp.trust(digest)  # A digest other than the one on show trusts nothing: the file changed.
+        app.mcp.reload()  # Outside the mutex: discovery can take up to 30 s.
+        with app.mutex:
+            # Not set_system_prompt: that marks a persona switch and re-sends the prompt on every turn.
+            app.active.session.messages[0] = Message(role="system", content=app.system_prompt(app.active.persona_id))
+            return tools(app, request)
+    finally:
+        app.end_turn()
 
 
 @route("POST", r"/api/run")

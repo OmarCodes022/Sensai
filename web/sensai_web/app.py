@@ -21,6 +21,7 @@ from sensai.llm.structured import OllamaStructuredClient
 from sensai.memory.sqlite_store import StorageRepository
 from sensai.sandbox import RUN_PYTHON, SandboxError, data_file_names, data_prompt, remove_stale_folders
 from sensai.settings import Settings
+from sensai.mcp_client import Catalogue as MCPCatalogue
 from sensai.llm.embeddings import OllamaEmbeddingAdapter
 from sensai.rag import DOCS_PROMPT, SEARCH_DOCS, DocLibrary
 from sensai.campaign import CampaignStore
@@ -122,6 +123,8 @@ class WebApp:
         self.health = Health(cfg.host, cfg.model)
         self.meta_dir = tempfile.mkdtemp(prefix="sensai-web-")
         settings = (settings or Settings()).model_copy(update={"host": cfg.host})
+        self.mcp = MCPCatalogue(settings.mcp_config)
+        self.mcp.reload()
         try:
             self.guard = load_guardrail(settings.guardrails_file, settings.brand_file)
         except GuardrailConfigError as exc:
@@ -192,7 +195,7 @@ class WebApp:
     def tools_text(self) -> str:
         return tool_instructions((CALCULATE, RUN_PYTHON, SAVE_FACT, DELETE_FACT, *((SEARCH_DOCS,) if self.docs.enabled else ()),
                                   *(FILE_TOOLS if self.files is not None else ()), ASK_USER,
-                                  *((WEB_SEARCH,) if self.web is not None else ())))
+                                  *((WEB_SEARCH,) if self.web is not None else ()), *self.mcp.definitions()))
 
     def data_text(self) -> str:
         """The data file names for the model (as in the CLI), or "" without a readable data folder."""

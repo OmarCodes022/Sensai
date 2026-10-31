@@ -22,6 +22,7 @@ include = ["sensai*"]
 namespaces = false
 
 [tool.setuptools.package-data]
+"sensai" = ["engagement_demo.csv"]
 "sensai.chat" = ["personas.json", "system_prompt.txt"]
 "sensai_web" = ["static/**/*"]
 

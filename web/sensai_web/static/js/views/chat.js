@@ -17,6 +17,7 @@ import { createPrintHead } from '../chat/print-head.js';
 import { openShortcuts } from '../components/shortcuts.js';
 import { showLock } from '../components/lock.js';
 import { errorState, skeletonRows } from '../components/state.js';
+import { mcpReloadFailed } from '../chat/commands.js';
 import { toast } from '../components/toast.js';
 import { formatDate } from '../format.js';
 import { stripInvisible } from '../safetext.js';
@@ -40,6 +41,12 @@ export function mount(root, ctx) {
   const restorer = createRestorer({ ctx, onReuse: (text) => composer.fill(text), onEdit });
 
   const docCommands = createDocCommands({ api, transcript, router });
+  const reloadMcp = async () => {
+    try {
+      const d = await api.reloadTools();
+      toast(mcpReloadFailed(d) ? t('tools.mcp.reloadFailed') : t('tools.mcp.reloaded', { n: d.servers.length }));
+    } catch (e) { toast(e.message); }
+  };
   const webSearch = createSearchCommand({ api, transcript });
   const exportAll = createExportCommand({ api, transcript });
   const contextCommands = createContextCommands({ api, store, transcript });
@@ -48,6 +55,7 @@ export function mount(root, ctx) {
     history: () => openHistory(composer.textarea, { api, canEdit: !!store.get().capabilities.branching, onPick: jump }),
     tools: () => { layout.openInspector(); document.querySelector('.inspector')?.select?.('tools'); },
     run: () => router.go('#/tools'),
+    mcp: (args) => (args === 'reload' ? reloadMcp() : router.go('#/tools')),
     think: (args) => (args ? turn.send(`/think ${args}`) : toast(t('slash.thinkUsage'))),
     edit: (args) => (/^\d+\s+\S/.test(args || '') ? turn.send(`/edit ${args}`) : toast(t('slash.editUsage'))),
     facts: () => router.go('#/brand'),

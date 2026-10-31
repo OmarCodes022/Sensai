@@ -44,6 +44,7 @@ from sensai.chat.prompts import load_system_prompt
 from sensai.chat.personas import PersonaRegistry
 from sensai.chat.session import ChatSession
 from sensai.settings import Settings
+from sensai.mcp_client import EXAMPLE_CONFIG, GUIDE_URL, Catalogue
 from sensai.memory.sqlite_store import StorageError, StorageRepository
 from sensai.core.messages import Message
 from sensai.sandbox import (PYTHON_ATTEMPTS, RUN_PYTHON, SandboxError, SandboxLimits, data_file_names,
@@ -69,6 +70,64 @@ def _tools(read, approval=None, data_dir=None, permission=None):
     registry.register(RUN_PYTHON, partial(python_tool, data_dir=data_dir, permission=permission),
                       confirm=True, max_calls=PYTHON_ATTEMPTS)
     return registry
+
+def _mcp_notice(text: str) -> str:
+    return sanitize(text).replace("reload MCP", "use /mcp reload")
+
+
+def _mcp_load(mcp: Catalogue, read, write) -> bool:
+    """Reload; a config file the user has not trusted yet runs nothing until they say so."""
+    changed = mcp.reload()
+    if mcp.untrusted is None:
+        return changed
+    write(sanitize(f"This MCP config is not trusted yet: {mcp.config_path()}"))
+    write(sanitize(f"Trusting it runs these commands in {mcp.untrusted['folder']}, with your environment,"))
+    write("and they can load code from that folder:")
+    for line in mcp.untrusted["commands"]:
+        write(f"  {sanitize(line)}")
+    try:
+        answer = read("Trust this file and run them? [y/N] ")
+    except (EOFError, KeyboardInterrupt):
+        answer = ""
+    if answer.strip().lower() in ("y", "yes", "o", "oui"):
+        mcp.trust(mcp.untrusted["digest"])
+        return mcp.reload()
+    write("MCP tools stay off. Use /mcp reload to be asked again.")
+    return changed
+
+
+def _mcp_status(mcp: Catalogue, write) -> None:
+    """Where the configuration is, how its servers are, and how to add one."""
+    found = "" if mcp.config_found() else " (not found, so no MCP tools)"
+    write(sanitize(f"MCP config: {mcp.config_path()}{found}"))
+    if mcp.untrusted:
+        write("Not trusted yet, so nothing has run. Use /mcp reload to review its commands.")
+    for notice in mcp.notices():
+        write(_mcp_notice(notice))
+    write("To add a server:")
+    write("1. Put your servers in that file. For example:")
+    write(EXAMPLE_CONFIG.rstrip())
+    write("2. Only add servers you trust: each command runs on this computer, with your environment.")
+    write("   This example needs Sensai's Python environment active, and uv for the time server.")
+    write("3. Run /mcp reload and trust the file, then /tools. Each call asks for your approval.")
+    write(f"Full guide: {GUIDE_URL}")
+
+
+def _mcp_reload(mcp: Catalogue, session: ChatSession, tool_registry: ToolRegistry, read, write) -> None:
+    """Replace the MCP tools only; the conversation stays."""
+    old_names = [d.name for d in mcp.definitions()]
+    core = session.messages[0].content.removesuffix(tool_instructions(tool_registry.definitions())).rstrip()
+    if _mcp_load(mcp, read, write):
+        for name in old_names:
+            tool_registry.unregister(name)
+        mcp.register(tool_registry)
+        # Not set_system_prompt: that marks a persona switch and re-sends the prompt on every turn.
+        session.messages[0] = Message(role="system", content=_tool_prompt(core, tool_registry))
+    for notice in mcp.notices():
+        write(_mcp_notice(notice))
+    if not mcp.untrusted:
+        write("MCP configuration reloaded." if not mcp.error else "MCP reload failed.")
+
 
 def _setup_docs(args, settings, tool_registry, searcher=None) -> DocLibrary | None:
     """The documents folder as a library that indexes itself in the background; None if switched off."""
@@ -305,7 +364,7 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
          guard: Guardrail | None = None, files: FileTools | None = None,
          campaign: CampaignStore | None = None, approval=None, web: WebSearch | None = None,
          doc_search: DocSearch | None = None, exporter: Exporter | None = None,
-         context: ContextState | None = None, summary_client=None, probe=None) -> None:
+         mcp: Catalogue | None = None, context: ContextState | None = None, summary_client=None, probe=None) -> None:
     if base_prompt is None:
         base_prompt = session.messages[0].content
     if tool_registry is None:
@@ -477,9 +536,19 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
         if text.strip().lower() in ("exit", "quit"):
             return
         command = text.strip().split(maxsplit=1)
+        if command and command[0] == "/mcp":
+            if mcp is None:
+                write("MCP is unavailable.")
+            elif len(command) == 1:
+                _mcp_status(mcp, write)
+            elif command[1].strip() == "reload":
+                _mcp_reload(mcp, session, tool_registry, read, write)
+            else:
+                write("usage: /mcp [reload]")
+            continue
         if command and command[0] == "/tools":
             for definition in tool_registry.definitions():
-                write(f"{definition.name}: {definition.description}")
+                write(sanitize(f"{definition.name}: {definition.description}"))
             continue
         if command and command[0] == "/persona":
             if persona_registry is None:
@@ -856,6 +925,13 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
                             on_search=lambda q: print(f"Searching the web for: {q}"))
             if web.provider != "off":
                 tool_registry.register(WEB_SEARCH, web, timeout=None)  # Keeps this turn's sources here.
+            mcp = Catalogue(settings.mcp_config)
+            _mcp_load(mcp, terminal.read, print)
+            mcp.register(tool_registry)
+            for notice in mcp.notices():
+                print(_mcp_notice(notice))
+            if mcp.servers or mcp.error:
+                print("MCP configuration changes: use /mcp reload to refresh tools.")
             def titler(first_user: str, first_answer: str) -> str | None:
                 token = CancellationToken(
                     monotonic() + min(saved_sessions.TITLE_TIMEOUT, args.operation_timeout),
@@ -878,7 +954,7 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
                  docs=docs, checker=checker, memory=memory, guard=guard, files=files,
                  campaign=CampaignStore(settings.campaigns_dir), approval=approval, web=web,
                  doc_search=found[0] if found else None, exporter=Exporter(guard, settings.exports_dir),
-                 context=context, summary_client=summary_client,
+                 mcp=mcp, context=context, summary_client=summary_client,
                  probe=lambda: loaded_window(args.host, args.model) if isinstance(raw_client, OllamaClient) else None)
     finally:
         try:

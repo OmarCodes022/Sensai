@@ -71,7 +71,8 @@ def run_turn(app: WebApp, active: ActiveSession, stop, text: str, emit: Emit) ->
         app.web.results.clear()  # Sources are listed per reply.
     registry = ObservedRegistry(approval, emit, app.data.path, app.meta_dir, app.docs, app.memory, app.files,
                               WebForm(app.questions, emit, stop, turn_id, approval), app.web,
-                              make_ranker(app.checker, app.model) if app.rag_mode == "advanced" else None)
+                              make_ranker(app.checker, app.model) if app.rag_mode == "advanced" else None,
+                              app.mcp)
     status = None
     stream = run_with_tools(
         session, registry, text, token,

@@ -41,6 +41,8 @@ including an unknown `/word`, is sent to the model.
 | `/persona <id>` | Switches persona from the next message, keeping the conversation |
 | `/history` | Lists your own messages of this session, one line each |
 | `/tools` | Lists the tools the model can use |
+| `/mcp` | Shows the MCP config file, server status and how to add a server |
+| `/mcp reload` | Reloads the MCP configuration, keeping the conversation |
 | `/run <file.py>` | Runs a local Python file in the sandbox, without the model |
 | `/think <request>` | Plans, uses tools, drafts, checks and revises, showing every step |
 | `/context` | Shows the window, the last turn's token count and what summaries saved |
@@ -49,7 +51,7 @@ including an unknown `/word`, is sent to the model.
 | Ctrl+D on an empty line | Leaves Sensai |
 
 Details: [Personas](personas.md), [Sessions and profile](sessions.md),
-[Tools and sandbox](tools.md), [Reasoning step by step](thinking.md) and
+[Tools and sandbox](tools.md), [MCP tools](mcp.md), [Reasoning step by step](thinking.md) and
 [Long conversations](context.md).
 
 ## Interrupt a reply
