@@ -276,3 +276,23 @@ def test_web_startup_line_points_at_the_question(web, setup, capsys):
     app = web(["hello"]).app
     serve(SimpleNamespace(app=app, server_address=("", 1), serve_forever=lambda: None))
     assert "MCP config not trusted yet" in capsys.readouterr().out
+
+
+def test_servers_are_discovered_in_parallel(tmp_path, monkeypatch):
+    from time import monotonic, sleep
+    from sensai import mcp_client
+
+    def slow(name, spec):
+        sleep(0.5)
+        return [], {"name": name, "count": 0, "error": None}
+
+    path = tmp_path / "mcp.json"
+    path.write_text(json.dumps({"mcpServers": {f"s{i}": {"command": "x"} for i in range(4)}}), encoding="utf-8")
+    monkeypatch.setattr(mcp_client, "_discover", slow)
+    catalogue = Catalogue(path)
+    catalogue.reload()
+    catalogue.trust(catalogue.untrusted["digest"])
+    started = monotonic()
+    catalogue.reload()
+    assert monotonic() - started < 1.5  # One wait, not four.
+    assert [s["name"] for s in catalogue.servers] == ["s0", "s1", "s2", "s3"]  # Config order is kept.

@@ -1,4 +1,5 @@
 """Small MCP 2025-11-25 stdio client; every exchange runs in tool isolation."""
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from functools import partial
 import hashlib
@@ -206,6 +207,41 @@ def _describe(name, spec):
     return line.encode("unicode_escape").decode("ascii")
 
 
+def _discover(name, spec):
+    """One server's tools and status; it starts the server and asks for its tool list."""
+    failure = "Invalid server configuration"
+    try:
+        if (not isinstance(name, str) or not re.fullmatch(r"[A-Za-z0-9_-]+", name)
+                or not isinstance(spec, dict) or not isinstance(spec.get("command"), str)
+                or not spec["command"].strip()
+                or not isinstance(spec.get("args", []), list)
+                or not all(isinstance(arg, str) for arg in spec.get("args", []))
+                or not isinstance(spec.get("env", {}), dict)
+                or not all(isinstance(k, str) and isinstance(v, str) for k, v in spec.get("env", {}).items())):
+            raise ValueError()
+        server = Server(name, spec["command"], tuple(spec.get("args", [])), spec.get("env", {}))
+        discovery = ToolRegistry()
+        discovery.register(ToolDefinition("discover", "", {}), partial(exchange, server, None))
+        result = discovery.execute(ToolCall("discover", {}))
+        if result.error:
+            failure = result.error.removesuffix("; fix configuration and reload MCP")
+            raise ValueError()
+        failure = "Invalid MCP tool schema or duplicate tool name"
+        found, names = [], set()
+        for tool in json.loads(result.output):
+            if (not isinstance(tool, dict) or not isinstance(tool.get("name"), str)
+                    or not re.fullmatch(r"[A-Za-z0-9_.-]+", tool["name"]) or tool["name"] in names
+                    or not isinstance(tool.get("description", ""), str)
+                    or not _valid_schema(tool.get("inputSchema"))):
+                raise ValueError()
+            names.add(tool["name"])
+            definition = ToolDefinition(f"{name}.{tool['name']}", tool.get("description", ""), tool["inputSchema"])
+            found.append((definition, partial(exchange, server, tool["name"])))
+        return found, {"name": name, "count": len(found), "error": None}
+    except (ValueError, TypeError):
+        return [], {"name": name, "count": 0, "error": failure + "; fix configuration and reload MCP"}
+
+
 class Catalogue:
     def __init__(self, path="mcp.json"):
         self.path = path
@@ -276,40 +312,11 @@ class Catalogue:
             self.untrusted = {"digest": digest, "folder": os.getcwd(), "commands": [
                 _describe(name, spec) for name, spec in config["mcpServers"].items()]}
             return True
-        tools, statuses = [], []
-        for name, spec in config["mcpServers"].items():
-            failure = "Invalid server configuration"
-            try:
-                if (not isinstance(name, str) or not re.fullmatch(r"[A-Za-z0-9_-]+", name)
-                        or not isinstance(spec, dict) or not isinstance(spec.get("command"), str)
-                        or not spec["command"].strip()
-                        or not isinstance(spec.get("args", []), list)
-                        or not all(isinstance(arg, str) for arg in spec.get("args", []))
-                        or not isinstance(spec.get("env", {}), dict)
-                        or not all(isinstance(k, str) and isinstance(v, str) for k, v in spec.get("env", {}).items())):
-                    raise ValueError()
-                server = Server(name, spec["command"], tuple(spec.get("args", [])), spec.get("env", {}))
-                discovery = ToolRegistry()
-                discovery.register(ToolDefinition("discover", "", {}), partial(exchange, server, None))
-                result = discovery.execute(ToolCall("discover", {}))
-                if result.error:
-                    failure = result.error.removesuffix("; fix configuration and reload MCP")
-                    raise ValueError()
-                failure = "Invalid MCP tool schema or duplicate tool name"
-                found, names = [], set()
-                for tool in json.loads(result.output):
-                    if (not isinstance(tool, dict) or not isinstance(tool.get("name"), str)
-                            or not re.fullmatch(r"[A-Za-z0-9_.-]+", tool["name"]) or tool["name"] in names
-                            or not isinstance(tool.get("description", ""), str)
-                            or not _valid_schema(tool.get("inputSchema"))):
-                        raise ValueError()
-                    names.add(tool["name"])
-                    definition = ToolDefinition(f"{name}.{tool['name']}", tool.get("description", ""), tool["inputSchema"])
-                    found.append((definition, partial(exchange, server, tool["name"])))
-                tools.extend(found)
-                statuses.append({"name": name, "count": len(found), "error": None})
-            except (ValueError, TypeError):
-                statuses.append({"name": name, "count": 0, "error": failure + "; fix configuration and reload MCP"})
+        # In parallel: one hung server costs one timeout, not one per server.
+        with ThreadPoolExecutor(max_workers=max(1, len(config["mcpServers"]))) as pool:
+            results = list(pool.map(lambda item: _discover(*item), config["mcpServers"].items()))
+        tools = [pair for found, status in results for pair in found]
+        statuses = [status for found, status in results]
         self.tools, self.servers, self.error = tools, statuses, None
         return True
 
