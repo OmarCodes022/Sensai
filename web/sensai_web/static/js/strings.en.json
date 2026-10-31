@@ -846,5 +846,10 @@
  "profile.formHelp": "One line per thing Sensai should remember, for example voice or audience.",
  "profile.err.rowBlank": "Fill in both the name and the text of every line.",
  "profile.err.rowDup": "The name \"{name}\" is used twice.",
- "slash.thinkUsage": "Write what to think about, for example: /think what is my engagement rate?"
+ "slash.thinkUsage": "Write what to think about, for example: /think what is my engagement rate?",
+ "slash.editUsage": "Write the message number and the new text, for example: /edit 2 make it shorter",
+ "chat.branched": "New conversation {id}, branched from {from}. The original is kept unchanged.",
+ "msg.edit": "Edit message",
+ "msg.editHint": "Sending continues from this message in a new conversation. The original stays unchanged.",
+ "msg.editSend": "Send"
 }

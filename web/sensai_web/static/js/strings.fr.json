@@ -846,5 +846,10 @@
  "profile.formHelp": "Une ligne par chose que Sensai doit retenir, par exemple le ton ou le public.",
  "profile.err.rowBlank": "Renseignez le nom et le texte de chaque ligne.",
  "profile.err.rowDup": "Le nom « {name} » est utilisé deux fois.",
- "slash.thinkUsage": "Écrivez le sujet, par exemple : /think quel est mon taux d'engagement ?"
+ "slash.thinkUsage": "Écrivez le sujet, par exemple : /think quel est mon taux d'engagement ?",
+ "slash.editUsage": "Indiquez le numéro du message et le nouveau texte, par exemple : /edit 2 plus court",
+ "chat.branched": "Nouvelle conversation {id}, issue de {from}. L'originale est conservée telle quelle.",
+ "msg.edit": "Modifier le message",
+ "msg.editHint": "L'envoi reprend à partir de ce message dans une nouvelle conversation. L'originale reste inchangée.",
+ "msg.editSend": "Envoyer"
 }
