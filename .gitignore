@@ -19,3 +19,6 @@ devtools/
 .github/workflows/sync-push-evidence.yml
 docs/operations/push-evidence-sync.md
 site/
+
+# Weekly campaign documents (yours, not shared)
+campaigns/

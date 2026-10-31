@@ -12,15 +12,20 @@ from collections.abc import Callable, Sequence
 from functools import partial
 from typing import NamedTuple
 
-from sensai.core.errors import SensaiError
+from sensai.core.errors import LLMError, SensaiError
 from sensai.core.cancellation import CancellationToken, OperationCancelled, OperationTimedOut
-from sensai.core.ports import PolicyDenied, PortError, Profile, ToolCall
+from sensai.core.ports import ApprovalRequest, PolicyDenied, PortError, Profile, ToolCall
 from sensai.chat import saved_sessions
 from sensai.chat.saved_sessions import SessionRecorder, display_title, profile_block
 from sensai.core.errors import GuardrailRefused
 from sensai.guardrails import GuardedClient, Guardrail, GuardrailConfigError, load_guardrail
 from sensai.guardrails.rules import message_for
 from sensai.security.file_tools import FILE_TOOLS, FileTools, open_project
+from sensai.campaign import CampaignError, CampaignStore
+from sensai.campaign import apply as apply_change, approve as approve_section, ask as ask_edit, overview, plan as plan_change
+from sensai.campaign.edits import editable as campaign_editable
+from sensai.guardrails.rules import Claims
+from sensai.llm.structured import StructuredOutputError
 from sensai.chat.blocks import split_block
 from sensai.chat.facts import DELETE_FACT, SAVE_FACT, FactMemory, with_facts
 from sensai.chat.reasoning import Section, think
@@ -276,7 +281,8 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
          base_prompt: str | None = None, recorder: SessionRecorder | None = None,
          tool_registry: ToolRegistry | None = None, data_dir: str | None = None,
          docs: DocLibrary | None = None, checker=None, memory: FactMemory | None = None,
-         guard: Guardrail | None = None, files: FileTools | None = None) -> None:
+         guard: Guardrail | None = None, files: FileTools | None = None,
+         campaign: CampaignStore | None = None, approval=None) -> None:
     if base_prompt is None:
         base_prompt = session.messages[0].content
     if tool_registry is None:
@@ -361,6 +367,48 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
             except PortError as e:
                 write(f"{'Permission denied' if isinstance(e, PolicyDenied) else 'error'}: {e} ({argument})")
 
+    def campaign_command(argument: str) -> None:
+        """/campaign, /campaign approve <section>, /campaign <posts|calendar> <request>."""
+        if campaign is None:
+            write("error: the campaign document is unavailable")
+            return
+        try:
+            doc = campaign.latest()
+            word, _, rest = argument.partition(" ")
+            if not word:
+                for line in overview(doc):
+                    write(line)
+            elif word == "approve":
+                approve_section(campaign, doc, rest.strip())
+                write(f"{rest.strip().capitalize()} approved: later edits ask for confirmation first.")
+            else:
+                edit_section(doc, word, rest.strip())
+        except CampaignError as e:
+            write(f"error: {e}")
+
+    def edit_section(doc, section: str, request: str) -> None:
+        campaign_editable(doc, section)
+        if not request:
+            write(f"usage: /campaign {section} <what to change>")
+            return
+        claims = guard.claims if guard is not None else Claims()
+        try:
+            edit = ask_edit(checker, session.model, doc, section, request, claims)
+        except (StructuredOutputError, LLMError) as e:
+            write(f"error: no valid edit from the model ({e}); nothing changed.")
+            return
+        change = plan_change(doc, section, edit, claims)
+        part = getattr(doc.sections, section)
+        if part.status == "approved":  # A3: an approved section changes only after an explicit yes.
+            content = "\n".join([f"Before:  {change.before!r}" if change.before is not None else "Before:  (nothing)",
+                                 f"After:   {change.after!r}" if change.after is not None else "After:   (removed)"])
+            request_ = ApprovalRequest(change.action, campaign.path(doc.week), f"{section.capitalize()} are approved", content)
+            if approval is None or not approval.request(request_).approved:
+                write("Nothing changed.")
+                return
+        write(f"{section.capitalize()}: {change.action}")
+        write(f"Saved {apply_change(campaign, change)}")
+
     refresh_facts()
     while True:
         refresh_docs()
@@ -398,6 +446,9 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
                     write(f"Persona sélectionnée : {persona.id}")
                     if recorder is not None:
                         recorder.persona_changed(persona.id)
+            continue
+        if command and command[0] == "/campaign":
+            campaign_command(command[1].strip() if len(command) > 1 else "")
             continue
         if command and command[0] in ("/read", "/save"):
             file_command(command[0], command[1].strip() if len(command) > 1 else "")
@@ -662,8 +713,8 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
         else:
             print(f"Session {recorder.session_id}")
         with TerminalInput() as terminal:
-            tool_registry = _tools(terminal.read, approval=TerminalApproval(terminal.read_key, print),
-                                   data_dir=args.data_dir)
+            approval = TerminalApproval(terminal.read_key, print)  # Tools and approved campaign edits ask the same way.
+            tool_registry = _tools(terminal.read, approval=approval, data_dir=args.data_dir)
             docs = _setup_docs(args, settings, tool_registry)
             try:
                 files = open_project(os.getcwd(), args.creator)
@@ -697,7 +748,8 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
                  cancel_requested=terminal.cancel_requested,
                  persona_registry=registry, base_prompt=base_prompt, recorder=recorder,
                  tool_registry=tool_registry, data_dir=args.data_dir,
-                 docs=docs, checker=checker, memory=memory, guard=guard, files=files)
+                 docs=docs, checker=checker, memory=memory, guard=guard, files=files,
+                 campaign=CampaignStore(settings.campaigns_dir), approval=approval)
     finally:
         try:
             remove_stale_folders()
