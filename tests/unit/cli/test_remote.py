@@ -16,8 +16,9 @@ from sensai.settings import Settings
 from sensai.sandbox import RUN_PYTHON
 from sensai.tools import CALCULATE, tool_instructions
 from sensai.memory.sqlite_store import StorageRepository
+from sensai.chat.facts import DELETE_FACT, SAVE_FACT
 
-TOOLS = "\n\n" + tool_instructions([CALCULATE, RUN_PYTHON])
+TOOLS = "\n\n" + tool_instructions([CALCULATE, RUN_PYTHON, SAVE_FACT, DELETE_FACT])
 
 
 ROOT = Path(__file__).resolve().parents[3]

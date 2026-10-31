@@ -16,8 +16,10 @@ from sensai.tools import CALCULATE, tool_instructions
 from sensai.core import cancellation
 from sensai.core.cancellation import CancellationToken, OperationCancelled
 from sensai.core.errors import LLMError
+from sensai.chat.facts import DELETE_FACT, SAVE_FACT
 
-TOOLS = "\n\n" + tool_instructions([CALCULATE, RUN_PYTHON])
+TOOLS = "\n\n" + tool_instructions([CALCULATE, RUN_PYTHON, SAVE_FACT, DELETE_FACT])
+REPL_TOOLS = "\n\n" + tool_instructions([CALCULATE, RUN_PYTHON])  # repl() called directly has no fact sheet
 
 pytestmark = pytest.mark.usefixtures("isolated_settings")
 
@@ -326,7 +328,7 @@ def test_invalid_and_listing_commands_leave_existing_history_untouched(capsys):
     cli.repl(session, read=lambda _: next(inputs), persona_registry=PersonaRegistry.from_file(),
              base_prompt="Shared")
     assert session.messages[1:] == before[1:]
-    assert session.messages[0].content == before[0].content + TOOLS
+    assert session.messages[0].content == before[0].content + REPL_TOOLS
     assert len(client.calls) == 1
     assert "error: unknown persona: redaction extra" in capsys.readouterr().out
 
@@ -343,8 +345,8 @@ def test_switched_persona_survives_interrupted_stream_and_next_switch(failure, n
         "/persona analyse", "Interrupted", "/persona communaute", "Next", "exit",
     ])
     cli.repl(session, read=lambda _: next(inputs), persona_registry=registry, base_prompt="Shared")
-    analyse = "Shared\n\n" + registry.get("analyse").system_prompt + TOOLS
-    communaute = "Shared\n\n" + registry.get("communaute").system_prompt + TOOLS
+    analyse = "Shared\n\n" + registry.get("analyse").system_prompt + REPL_TOOLS
+    communaute = "Shared\n\n" + registry.get("communaute").system_prompt + REPL_TOOLS
     assert client.calls == [
         [analyse, analyse, "Interrupted"],
         [communaute, communaute, "Next"],
@@ -359,7 +361,7 @@ def test_legacy_repl_rejects_persona_command_without_model_call(capsys):
     session = ChatSession(client, "model", "Shared")
     inputs = iter(["/persona analyse", "/personality", "exit"])
     cli.repl(session, read=lambda _: next(inputs))
-    assert client.calls == [["Shared" + TOOLS, "/personality"]]
+    assert client.calls == [["Shared" + REPL_TOOLS, "/personality"]]
     assert "error: persona selection is unavailable" in capsys.readouterr().out
 
 
@@ -398,10 +400,10 @@ def test_interrupted_switch_preserves_earlier_turn_and_streaming(monkeypatch, in
     cli.repl(session, read=read, write=write, cancel_requested=lambda: cancelled,
              persona_registry=registry, base_prompt="Shared")
 
-    analyse = "Shared\n\n" + registry.get("analyse").system_prompt + TOOLS
-    communaute = "Shared\n\n" + registry.get("communaute").system_prompt + TOOLS
+    analyse = "Shared\n\n" + registry.get("analyse").system_prompt + REPL_TOOLS
+    communaute = "Shared\n\n" + registry.get("communaute").system_prompt + REPL_TOOLS
     assert client.calls == [
-        ["Shared" + TOOLS, "Earlier"],
+        ["Shared" + REPL_TOOLS, "Earlier"],
         [analyse, "Earlier", "old reply", analyse, "Interrupted"],
         [communaute, "Earlier", "old reply", communaute, "Continue"],
     ]
@@ -425,8 +427,8 @@ def test_cli_recovers_from_empty_reply_and_honors_two_persona_switches():
              write=lambda text="", **kwargs: output.append(text),
              persona_registry=registry, base_prompt="Shared")
 
-    analyse_prompt = "Shared\n\n" + registry.get("analyse").system_prompt + TOOLS
-    communaute_prompt = "Shared\n\n" + registry.get("communaute").system_prompt + TOOLS
+    analyse_prompt = "Shared\n\n" + registry.get("analyse").system_prompt + REPL_TOOLS
+    communaute_prompt = "Shared\n\n" + registry.get("communaute").system_prompt + REPL_TOOLS
     assert client.calls[1] == [
         analyse_prompt, "Earlier", "Je suis Rédaction.", analyse_prompt, "Failed",
     ]
@@ -538,9 +540,9 @@ def test_no_persona_multi_turn_session_never_gets_a_reminder():
     cli.repl(session, read=lambda _: next(inputs), write=lambda *args, **kwargs: None,
              persona_registry=PersonaRegistry.from_file(), base_prompt="Shared")
     assert client.calls == [
-        ["Shared" + TOOLS, "Q1"],
-        ["Shared" + TOOLS, "Q1", "A1", "Q2"],
-        ["Shared" + TOOLS, "Q1", "A1", "Q2", "A2", "Q3"],
+        ["Shared" + REPL_TOOLS, "Q1"],
+        ["Shared" + REPL_TOOLS, "Q1", "A1", "Q2"],
+        ["Shared" + REPL_TOOLS, "Q1", "A1", "Q2", "A2", "Q3"],
     ]
     for _, request in client.requests:
         roles = [m.role for m in request]

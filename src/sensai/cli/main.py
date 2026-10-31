@@ -17,6 +17,7 @@ from sensai.core.cancellation import CancellationToken, OperationCancelled, Oper
 from sensai.core.ports import PortError, Profile, ToolCall
 from sensai.chat import saved_sessions
 from sensai.chat.saved_sessions import SessionRecorder, display_title, profile_block
+from sensai.chat.facts import DELETE_FACT, SAVE_FACT, FactMemory, with_facts
 from sensai.chat.reasoning import Section, think
 from sensai.cli.approval import TerminalApproval, sanitize
 from sensai.cli.terminal import TerminalInput
@@ -177,11 +178,12 @@ def _think(session, tool_registry, request, checker, new_token, write, recorder)
     finally:
         stream.close()
     if result is None:
-        return
+        return False
     session.messages.append(Message(role="user", content=request))
     session.messages.append(Message(role="assistant", content=result.answer))
     if recorder is not None:
         recorder.after_turn(session)
+    return True
 
 
 class PreparedChat(NamedTuple):
@@ -268,7 +270,7 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
          persona_registry: PersonaRegistry | None = None,
          base_prompt: str | None = None, recorder: SessionRecorder | None = None,
          tool_registry: ToolRegistry | None = None, data_dir: str | None = None,
-         docs: DocLibrary | None = None, checker=None) -> None:
+         docs: DocLibrary | None = None, checker=None, memory: FactMemory | None = None) -> None:
     if base_prompt is None:
         base_prompt = session.messages[0].content
     if tool_registry is None:
@@ -291,8 +293,36 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
             session.messages[0] = Message(role="system", content=_with_docs(
                 session.messages[0].content, on, tool_registry))
 
+    def refresh_facts() -> None:
+        """Keep the saved facts in the system message (replaced directly: no resend flag)."""
+        if memory is not None:
+            session.messages[0] = Message(role="system", content=with_facts(
+                session.messages[0].content, memory.block(), tool_instructions(tool_registry.definitions()),
+                DOCS_PROMPT))
+
+    def settle_facts(completed: bool) -> None:
+        """Write the facts the turn queued if it completed; drop them otherwise."""
+        if memory is None:
+            return
+        if not completed:
+            memory.drop()
+            return
+        try:
+            lines = memory.commit()
+        except (PortError, sqlite3.Error) as e:
+            memory.drop()
+            write(f"error: facts not saved: {e}")
+            return
+        for line in lines:
+            write(line)
+        if lines:
+            refresh_facts()
+
+    refresh_facts()
     while True:
         refresh_docs()
+        if memory is not None:
+            memory.drop()
         try:
             text = read("\n> ")
         except EOFError:
@@ -321,9 +351,14 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
                 else:
                     session.set_system_prompt(_with_docs(
                         _tool_prompt(f"{base_prompt}\n\n{persona.system_prompt}", tool_registry), docs_on, tool_registry))
+                    refresh_facts()
                     write(f"Persona sélectionnée : {persona.id}")
                     if recorder is not None:
                         recorder.persona_changed(persona.id)
+            continue
+        if command and command[0] == "/facts":
+            for line in (memory.listing() if memory is not None else ["error: the fact sheet is unavailable"]):
+                write(line)
             continue
         if command and command[0] == "/history":
             write(_history(session.messages) if len(command) == 1 else "usage: /history")
@@ -338,7 +373,7 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
                 def step_token():
                     return CancellationToken(monotonic() + operation_timeout, cancel_requested)
 
-                _think(session, tool_registry, command[1], checker, step_token, write, recorder)
+                settle_facts(_think(session, tool_registry, command[1], checker, step_token, write, recorder))
             continue
         original = branch = None
         if command and command[0] == "/edit":
@@ -427,6 +462,7 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
             recorder = branch
         if completed and recorder is not None:
             recorder.after_turn(session)
+        settle_facts(completed)
 
 
 def _open_storage(args: argparse.Namespace):
@@ -567,6 +603,9 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
             tool_registry = _tools(terminal.read, approval=TerminalApproval(terminal.read_key, print),
                                    data_dir=args.data_dir)
             docs = _setup_docs(args, settings, tool_registry)
+            memory = FactMemory(repository.for_creator(args.creator).facts)
+            tool_registry.register(SAVE_FACT, memory.save, timeout=None)  # In this process: the queue is here.
+            tool_registry.register(DELETE_FACT, memory.delete, timeout=None)
             def titler(first_user: str, first_answer: str) -> str | None:
                 token = CancellationToken(
                     monotonic() + min(saved_sessions.TITLE_TIMEOUT, args.operation_timeout),
@@ -586,7 +625,7 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
                  cancel_requested=terminal.cancel_requested,
                  persona_registry=registry, base_prompt=base_prompt, recorder=recorder,
                  tool_registry=tool_registry, data_dir=args.data_dir,
-                 docs=docs, checker=checker)
+                 docs=docs, checker=checker, memory=memory)
     finally:
         try:
             remove_stale_folders()
