@@ -27,6 +27,7 @@ from sensai.campaign.edits import editable as campaign_editable
 from sensai.guardrails.rules import Claims
 from sensai.llm.structured import StructuredOutputError
 from sensai.chat.blocks import split_block
+from sensai.chat.questions import ASK_USER, TerminalForm
 from sensai.chat.facts import DELETE_FACT, SAVE_FACT, FactMemory, with_facts
 from sensai.chat.reasoning import Section, think
 from sensai.cli.approval import TerminalApproval, sanitize
@@ -729,6 +730,7 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
             memory = FactMemory(repository.for_creator(args.creator).facts)
             tool_registry.register(SAVE_FACT, memory.save, timeout=None)  # In this process: the queue is here.
             tool_registry.register(DELETE_FACT, memory.delete, timeout=None)
+            tool_registry.register(ASK_USER, TerminalForm(terminal.read, print), timeout=None)  # Reads the terminal itself.
             def titler(first_user: str, first_answer: str) -> str | None:
                 token = CancellationToken(
                     monotonic() + min(saved_sessions.TITLE_TIMEOUT, args.operation_timeout),

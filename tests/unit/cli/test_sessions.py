@@ -23,8 +23,9 @@ from sensai.core.messages import Message
 from sensai.memory import sqlite_store
 from sensai.memory.sqlite_store import StorageError, StorageRepository
 from sensai.chat.facts import DELETE_FACT, SAVE_FACT
+from sensai.chat.questions import ASK_USER
 
-TOOLS = "\n\n" + tool_instructions([CALCULATE, RUN_PYTHON, SAVE_FACT, DELETE_FACT])
+TOOLS = "\n\n" + tool_instructions([CALCULATE, RUN_PYTHON, SAVE_FACT, DELETE_FACT, ASK_USER])
 
 ROOT = Path(__file__).resolve().parents[3]
 PROFILE_HEADER = "Profil de la créatrice (instructions personnalisées) :"
