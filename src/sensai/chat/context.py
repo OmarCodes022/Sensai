@@ -1,18 +1,21 @@
 """The context budget (M2): how full the model's window is, and when to summarize older messages.
 
-The window is the one Ollama really loaded (GET /api/ps, after the first reply), or the
-number the creator set (SENSAI_CONTEXT_LENGTH / --context-budget, sent as num_ctx on every
-request), else 4096 until Ollama reports it.
+The window is the number the creator set (SENSAI_CONTEXT_LENGTH / --context-budget), else the
+one Ollama chose for this computer (GET /api/ps), doubled when it is 4096 or less: Sensai's own
+instructions take about 2,000 tokens. Either is sent as num_ctx on every request. Without an
+answer from Ollama, 4096 until it reports one.
 """
 import requests
 
 from sensai.chat import compression
 
 DEFAULT_WINDOW = 4096
+SMALL_WINDOW = 4096  # Ollama's usual choice: too small for Sensai's instructions, so it is doubled.
 
 
-def loaded_window(host: str, model: str, get=requests.get) -> int | None:
+def loaded_window(host: str, model: str, get=None) -> int | None:
     """The context length of `model` as Ollama loaded it, or None (not loaded yet, remote, or no answer)."""
+    get = get or requests.get
     try:
         models = get(f"{host.rstrip('/')}/api/ps", timeout=2).json().get("models", [])
     except (requests.RequestException, ValueError, AttributeError):
@@ -25,12 +28,33 @@ def loaded_window(host: str, model: str, get=requests.get) -> int | None:
     return None
 
 
+def ollama_window(host: str, model: str, get=None, post=None) -> int | None:
+    """The window Ollama chose for `model` on this computer; loads the model once, without num_ctx, if needed."""
+    window = loaded_window(host, model, get)
+    if window is None:
+        try:
+            (post or requests.post)(f"{host.rstrip('/')}/api/generate",
+                                    json={"model": model, "prompt": "", "stream": False}, timeout=120)
+        except requests.RequestException:
+            return None
+        window = loaded_window(host, model, get)
+    return window
+
+
+def choose_window(chosen: int | None) -> tuple[int | None, str]:
+    """Follow Ollama's choice, doubled when it is 4096 or less; (None, "default") without one."""
+    if chosen is None:
+        return None, "default"
+    return (chosen * 2, "doubled") if chosen <= SMALL_WINDOW else (chosen, "ollama")
+
+
 class ContextState:
     """Token budget, the last turn's count and what summaries saved."""
 
-    def __init__(self, budget: int | None = None):
+    def __init__(self, budget: int | None = None, source: str | None = None):
         self.budget = budget or DEFAULT_WINDOW
-        self.source = "set" if budget else "default"  # set by the creator, learned from ollama, or the default
+        # set by the creator, ollama's choice (maybe doubled), or the default until Ollama reports one
+        self.source = source or ("set" if budget else "default")
         self.restart()
 
     def restart(self) -> None:
@@ -43,8 +67,8 @@ class ContextState:
         self.after_summary = False
 
     def learn(self, probe) -> None:
-        """Take Ollama's real window once it is known (never over a number the creator set)."""
-        if self.source != "set":
+        """Take Ollama's real window once it is known, when nothing was chosen at start."""
+        if self.source == "default":
             window = probe()
             if window:
                 self.budget, self.source = window, "ollama"
@@ -72,7 +96,8 @@ class ContextState:
 
     def report(self) -> str:
         last = "n/a" if self.last_tokens is None else f"{self.last_tokens:,} ({self.last_tokens * 100 // self.budget}%)"
-        return (f"Window {self.budget:,} ({self.source})   Last turn {last}   "
+        source = f"ollama {self.budget // 2:,} doubled" if self.source == "doubled" else self.source
+        return (f"Window {self.budget:,} ({source})   Last turn {last}   "
                 f"Summaries {self.summaries}   Saved about {self.saved:,} tokens")
 
     def as_dict(self) -> dict:
