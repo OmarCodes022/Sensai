@@ -8,6 +8,7 @@ from urllib.parse import unquote
 
 from sensai.core.cancellation import CancellationToken
 from sensai.core.errors import LLMError
+from sensai.mcp_client import EXAMPLE_CONFIG, GUIDE_URL
 from sensai.memory.vector_index import VectorIndexError
 from sensai.rag import MAX_FILE_BYTES, MAX_TOTAL_BYTES, TYPES, DocError
 from sensai.sandbox import SandboxLimits
@@ -202,7 +203,8 @@ def approve(app: WebApp, request, id: str):
 @route("GET", r"/api/tools")
 def tools(app: WebApp, request):
     return {"items": tool_list(documents=app.docs.enabled, mcp=app.mcp),
-            "servers": app.mcp.servers, "error": app.mcp.error}
+            "servers": app.mcp.servers, "error": app.mcp.error, "config": app.mcp.config_path(),
+            "found": app.mcp.config_found(), "example": EXAMPLE_CONFIG, "guide": GUIDE_URL}
 
 
 @route("POST", r"/api/tools/reload")

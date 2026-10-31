@@ -6,6 +6,7 @@
   .vsec { margin-top: var(--s-6); }
   .label-s { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
   .bullets { list-style: disc; padding-left: var(--s-5); display: flex; flex-direction: column; gap: var(--s-1); }
+  .steps { list-style: decimal; padding-inline-start: var(--s-5); }
   .kv--wide { grid-template-columns: minmax(10rem, max-content) 1fr; row-gap: var(--s-2); }
   .sess-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: var(--s-4); align-items: start; margin-top: var(--s-3); }
   .sess-detail { position: sticky; top: 0; }

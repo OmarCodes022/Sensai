@@ -848,5 +848,16 @@
  "profile.err.rowDup": "The name \"{name}\" is used twice.",
  "slash.thinkUsage": "Write what to think about, for example: /think what is my engagement rate?",
  "tools.reload": "Reload MCP",
-  "tools.reloadHint": "After editing MCP configuration, use Reload MCP to refresh tools."
+ "tools.reloadHint": "After editing MCP configuration, use Reload MCP to refresh tools.",
+ "tools.mcp.title": "MCP servers",
+ "tools.mcp.config": "Config file: {path}",
+ "tools.mcp.missing": "Not found, so there are no MCP tools yet.",
+ "tools.mcp.count": "{n} tool(s)",
+ "tools.mcp.setup": "How to add an MCP server",
+ "tools.mcp.step1": "Put your servers in the config file. For example:",
+ "tools.mcp.step2": "Only add servers you trust: each command runs on this computer, with your environment. This example needs Sensai's Python environment active, and uv for the time server.",
+ "tools.mcp.step3": "Use Reload MCP, or /mcp reload in chat. Tools appear below, and each call asks for your approval.",
+ "tools.mcp.guide": "Read the full guide",
+ "tools.mcp.reloaded": "MCP reloaded: {n} server(s) configured.",
+ "slash.mcp": "Show MCP status and setup, or reload it with /mcp reload"
 }

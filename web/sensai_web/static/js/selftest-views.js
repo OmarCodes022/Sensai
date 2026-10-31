@@ -34,6 +34,21 @@ export const VIEW_TESTS = [
       await new Promise((resolve) => setTimeout(resolve, 0));
       eq(reload.disabled, false);
       if (!root.textContent.includes('Fixture tool') || !root.textContent.includes('broken: unavailable')) throw new Error('reload result missing');
+      eq(root.querySelector('details').open, false, 'setup stays folded once a server is configured');
+    } finally { dispose(); root.remove(); }
+  }],
+  ['tools: without MCP config the setup steps are open and show the file and example', async () => {
+    const root = document.createElement('div'); document.body.append(root);
+    const dispose = mountTools(root, {
+      api: { tools: async () => ({ items: [], servers: [], config: '/x/mcp.json', found: false, example: '{"mcpServers":{}}', guide: 'https://example.test/guide' }), runData: async () => ({ files: [] }) },
+      store: { get: () => ({ session: null }), subscribe: () => () => {} },
+    });
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      eq(root.querySelector('details').open, true);
+      eq(root.querySelector('details pre').textContent, '{"mcpServers":{}}');
+      eq(root.querySelector('details a').getAttribute('href'), 'https://example.test/guide');
+      if (!root.textContent.includes('/x/mcp.json')) throw new Error('config path missing');
     } finally { dispose(); root.remove(); }
   }],
   ['profile: object of strings is valid', () => eq(validateProfile('{"ton":"direct"}').value, { ton: 'direct' })],

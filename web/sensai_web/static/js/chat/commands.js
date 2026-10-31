@@ -1,6 +1,6 @@
 // Slash commands exactly as spec 6.4. Live ones run; planned ones are dimmed with their task ID.
 export const COMMANDS = [
-  { name: 'persona', live: true }, { name: 'history', live: true }, { name: 'tools', live: true },
+  { name: 'persona', live: true }, { name: 'history', live: true }, { name: 'tools', live: true }, { name: 'mcp', live: true },
   { name: 'run', live: true }, { name: 'new', live: true }, { name: 'help', live: true },
   { name: 'add', task: 'T36', cap: 'documents' }, { name: 'remove', task: 'T36', cap: 'documents' },
   { name: 'docs', task: 'T36', cap: 'documents' }, { name: 'reindex', task: 'T36', cap: 'documents' },

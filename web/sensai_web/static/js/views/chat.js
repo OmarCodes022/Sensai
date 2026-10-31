@@ -35,11 +35,15 @@ export function mount(root, ctx) {
   const restorer = createRestorer({ ctx, onReuse: (text) => composer.fill(text) });
 
   const docCommands = createDocCommands({ api, transcript, router });
+  const reloadMcp = async () => {
+    try { toast(t('tools.mcp.reloaded', { n: (await api.reloadTools()).servers.length })); } catch (e) { toast(e.message); }
+  };
   const commands = {
     persona: () => document.querySelector('.persona-pill')?.click(),
     history: () => openHistory(composer.textarea, { api, plannedEdit: !store.get().capabilities.branching, onPick: jump }),
     tools: () => { layout.openInspector(); document.querySelector('.inspector')?.select?.('tools'); },
     run: () => router.go('#/tools'),
+    mcp: (args) => (args === 'reload' ? reloadMcp() : router.go('#/tools')),
     think: (args) => (args ? turn.send(`/think ${args}`) : toast(t('slash.thinkUsage'))),
     new: () => actions.newChat(),
     help: () => openShortcuts(),

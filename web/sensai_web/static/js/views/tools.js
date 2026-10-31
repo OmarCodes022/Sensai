@@ -1,4 +1,4 @@
-// Tools view (spec 8.3): registry, recent calls, sandbox runner.
+// Tools view (spec 8.3): MCP status and setup, registry, recent calls, sandbox runner.
 import { h } from '../dom.js';
 import { button } from '../components/button.js';
 import { chip } from '../components/chip.js';
@@ -27,13 +27,26 @@ function registry(items) {
     }))));
 }
 
+/** Read-only on purpose: each entry runs a local command, so the user edits the file and this page explains how. */
+function mcpPanel(d) {
+  const servers = d.servers || [];
+  return [
+    d.config ? h('p', null, t('tools.mcp.config', { path: d.config }), d.found ? '' : ` ${t('tools.mcp.missing')}`) : null,
+    d.error ? h('p', { role: 'alert' }, d.error, ' ', t('tools.reloadHint')) : null,
+    servers.map((s) => h('p', { role: s.error ? 'alert' : null },
+      s.error ? `${s.name}: ${s.error} ${t('tools.reloadHint')}` : `${s.name}: ${t('tools.mcp.count', { n: s.count })}`)),
+    h('details', { class: 'card', open: !servers.length }, h('summary', null, t('tools.mcp.setup')),
+      h('ol', { class: 'steps stack' },
+        h('li', null, t('tools.mcp.step1'), d.example ? h('pre', { class: 'code', tabindex: '0', dir: 'ltr' }, d.example) : null),
+        h('li', null, t('tools.mcp.step2')),
+        h('li', null, t('tools.mcp.step3'))),
+      d.guide ? h('a', { href: d.guide, target: '_blank', rel: 'noopener' }, t('tools.mcp.guide')) : null),
+  ];
+}
+
 export function mount(root, { api, store }) {
-  const reg = h('div'), recent = h('div');
-  const render = (d) => reg.replaceChildren(
-    ...(d.error ? [h('p', { role: 'alert' }, d.error, ' ', t('tools.reloadHint'))] : []),
-    ...(d.servers || []).map((s) => h('p', { role: s.error ? 'alert' : null },
-      s.error ? `${s.name}: ${s.error}` : `${s.name}: ${s.count}`, s.error ? ` ${t('tools.reloadHint')}` : '')),
-    registry(d.items || []));
+  const mcp = h('div'), reg = h('div'), recent = h('div');
+  const render = (d) => { mcp.replaceChildren(...mcpPanel(d).flat().filter(Boolean)); reg.replaceChildren(registry(d.items || [])); };
   const reload = button(t('tools.reload'), { onClick: async () => {
     reload.disabled = true;
     reload.setAttribute('aria-busy', 'true');
@@ -41,7 +54,7 @@ export function mount(root, { api, store }) {
     finally { reload.disabled = false; reload.removeAttribute('aria-busy'); }
   } });
   const box = createSandbox({ api, store });
-  root.append(viewShell('tools', section(t('tools.registry'), reload, h('p', null, t('tools.reloadHint')), reg), section(t('tools.recent'), recent), section(t('tools.sandboxTitle'), box.el)));
+  root.append(viewShell('tools', section(t('tools.mcp.title'), h('div', { class: 'row' }, reload), mcp), section(t('tools.registry'), reg), section(t('tools.recent'), recent), section(t('tools.sandboxTitle'), box.el)));
   loadInto(reg, () => api.tools(), render, t('tools.loadError'));
   const paint = () => recent.replaceChildren(recentCalls(store.get().session));
   paint();
