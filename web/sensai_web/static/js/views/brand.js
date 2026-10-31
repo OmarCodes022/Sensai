@@ -19,7 +19,7 @@ export function mount(root, { api }) {
   const id = input({ class: 'input mono', placeholder: 'hydra-glow-serum.price', autocomplete: 'off', maxlength: 160 });
   const text = input({ placeholder: t('brand.textPlaceholder'), autocomplete: 'off', maxlength: 300 });
   const err = h('p', { class: 'field__error', role: 'alert', hidden: true });
-  const save = button(t('brand.saveFact'), { variant: 'primary', icon: 'plus' });
+  const save = button(t('brand.saveFact'), { variant: 'primary', icon: 'plus', type: 'submit' });
   const form = h('form', { class: 'card stack', novalidate: true },
     h('h2', null, t('brand.addTitle')), h('div', { class: 'row' }, field(t('brand.id'), id), field(t('brand.text'), text)),
     h('p', { class: 'muted' }, t('brand.idHelp')), err, h('div', null, save));
