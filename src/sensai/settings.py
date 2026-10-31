@@ -30,3 +30,4 @@ class Settings(BaseSettings):
     # Brand documents searched by the model. Default ./data/docs (created by /add); empty switches it off.
     docs_dir: str | None = Field("data/docs", validation_alias="SENSAI_DOCS")
     embed_model: str = Field("nomic-embed-text", validation_alias="SENSAI_EMBED_MODEL")
+    mcp_config: str = Field("mcp.json", validation_alias="SENSAI_MCP_CONFIG")
