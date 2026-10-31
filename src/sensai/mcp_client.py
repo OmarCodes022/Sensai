@@ -13,6 +13,14 @@ from sensai.tools import ToolRegistry
 PROTOCOL = "2025-11-25"
 TIMEOUT = 30.0
 MAX_MESSAGE = 1024 * 1024
+GUIDE_URL = "https://omarcodes022.github.io/Sensai/user-guide/mcp/"
+EXAMPLE_CONFIG = """{
+  "mcpServers": {
+    "sensai": {"command": "python", "args": ["-m", "sensai.mcp_server"]},
+    "time": {"command": "uvx", "args": ["mcp-server-time==2026.10.28"]}
+  }
+}
+"""
 
 
 @dataclass(frozen=True)
@@ -158,6 +166,12 @@ class Catalogue:
         self.tools = []
         self.servers = []
         self.error = None
+
+    def config_path(self):
+        return str(Path(self.path).resolve())
+
+    def config_found(self):
+        return Path(self.path).is_file()
 
     def definitions(self):
         return tuple(definition for definition, handler in self.tools)
