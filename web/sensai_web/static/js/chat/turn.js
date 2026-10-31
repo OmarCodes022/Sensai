@@ -86,6 +86,8 @@ export function createTurn({ ctx, transcript, composer, model, reconnect, onReus
       case 'blocked': st.blocked = true; addError({ code: 'guardrail_refused', message: ev.message, reason: ev.reason }); break;
       case 'sources': st.block?.setSources(ev.items); break;
       case 'step': ensureBlock().addStep(ev.step, ev.text); break;
+      case 'compacting': addNode(createEvent(t('context.compacting', { n: ev.messages, pct: Math.round((ev.tokens / ev.budget) * 100) }))); break;
+      case 'compacted': addNode(createEvent(t('context.compactedEvent', { n: ev.messages }))); announce(t('context.compactedEvent', { n: ev.messages })); break;
       case 'done': st.status = ev.status; break;
       case 'error': st.failed = true; fail(ev); break;
       default: break;
@@ -178,6 +180,7 @@ export function createTurn({ ctx, transcript, composer, model, reconnect, onReus
       if (!document.querySelector('dialog[open]')) composer.focus();
       if (st.status === 'completed' && !st.failed) {
         api.session().then((s) => store.set({ session: s })).catch(() => {});
+        if (store.get().capabilities.context_budget) api.context().then((c) => store.set({ context: c })).catch(() => {});
         actions.refreshSessions({ silent: true });
       }
     }

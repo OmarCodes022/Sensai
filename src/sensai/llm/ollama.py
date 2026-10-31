@@ -33,6 +33,7 @@ class OllamaClient(LLMClient):
         event_sink: EventPort | None = None,
         usage_sink: Callable[[OllamaUsage], None] | None = None,
         context_length: int | None = None,
+        num_predict: int | None = None,
     ):
         if context_length is not None and (
             isinstance(context_length, bool) or not isinstance(context_length, int)
@@ -42,11 +43,16 @@ class OllamaClient(LLMClient):
         self.host = host if "://" in host else f"http://{host}"
         self.timeout = timeout
         self.context_length = context_length
+        self.num_predict = num_predict  # Caps the answer's length (the M2 summary); None: no cap.
         self._telemetry = None
         if event_sink is not None:
             from sensai.telemetry import Telemetry
 
             self._telemetry = Telemetry(event_sink)
+        self._usage_sink = usage_sink
+
+    def set_usage_sink(self, usage_sink: Callable[[OllamaUsage], None] | None) -> None:
+        """Receive each request's token counts (the M2 context budget uses them)."""
         self._usage_sink = usage_sink
 
     def stream(self, model: str, messages: Sequence[Message],
@@ -56,7 +62,8 @@ class OllamaClient(LLMClient):
             from sensai.core.isolation import ControlledLLMClient
             sink = self._telemetry._sink if self._telemetry is not None else None
             controlled = ControlledLLMClient(
-                partial(OllamaClient, self.host, self.timeout, context_length=self.context_length),
+                partial(OllamaClient, self.host, self.timeout, context_length=self.context_length,
+                        num_predict=self.num_predict),
                 event_sink=sink, usage_sink=self._usage_sink,
             )
             yield from controlled.stream(model, messages, cancellation)
@@ -65,8 +72,10 @@ class OllamaClient(LLMClient):
 
     def _stream_direct(self, model: str, messages: Sequence[Message]) -> Iterator[str]:
         body = ChatRequest(model=model, messages=list(messages)).model_dump(mode="json")
-        if self.context_length is not None:
-            body["options"] = {"num_ctx": self.context_length}
+        options = {key: value for key, value in (("num_ctx", self.context_length), ("num_predict", self.num_predict))
+                   if value is not None}
+        if options:
+            body["options"] = options
         started = perf_counter()
         operation_id = None
         if self._telemetry is not None:

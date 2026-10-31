@@ -846,5 +846,19 @@
  "profile.formHelp": "Une ligne par chose que Sensai doit retenir, par exemple le ton ou le public.",
  "profile.err.rowBlank": "Renseignez le nom et le texte de chaque ligne.",
  "profile.err.rowDup": "Le nom « {name} » est utilisé deux fois.",
- "slash.thinkUsage": "Écrivez le sujet, par exemple : /think quel est mon taux d'engagement ?"
+ "slash.thinkUsage": "Écrivez le sujet, par exemple : /think quel est mon taux d'engagement ?",
+ "slash.compact": "Résumer les anciens messages maintenant",
+ "context.title": "Contexte",
+ "context.window": "Fenêtre",
+ "context.lastTurn": "Dernier tour",
+ "context.summaries": "Résumés",
+ "context.saved": "Jetons économisés",
+ "context.source.set": "réglée",
+ "context.source.ollama": "d'Ollama",
+ "context.source.default": "par défaut",
+ "context.hint": "Les anciens messages sont résumés quand un tour atteint {pct} % de la fenêtre. Tapez /compact pour le faire maintenant.",
+ "context.compacting": "Contexte à {pct} %, résumé de {n} anciens messages…",
+ "context.compactedEvent": "{n} anciens messages résumés. Les 4 derniers messages sont gardés mot pour mot.",
+ "context.compacted": "Compacté : environ {before} -> {after} jetons",
+ "context.compactedBody": "{n} anciens messages ont été remplacés par un résumé. Ils restent visibles ici jusqu'au rechargement."
 }

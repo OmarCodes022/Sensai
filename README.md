@@ -16,6 +16,7 @@ Docs: <https://omarcodes022.github.io/Sensai/> (sources in [docs/](docs/README.m
 | Tools | the model calls `calculate` and `run_python` (you approve each run); a failed run goes back to the model, which fixes its code, up to 3 runs per question | [Tools and sandbox](docs/user-guide/tools.md) |
 | Step-by-step reasoning | `/think <request>`: a plan, tool calls, a draft, a check against your rules, revisions | [Reasoning step by step](docs/user-guide/thinking.md) |
 | Brand document search | `/add <file>`, `/docs`; files in `data/docs/` are indexed by themselves | [Document search](docs/user-guide/documents.md) |
+| Long conversations | older messages are summarized at 80% of the window; `/context` shows the count, `/compact` summarizes now (terminal and web) | [Long conversations](docs/user-guide/context.md) |
 | Web interface | `sensai-web <model>` | [below](#web-interface) |
 
 Planned work and what is not built yet: [product scope](docs/product/scope.md).
@@ -116,7 +117,7 @@ variables win over `.env`, and command-line options win over both.
 | `SENSAI_DATA_DIR` | files the sandbox can read | `./data` if it exists |
 | `SENSAI_DOCS`, `SENSAI_EMBED_MODEL` | document folder (empty switches search off) and embedding model | `./data/docs`, `nomic-embed-text` |
 | `SENSAI_OPERATION_TIMEOUT` | seconds per turn | `120` |
-| `SENSAI_CONTEXT_LENGTH` | context tokens (more uses more VRAM) | Ollama's default |
+| `SENSAI_CONTEXT_LENGTH` | context window in tokens, also where summaries start (80%); `--context-budget` in the terminal | Ollama's default |
 | `SENSAI_SSH_HOST` | SSH alias for a remote Ollama | none |
 
 If your `.env` still has `SENSAI_PROMPT=prompts/system.txt`, delete that line: the file no longer exists.
