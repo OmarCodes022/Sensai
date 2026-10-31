@@ -71,7 +71,7 @@ def test_default_budget_short_chat_never_summarizes(monkeypatch, tmp_path, capsy
     chat(monkeypatch, tmp_path, client, ["Q1", "Q2", "/context", "exit"])
     out = capsys.readouterr().out
     assert "summarizing" not in out and "Context:" not in out
-    assert "Window 4,096 (default)   Last turn 600 (14%)   Summaries 0   Saved about 0 tokens" in out
+    assert "Window 8,192 (set)   Last turn 600 (7%)   Summaries 0   Saved about 0 tokens" in out
     assert len(client.requests) == 2
 
 

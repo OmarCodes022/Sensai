@@ -19,9 +19,10 @@ def test_settings_reject_bad_timeout(monkeypatch):
 
 # Optional Ollama context size is validated at configuration loading.
 
-def test_context_length_defaults_to_server_configuration(monkeypatch):
+def test_context_length_defaults_to_8192(monkeypatch):
+    # Sensai's instructions take about 2,000 tokens: Ollama's usual 4096 fills after one turn.
     monkeypatch.delenv("SENSAI_CONTEXT_LENGTH", raising=False)
-    assert Settings(_env_file=None).context_length is None
+    assert Settings(_env_file=None).context_length == 8192
 
 
 def test_context_length_reads_positive_integer_from_environment(monkeypatch):

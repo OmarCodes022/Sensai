@@ -30,8 +30,8 @@ def test_context_setting_reaches_request_without_overriding_thinking(monkeypatch
     expected = {
         "model": "model", "messages": [{"role": "user", "content": "Question"}], "stream": True,
     }
-    if context is not None:
-        expected["options"] = {"num_ctx": context}
+    if context is not None or source == "factory":  # The settings default to 8192.
+        expected["options"] = {"num_ctx": context or 8192}
     assert post.call_args.kwargs["json"] == expected
     resp.close.assert_called_once()
 
