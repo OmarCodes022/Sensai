@@ -16,7 +16,7 @@ EDIT_PROMPT = (
     "You edit ONE section of the weekly Instagram campaign of Nadia, owner of the skincare brand Serein Studio. "
     "Answer with exactly one edit as JSON in the given schema: op add, replace or remove; id of the item to replace "
     "or remove (null to add). Post captions are drafts in a warm, simple, honest voice and may only state product "
-    "facts from the approved claims, listing their ids in claim_ids. Calendar entries use dates inside the week, "
+    "facts from the approved claims, word for word, listing their ids in claim_ids. Calendar entries use dates inside the week, "
     "time HH:MM and the id of an existing post; turn day names into dates with the dates table."
 )
 
@@ -60,11 +60,19 @@ def _next_id(prefix: str, ids: list[str]) -> str:
 def _post(edit: PostEdit, doc: Campaign, claims, item_id: str) -> Post:
     if not edit.caption or not edit.caption.strip():
         raise CampaignError("the post has no caption")
-    approved = {c.claim_id for c in claims.approved}
+    approved = {c.claim_id: c.exact_text for c in claims.approved}
     bad = [c for c in edit.claim_ids if c not in approved]
     if bad:
         raise CampaignError(f"claim {', '.join(bad)} is not approved and in date in the brand file")
-    return Post(id=item_id, caption=edit.caption.strip(), claim_ids=list(dict.fromkeys(edit.claim_ids)))
+    caption = edit.caption.strip()
+    # A claim the caption cites, by id or by its wording, is listed even if the model forgot it.
+    cited = [i for i, text in approved.items() if re.search(rf"\b{i}\b", caption) or text.lower() in caption.lower()]
+    claim_ids = list(dict.fromkeys([*edit.claim_ids, *cited]))
+    reworded = [i for i in claim_ids if approved[i].lower() not in caption.lower()]
+    if reworded:  # "for 8 hours" is not "for up to 8 hours".
+        raise CampaignError(f"claim {', '.join(reworded)} must keep its approved wording: "
+                            + "; ".join(f'"{approved[i]}"' for i in reworded))
+    return Post(id=item_id, caption=caption, claim_ids=claim_ids)
 
 
 def _entry(edit: EntryEdit, doc: Campaign, item_id: str) -> Entry:
