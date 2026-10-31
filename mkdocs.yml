@@ -30,6 +30,7 @@ nav:
       - Guardrails: user-guide/guardrails.md
       - File access: user-guide/files.md
       - Campaign document: user-guide/campaign.md
+      - Questions and forms: user-guide/questions.md
   - Developer guide:
       - Architecture: developer-guide/architecture.md
       - File structure: developer-guide/file-structure.md

@@ -93,8 +93,9 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 4. Add strings to BOTH `strings.en.json` and `strings.fr.json` with identical keys, and a nav key `nav.<name>`.
 5. Keep files under 300 lines; build DOM with `h()` (never `innerHTML`).
 
-## String keys (895 per language, identical in en and fr)
+## String keys (903 per language, identical in en and fr)
 
+- `question` (8): `title`, `other`, `otherPlaceholder`, `send`, `skip`, `answerAll`, `answered`, `skipped`
 - `files` (8): `title`, `on`, `off`, `read`, `created`, `replaced`, `usageRead`, `usageSave`
 - `common` (25): `na`, `planned`, `mockData`, `cancel`, `confirm`, `close`, `copy`, `copied`, `copyFailed`, `copyCommand`, `retry`, `clear`, `loading`, `remove`, `copyDetails`, `stop`, `send`, `run`, `refuse`, `viewAll`, `saved`, `nothingSent`, `dismiss`, `loadError`, `save`
 - `nav` (14): `chat`, `sessions`, `personas`, `profile`, `tools`, `settings`, `campaign`, `brand`, `documents`, `insights`, `safety`, `schedule`, `keynote`, `views`
