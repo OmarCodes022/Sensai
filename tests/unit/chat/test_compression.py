@@ -32,6 +32,12 @@ def test_estimate_is_characters_over_four():
     assert compression.estimate_tokens([Message(role="user", content="x" * 41)]) == 10
 
 
+def test_after_summary_subtracts_only_what_was_removed():
+    old = [Message(role="user", content="x" * 400)]
+    assert compression.after_summary(500, old, [Message(role="user", content="x" * 40)]) == 410
+    assert compression.after_summary(50, old, []) == 0
+
+
 def test_cut_keeps_system_and_last_four_and_needs_two_old_messages():
     system = [Message(role="system", content="Rules")]
     assert compression.choose_cut(system + turns(3)) == 3
@@ -117,4 +123,23 @@ def test_cancelled_summary_keeps_full_history():
     session = session_with(FakeClient(["one", "two"]), turns(4))
     before = list(session.messages)
     assert not compression.compress(session, 5, token)
+    assert session.messages == before
+
+
+def test_long_transcript_is_trimmed_from_the_oldest_end():
+    client = FakeClient(["short summary"])
+    session = session_with(client, [Message(role="user", content="old" * 100),
+                                    Message(role="assistant", content="recent")] + turns(2))
+    assert compression.compress(session, 3, max_chars=50)
+    sent = client.requests[0][1][-1].content
+    assert "[the oldest part was cut to fit]" in sent and "recent" in sent
+    assert "old" * 20 not in sent
+
+
+def test_summary_client_and_failure_reason_are_used():
+    reasons, summarizer = [], FakeClient([LLMError("token limit reached")])
+    session = session_with(FakeClient(), turns(3))
+    before = list(session.messages)
+    assert not compression.compress(session, 3, client=summarizer, on_failure=reasons.append)
+    assert len(summarizer.requests) == 1 and "token limit" in str(reasons[0])
     assert session.messages == before

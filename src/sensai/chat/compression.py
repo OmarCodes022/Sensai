@@ -25,6 +25,11 @@ def estimate_tokens(messages: list[Message]) -> int:
     return sum(len(m.content) for m in messages) // 4
 
 
+def after_summary(before: int, old: list[Message], new: list[Message]) -> int:
+    """The count once a summary replaced messages: `before` minus the estimated tokens it removed."""
+    return max(before - (estimate_tokens(old) - estimate_tokens(new)), 0)
+
+
 def is_tool_call(message: Message) -> bool:
     """An assistant reply ending with a {"tool": ...} block (T18); its result comes next."""
     if message.role != "assistant":
@@ -49,20 +54,27 @@ def choose_cut(messages: list[Message]) -> int | None:
     return cut
 
 
-def compress(session, cut: int, cancellation: CancellationToken | None = None) -> bool:
-    """Replace messages[1:cut] by one summary; on any failure keep the history unchanged."""
+def compress(session, cut: int, cancellation: CancellationToken | None = None, *, client=None,
+             max_chars: int | None = None, on_failure=None) -> bool:
+    """Replace messages[1:cut] by one summary; on any failure keep the history unchanged.
+
+    `client` (default: the session's) can cap the summary's length; `max_chars` trims the
+    transcript sent so it fits the window; `on_failure(error)` hears why a summary failed.
+    """
     start, earlier = 1, ""
     first = session.messages[1]
     if first.role == "assistant" and first.content.startswith(SUMMARY_PREFIX):
         # Keep an earlier summary verbatim: re-summarizing it loses facts on small models.
         start, earlier = 2, first.content[len(SUMMARY_PREFIX):].strip() + "\n"
     transcript = "\n\n".join(f"{m.role}: {m.content}" for m in session.messages[start:cut])
+    if max_chars is not None and len(transcript) > max_chars:
+        transcript = "[the oldest part was cut to fit]\n" + transcript[-max_chars:]
     # Instruction after the delimited transcript: small models otherwise continue the chat.
     request = [Message(role="user",
                        content=f"Conversation:\n<<<\n{transcript}\n>>>\n\n{SUMMARY_REQUEST}")]
     stream = None
     try:
-        stream = session.client.stream(session.model, request, cancellation=cancellation)
+        stream = (client or session.client).stream(session.model, request, cancellation=cancellation)
         chunks = []
         for chunk in stream:
             if cancellation is not None:
@@ -70,7 +82,9 @@ def compress(session, cut: int, cancellation: CancellationToken | None = None) -
             chunks.append(chunk)
         if cancellation is not None:
             cancellation.raise_if_cancelled()
-    except (SensaiError, KeyboardInterrupt):  # failed, timed out or cancelled
+    except (SensaiError, KeyboardInterrupt) as exc:  # failed, timed out or cancelled
+        if on_failure is not None:
+            on_failure(exc)
         return False
     finally:
         try:
