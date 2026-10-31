@@ -93,7 +93,7 @@ def test_missing_counts_use_character_estimate(monkeypatch, tmp_path, capsys):
     chat(monkeypatch, tmp_path, client, ["x" * 400, "/context", "exit"], "--context-budget", "10000")
     sent = client.requests[0][1]
     estimate = compression.estimate_tokens(sent) + 100  # characters / 4, reply included
-    assert f"Window 10,000 (set)   Last turn {estimate} (4%)   Summaries 0   Saved about 0 tokens" \
+    assert f"Window 10,000 (set)   Last turn {estimate} ({estimate // 100}%)   Summaries 0   Saved about 0 tokens" \
         in capsys.readouterr().out
 
 

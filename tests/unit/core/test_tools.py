@@ -360,3 +360,11 @@ def test_approval_prompt_escapes_surrogates_from_model_json():
                    lambda arguments, cancellation: ToolResult("complete"),
                    timeout=None, confirm=True)
     assert tools.execute(call) == ToolResult("complete")
+
+
+def test_the_tool_name_shorthand_is_read_as_a_tool_call():
+    from sensai.tools import normalize_tool_block
+    assert normalize_tool_block({"calculate": {"expression": "1+1"}}, {"calculate"}) == \
+        {"tool": "calculate", "arguments": {"expression": "1+1"}}
+    for block in ({"other": {}}, {"calculate": "1+1"}, {"calculate": {}, "x": 1}, {"tool": "calculate"}, None, []):
+        assert normalize_tool_block(block, {"calculate"}) == block

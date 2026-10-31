@@ -13,8 +13,18 @@ Docs: <https://omarcodes022.github.io/Sensai/> (sources in [docs/](docs/README.m
 | Streaming chat | `sensai <model>`; Ctrl+C or Esc stops a reply | [Chatting](docs/user-guide/chatting.md) |
 | Personas | `--persona analyse`, `/persona` to switch mid-chat | [Personas](docs/user-guide/personas.md) |
 | Saved sessions and profile | `--list-sessions`, `--session <id>`, `--profile-file` | [Sessions](docs/user-guide/sessions.md) |
+| Branching and interrupt | `/edit N <new text>` continues from message N as a new session; Ctrl+C, Esc or Stop interrupts a reply | [Sessions](docs/user-guide/sessions.md#editing-an-earlier-message-branching) |
 | Tools | the model calls `calculate` and `run_python` (you approve each run); a failed run goes back to the model, which fixes its code, up to 3 runs per question | [Tools and sandbox](docs/user-guide/tools.md) |
 | Step-by-step reasoning | `/think <request>`: a plan, tool calls, a draft, a check against your rules, revisions | [Reasoning step by step](docs/user-guide/thinking.md) |
+| Scheduled drafts | recurring requests from `schedule.local.json` run on their own and save dated drafts; `python -m sensai.schedule`, or the web Schedule page | [Scheduling](docs/user-guide/scheduling.md) |
+| Private export | `/export` writes the conversation and the week's campaign to `exports/` as JSON and Markdown, after the guardrails; the campaign export follows every change | [Export](docs/user-guide/export.md) |
+| Web search | the model calls `web_search` for current information and cites `[1]`, `[2]` with a source list; `/search <query>` | [Web search](docs/user-guide/web-search.md) |
+| Questions and forms | when a detail is missing, the model asks with `ask_user`: a numbered choice in the terminal, a form card in the web chat | [Questions](docs/user-guide/questions.md) |
+| Weekly campaign document | `/campaign`: four sections, edited one schema-forced JSON edit at a time; approved sections ask before any change; web Campaign page | [Campaign](docs/user-guide/campaign.md) |
+| File access within permissions | `.sensai/settings.json` allow/deny rules; the model's `read_file`, `write_file`, `create_file`; `/read`, `/save` | [File access](docs/user-guide/files.md) |
+| Content and privacy guardrails | emails, phones and @handles redacted; injections and health details refused before the model; unapproved claims stopped | [Guardrails](docs/user-guide/guardrails.md) |
+| Brand facts memory | the model saves, corrects and deletes facts with `save_fact` / `delete_fact`; `/facts`; web Brand facts page | [Brand facts](docs/user-guide/brand-facts.md) |
+| Advanced document search | filters by product and newest sheet, the model scores each passage, weak ones are dropped; sources show the score (`SENSAI_RAG=basic` to turn off) | [Document search](docs/user-guide/documents.md#advanced-search) |
 | Brand document search | `/add <file>`, `/docs`; files in `data/docs/` are indexed by themselves | [Document search](docs/user-guide/documents.md) |
 | Long conversations | older messages are summarized at 80% of the window; `/context` shows the count, `/compact` summarizes now (terminal and web) | [Long conversations](docs/user-guide/context.md) |
 | Web interface | `sensai-web <model>` | [below](#web-interface) |
@@ -49,7 +59,7 @@ commands (like `sensai-web`) are registered. Full install guide:
 .venv/bin/sensai-remote                           # same, through an SSH tunnel
 ```
 
-In a chat: `/persona [id]`, `/tools`, `/history`, `/run <file.py>`, `/docs [text]`,
+In a chat: `/persona [id]`, `/tools`, `/history`, `/edit N <text>`, `/facts`, `/campaign`, `/export`, `/search`, `/read`, `/save`, `/run <file.py>`, `/docs [text]`,
 `/add`, `/remove`, `/reindex`, and `exit` to leave. Each turn has a 120 s budget.
 Remote Ollama: [SSH setup](docs/operations/remote-ollama.md).
 
@@ -115,6 +125,8 @@ variables win over `.env`, and command-line options win over both.
 | `SENSAI_DB` | session database | `sensai.sqlite3` |
 | `SENSAI_CREATOR` | key that separates creators' sessions and profiles | `default` |
 | `SENSAI_DATA_DIR` | files the sandbox can read | `./data` if it exists |
+| `SENSAI_SEARCH_PROVIDER`, `SENSAI_SEARCH_API_KEY` | web search provider (`brave`, `duckduckgo`, `off`) and the Brave Search API key | Brave with a key, else DuckDuckGo |
+| `SENSAI_GUARDRAILS_FILE`, `SENSAI_BRAND_FILE` | extra guardrail rules (JSON) and the brand file with the approved claims | none, `./data/brand.json` if it exists |
 | `SENSAI_DOCS`, `SENSAI_EMBED_MODEL` | document folder (empty switches search off) and embedding model | `./data/docs`, `nomic-embed-text` |
 | `SENSAI_OPERATION_TIMEOUT` | seconds per turn | `120` |
 | `SENSAI_CONTEXT_LENGTH` | context window in tokens, also where summaries start (80%); `--context-budget` in the terminal | Ollama's default |

@@ -8,12 +8,12 @@ import { h } from '../dom.js';
 const RECENT = 60;
 const idle = (fn) => (window.requestIdleCallback ? requestIdleCallback(fn, { timeout: 400 }) : setTimeout(fn, 30));
 
-/** deps: { ctx, onReuse(text) }. Returns node builders bound to the current context. */
-export function createRestorer({ ctx, onReuse }) {
+/** deps: { ctx, onReuse(text), onEdit(item, text) }. Returns node builders bound to the current context. */
+export function createRestorer({ ctx, onReuse, onEdit }) {
   const toolOpts = () => ({ max: ctx.store.get().config?.limits?.tool_rounds ?? 5, showJson: ctx.store.get().prefs.showToolJson });
 
   function node(it) {
-    if (it.kind === 'user') return createUser(it, { onReuse }).el;
+    if (it.kind === 'user') return createUser(it, { onReuse, onEdit }).el;
     if (it.kind === 'event') return createEvent(it.text);
     if (it.kind === 'tool') return h('div', { class: 'toolgroup' }, toolCardFromItem(it, toolOpts()).el);
     const block = createAssistant(assistantOptions(ctx, it.persona));

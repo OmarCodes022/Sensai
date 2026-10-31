@@ -15,7 +15,7 @@ from sensai.chat.saved_sessions import SessionRecorder, profile_block
 from sensai.chat.session import ChatSession
 from sensai.core.errors import SensaiError
 from sensai.core.messages import Message
-from sensai.core.ports import PortError, Profile, SessionSnapshot
+from sensai.core.ports import PolicyDenied, PortError, Profile, SessionSnapshot
 from sensai.llm.ollama import OllamaClient
 from sensai.llm.structured import OllamaStructuredClient
 from sensai.memory.sqlite_store import StorageRepository
@@ -23,6 +23,13 @@ from sensai.sandbox import RUN_PYTHON, SandboxError, data_file_names, data_promp
 from sensai.settings import Settings
 from sensai.llm.embeddings import OllamaEmbeddingAdapter
 from sensai.rag import DOCS_PROMPT, SEARCH_DOCS, DocLibrary
+from sensai.campaign import CampaignStore
+from sensai.export import Exporter
+from sensai.chat.facts import DELETE_FACT, SAVE_FACT
+from sensai.chat.questions import ASK_USER
+from sensai.search import WEB_SEARCH
+from sensai.security.file_tools import FILE_TOOLS, open_project
+from sensai.guardrails import GuardedClient, GuardrailConfigError, load_guardrail
 from sensai.tools import CALCULATE, tool_instructions
 from sensai_web import session_view
 from sensai_web.approvals import Approvals
@@ -30,6 +37,9 @@ from sensai_web.catalogue import Catalogue
 from sensai_web.config import WebConfig
 from sensai_web.datafiles import DataFolder
 from sensai_web.errors import ApiError
+from sensai_web.facts import make_memory
+from sensai_web.scheduling import start as start_schedule
+from sensai_web.websearch import make as make_search
 from sensai_web.health import Health
 from sensai_web.profile import clean_preferences
 from sensai_web.tabs import TabLock
@@ -104,16 +114,37 @@ class WebApp:
         self.docs = DocLibrary(cfg.docs_dir, make_embedding(cfg), cfg.creator, cache_path=cfg.db_path, model=cfg.embed_model)
         self.model = cfg.model  # the page can change it while running
         self.checker = make_checker(cfg)
+        try:  # File access (T4): on when .sensai/settings.json exists where Sensai starts.
+            self.files = open_project(os.getcwd(), cfg.creator)
+        except (PolicyDenied, PortError) as exc:
+            raise StartupError(str(exc)) from None
+        self.memory = make_memory(self)  # The brand fact sheet (M3); the model edits it through two tools.
         self.health = Health(cfg.host, cfg.model)
         self.meta_dir = tempfile.mkdtemp(prefix="sensai-web-")
         settings = (settings or Settings()).model_copy(update={"host": cfg.host})
-        self.chat_client = make_client(settings, self.usage.add)
+        try:
+            self.guard = load_guardrail(settings.guardrails_file, settings.brand_file)
+        except GuardrailConfigError as exc:
+            raise StartupError(str(exc)) from None
+        # Every reply is checked line by line before the page sees it (EV2).
+        self.chat_client = GuardedClient(make_client(settings, self.usage.add), self.guard)
+        self.campaign = CampaignStore(settings.campaigns_dir)  # The weekly document (M4).
+        self.pending_change = None  # An approved-section edit waiting for the creator's yes (A3).
+        self.questions = Approvals()  # ask_user forms waiting for the page (X4).
+        self.web = make_search(settings)  # Web search (T3), or None when switched off.
+        self.rag_mode = settings.rag_mode  # advanced (R2) or basic (R1) document search
+        self.exporter = Exporter(self.guard, settings.exports_dir)  # Private export (X3)
         self.title_client = make_client(settings)
         try:
             self.catalogue = Catalogue(cfg.personas_file)
             self.base_prompt = load_system_prompt(cfg.prompt_path)
         except (OSError, ValueError) as exc:
             raise StartupError(f"cannot load personas or prompt: {exc}") from None
+        self.schedule_stop = Event()  # Scheduling (X5): drafts on a timer, in a background thread.
+        try:
+            self.scheduler = start_schedule(self, settings, GuardedClient(make_client(settings), self.guard))
+        except ValueError as exc:
+            raise StartupError(f"schedule: {exc}") from None
         if cfg.data_dir and not os.path.isdir(cfg.data_dir):
             raise StartupError(f"data folder not found: {cfg.data_dir}")
         self.preferences: dict[str, str] = {}
@@ -159,7 +190,9 @@ class WebApp:
     # Prompt and sessions
 
     def tools_text(self) -> str:
-        return tool_instructions((CALCULATE, RUN_PYTHON, *((SEARCH_DOCS,) if self.docs.enabled else ())))
+        return tool_instructions((CALCULATE, RUN_PYTHON, SAVE_FACT, DELETE_FACT, *((SEARCH_DOCS,) if self.docs.enabled else ()),
+                                  *(FILE_TOOLS if self.files is not None else ()), ASK_USER,
+                                  *((WEB_SEARCH,) if self.web is not None else ())))
 
     def data_text(self) -> str:
         """The data file names for the model (as in the CLI), or "" without a readable data folder."""
@@ -176,7 +209,7 @@ class WebApp:
         prompt, block = self.base_prompt, profile_block(self.preferences)
         persona = self.catalogue.registry.get(persona_id) if persona_id else None
         docs = DOCS_PROMPT if self.docs.ready_count() > 0 else ""
-        parts = (prompt, self.data_text(), block, persona.system_prompt if persona else "", docs)
+        parts = (prompt, self.data_text(), block, self.memory.block(), persona.system_prompt if persona else "", docs)
         prompt = "\n\n".join(part for part in parts if part)
         tools = self.tools_text()
         return prompt if prompt.endswith(tools) else f"{prompt}\n\n{tools}"
@@ -350,6 +383,7 @@ class WebApp:
             return stopping
 
     def close(self) -> None:
+        self.schedule_stop.set()
         self.stop_turn()
         shutil.rmtree(self.meta_dir, ignore_errors=True)
         remove_stale_folders()

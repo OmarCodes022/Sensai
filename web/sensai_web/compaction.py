@@ -8,9 +8,14 @@ from sensai.llm.ollama import OllamaClient
 from sensai_web.errors import ApiError
 
 
+def _ollama(app) -> bool:
+    """The chat client under the guardrails wrapper is the real Ollama one (not a scripted test client)."""
+    return isinstance(getattr(app.chat_client, "client", app.chat_client), OllamaClient)
+
+
 def _summary_client(app):
     """The summary's own answer is capped at a quarter of the window; a scripted client is used as is."""
-    if not isinstance(app.chat_client, OllamaClient):
+    if not _ollama(app):
         return None
     return OllamaClient(app.cfg.host, app.cfg.timeout, context_length=app.cfg.context_length,
                         num_predict=summary_cap(app.context.budget))
@@ -48,7 +53,7 @@ def after_turn(app, active, stop, emit) -> None:
         context.on_usage(usage)
     tokens = context.end_turn(active.session.messages)
     context.learn(lambda: loaded_window(app.cfg.host, app.model)
-                  if isinstance(app.chat_client, OllamaClient) else None)
+                  if _ollama(app) else None)
     if compression.should_compress(tokens, context.budget):
         _summarize(app, active, stop, tokens, emit)
 

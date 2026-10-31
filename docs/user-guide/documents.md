@@ -71,9 +71,35 @@ searches use what is already indexed.
   search off. The embedding model is `SENSAI_EMBED_MODEL`.
 - The Python sandbox never sees these files (only the top-level files of `data/`).
 
+## Advanced search
+
+By default (`SENSAI_RAG=advanced`) each search goes through three more steps before anything
+reaches the model:
+
+1. **Filter.** When the question names a product, only that product's documents and the
+   general ones (FAQ, brand voice) stay; for each product only the newest sheet stays.
+2. **Rerank.** The model scores each of the ten closest passages from 0 to 10 in one
+   structured request.
+3. **Drop.** Passages under 6/10 are dropped and at most three are kept. If none is left, the
+   model is told that no document covers the question, so it says so.
+
+The terminal prints `Kept 1 of 9 chunks (8 below 6/10 dropped)` and a **Document sources** list
+with each relevance; the web chat shows the score on each source chip and how many passages
+were kept. If the scoring request fails, that search uses the basic ranking and says so.
+`SENSAI_RAG=basic` goes back to the three closest chunks.
+
+`evals/rag/compare.py` runs the test questions through both (search only); with `qwen2.5`:
+
+| Kind | Measure | Basic | Advanced |
+| --- | --- | --- | --- |
+| direct (5) | expected source kept | 5 | 5 |
+| near-miss (2) | wrong-product chunks kept | 3 | 0 |
+| outdated (1) | outdated chunks kept | 1 | 0 |
+| unsupported (3) | ended with no chunks | 0 | 3 |
+
 ## Limits
 
-Documents are split into paragraphs and the three closest are returned per search, so
+Documents are split into paragraphs and at most three are returned per search, so
 very short or very long paragraphs search less well. A search needs Ollama running for
 the question's embedding. Search finds text, not meaning beyond what the embedding
 model captures: always check an important claim against the cited source.

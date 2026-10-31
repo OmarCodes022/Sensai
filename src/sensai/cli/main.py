@@ -12,14 +12,29 @@ from collections.abc import Callable, Sequence
 from functools import partial
 from typing import NamedTuple
 
-from sensai.core.errors import SensaiError
+from sensai.core.errors import LLMError, SensaiError
 from sensai.core.cancellation import CancellationToken, OperationCancelled, OperationTimedOut
-from sensai.core.ports import PortError, Profile, ToolCall
+from sensai.core.ports import ApprovalRequest, PolicyDenied, PortError, Profile, ToolCall
 from sensai.chat import compression, saved_sessions
 from sensai.chat.context import ContextState, loaded_window, summary_cap
 from sensai.cli.context_commands import compact, summarize
 from sensai.llm.ollama import OllamaClient
 from sensai.chat.saved_sessions import SessionRecorder, display_title, profile_block
+from sensai.core.errors import GuardrailRefused
+from sensai.guardrails import GuardedClient, Guardrail, GuardrailConfigError, load_guardrail
+from sensai.guardrails.rules import message_for
+from sensai.security.file_tools import FILE_TOOLS, FileTools, open_project
+from sensai.campaign import CampaignError, CampaignStore
+from sensai.campaign import apply as apply_change, approve as approve_section, ask as ask_edit, overview, plan as plan_change
+from sensai.campaign.edits import editable as campaign_editable
+from sensai.guardrails.rules import Claims
+from sensai.llm.structured import StructuredOutputError
+from sensai.chat.blocks import split_block
+from sensai.export import Exporter, ExportRefused
+from sensai.rag_advanced import DocSearch, make_ranker
+from sensai.search import WEB_SEARCH, SearchError, WebSearch, numbered, provider_for, search
+from sensai.chat.questions import ASK_USER, TerminalForm
+from sensai.chat.facts import DELETE_FACT, SAVE_FACT, FactMemory, with_facts
 from sensai.chat.reasoning import Section, think
 from sensai.cli.approval import TerminalApproval, sanitize
 from sensai.cli.terminal import TerminalInput
@@ -55,14 +70,15 @@ def _tools(read, approval=None, data_dir=None, permission=None):
                       confirm=True, max_calls=PYTHON_ATTEMPTS)
     return registry
 
-def _setup_docs(args, settings, tool_registry) -> DocLibrary | None:
+def _setup_docs(args, settings, tool_registry, searcher=None) -> DocLibrary | None:
     """The documents folder as a library that indexes itself in the background; None if switched off."""
     if not args.docs:
         return None
     embedding = OllamaEmbeddingAdapter(settings.embed_model, host=args.host)
     library = DocLibrary(args.docs, embedding, args.creator, cache_path=args.db or DEFAULT_DB_PATH,
                          model=settings.embed_model)
-    tool_registry.register(SEARCH_DOCS, partial(search_docs_handler, library=library), timeout=None)
+    handler = searcher(library) if searcher else partial(search_docs_handler, library=library)
+    tool_registry.register(SEARCH_DOCS, handler, timeout=None)
     library.sync()
     return library
 
@@ -180,11 +196,12 @@ def _think(session, tool_registry, request, checker, new_token, write, recorder)
     finally:
         stream.close()
     if result is None:
-        return
+        return False
     session.messages.append(Message(role="user", content=request))
     session.messages.append(Message(role="assistant", content=result.answer))
     if recorder is not None:
         recorder.after_turn(session)
+    return True
 
 
 class PreparedChat(NamedTuple):
@@ -266,12 +283,28 @@ def _history(messages) -> str:
     return "\n".join(lines) or "Aucun message dans cette session."
 
 
+def _parse_edit(argument: str, messages) -> tuple[int, str] | str:
+    """(message number, new text) for /edit, or the error line to print."""
+    usage = "usage: /edit <number> <new text>"
+    number, _, text = argument.strip().partition(" ")
+    if not number.isdecimal() or not text.strip():
+        return usage
+    count = len(saved_sessions.user_messages(messages))
+    if not 1 <= int(number) <= count:
+        return f"error: there is no message {number} (use /history: 1 to {count})" if count else \
+            "error: there are no messages to edit yet."
+    return int(number), text.strip()
+
+
 def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
          operation_timeout: float = 120.0, cancel_requested=None,
          persona_registry: PersonaRegistry | None = None,
          base_prompt: str | None = None, recorder: SessionRecorder | None = None,
          tool_registry: ToolRegistry | None = None, data_dir: str | None = None,
-         docs: DocLibrary | None = None, checker=None,
+         docs: DocLibrary | None = None, checker=None, memory: FactMemory | None = None,
+         guard: Guardrail | None = None, files: FileTools | None = None,
+         campaign: CampaignStore | None = None, approval=None, web: WebSearch | None = None,
+         doc_search: DocSearch | None = None, exporter: Exporter | None = None,
          context: ContextState | None = None, summary_client=None, probe=None) -> None:
     if base_prompt is None:
         base_prompt = session.messages[0].content
@@ -295,8 +328,144 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
             session.messages[0] = Message(role="system", content=_with_docs(
                 session.messages[0].content, on, tool_registry))
 
+    def refresh_facts() -> None:
+        """Keep the saved facts in the system message (replaced directly: no resend flag)."""
+        if memory is not None:
+            session.messages[0] = Message(role="system", content=with_facts(
+                session.messages[0].content, memory.block(), tool_instructions(tool_registry.definitions()),
+                DOCS_PROMPT))
+
+    def settle_facts(completed: bool) -> None:
+        """Write the facts the turn queued if it completed; drop them otherwise."""
+        if memory is None:
+            return
+        if not completed:
+            memory.drop()
+            return
+        try:
+            lines = memory.commit()
+        except (PortError, sqlite3.Error) as e:
+            memory.drop()
+            write(f"error: facts not saved: {e}")
+            return
+        for line in lines:
+            write(line)
+        if lines:
+            refresh_facts()
+
+    def screen(text: str) -> str | None:
+        """The message as the model may see it (identifiers redacted), or None when it is refused."""
+        if guard is None:
+            return text
+        decision = guard.inspect(text, "input")
+        if not decision.allowed:
+            write(f"Blocked before the model: {message_for(decision.reason)} ({decision.reason})")
+            return None
+        if decision.text != text:
+            write(f"(sent as: \"{decision.text}\")")
+        return decision.text
+
+    attached: list[str] = []  # Files read with /read, sent with the next message.
+
+    def file_command(name: str, argument: str) -> None:
+        if files is None:
+            write("File access is off (no .sensai/settings.json).")
+        elif not argument:
+            write(f"usage: {name} <path>")
+        elif name == "/read":
+            try:
+                text = files.read(argument)
+            except PortError as e:  # PolicyDenied included; never shows file contents.
+                write(f"{'Permission denied' if isinstance(e, PolicyDenied) else 'error'}: {e} ({argument})")
+                return
+            attached.append(f"File {argument}:\n{text}")
+            write(f"Read {len(text):,} characters from {argument} (sent with your next message)")
+        else:
+            reply = next((split_block(m.content)[0].strip() for m in reversed(session.messages) if m.role == "assistant"), "")
+            if not reply:
+                write("Nothing to save yet: no reply in this conversation.")
+                return
+            try:
+                write(f"{files.save(argument, reply + chr(10))} {argument}")
+            except PortError as e:
+                write(f"{'Permission denied' if isinstance(e, PolicyDenied) else 'error'}: {e} ({argument})")
+
+    def campaign_command(argument: str) -> None:
+        """/campaign, /campaign approve <section>, /campaign <posts|calendar> <request>."""
+        if campaign is None:
+            write("error: the campaign document is unavailable")
+            return
+        try:
+            doc = campaign.latest()
+            word, _, rest = argument.partition(" ")
+            if not word:
+                for line in overview(doc):
+                    write(line)
+            elif word == "approve":
+                export_campaign(approve_section(campaign, doc, rest.strip()))
+                write(f"{rest.strip().capitalize()} approved: later edits ask for confirmation first.")
+            else:
+                edit_section(doc, word, rest.strip())
+        except CampaignError as e:
+            write(f"error: {e}")
+
+    def export_campaign(doc) -> None:
+        """The private export follows every saved change (no question: it never leaves this computer)."""
+        if exporter is None:
+            return
+        try:
+            write(f"Exported campaign: {', '.join(exporter.campaign(doc))}")
+        except ExportRefused as e:
+            write(f"Campaign not exported: the guardrails refused it ({e}). The previous export is unchanged.")
+        except OSError as e:
+            write(f"error: campaign not exported: {e.strerror or e}")
+
+    def export_all() -> None:
+        if exporter is None:
+            write("error: export is unavailable")
+            return
+        session_id = recorder.session_id if recorder is not None else "current"
+        title = (recorder.title if recorder is not None else None) or display_title(None, session.messages[1:])
+        try:
+            write(f"Conversation: {', '.join(exporter.session(session_id, title, session.messages))}")
+        except ExportRefused as e:
+            write(f"Conversation not exported: the guardrails refused it ({e}).")
+        except OSError as e:
+            write(f"error: conversation not exported: {e.strerror or e}")
+        if campaign is None or not campaign.has_any():
+            write("No campaign yet: only the conversation was exported.")
+        else:
+            export_campaign(campaign.latest())
+
+    def edit_section(doc, section: str, request: str) -> None:
+        campaign_editable(doc, section)
+        if not request:
+            write(f"usage: /campaign {section} <what to change>")
+            return
+        claims = guard.claims if guard is not None else Claims()
+        try:
+            edit = ask_edit(checker, session.model, doc, section, request, claims)
+        except (StructuredOutputError, LLMError) as e:
+            write(f"error: no valid edit from the model ({e}); nothing changed.")
+            return
+        change = plan_change(doc, section, edit, claims)
+        part = getattr(doc.sections, section)
+        if part.status == "approved":  # A3: an approved section changes only after an explicit yes.
+            content = "\n".join([f"Before:  {change.before!r}" if change.before is not None else "Before:  (nothing)",
+                                 f"After:   {change.after!r}" if change.after is not None else "After:   (removed)"])
+            request_ = ApprovalRequest(change.action, campaign.path(doc.week), f"{section.capitalize()} are approved", content)
+            if approval is None or not approval.request(request_).approved:
+                write("Nothing changed.")
+                return
+        write(f"{section.capitalize()}: {change.action}")
+        write(f"Saved {apply_change(campaign, change)}")
+        export_campaign(change.doc)
+
+    refresh_facts()
     while True:
         refresh_docs()
+        if memory is not None:
+            memory.drop()
         try:
             text = read("\n> ")
         except EOFError:
@@ -325,9 +494,33 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
                 else:
                     session.set_system_prompt(_with_docs(
                         _tool_prompt(f"{base_prompt}\n\n{persona.system_prompt}", tool_registry), docs_on, tool_registry))
+                    refresh_facts()
                     write(f"Persona sélectionnée : {persona.id}")
                     if recorder is not None:
                         recorder.persona_changed(persona.id)
+            continue
+        if command and command[0] == "/search":
+            query = command[1].strip() if len(command) > 1 else ""
+            if not query:
+                write("usage: /search <query>")
+            elif web is None:
+                write("Web search is not available.")
+            else:
+                try:
+                    found = search(query, web.provider, web.key)
+                except SearchError as e:
+                    write(f"Web search unavailable: {e}")
+                else:
+                    write(numbered(found) if found else f"No web results for {query!r}.")
+            continue
+        if command and command[0] == "/export":
+            export_all()
+            continue
+        if command and command[0] == "/campaign":
+            campaign_command(command[1].strip() if len(command) > 1 else "")
+            continue
+        if command and command[0] in ("/read", "/save"):
+            file_command(command[0], command[1].strip() if len(command) > 1 else "")
             continue
         if command and command[0] in ("/context", "/compact"):
             if context is None:
@@ -338,6 +531,10 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
                 compact(session, context, write, recorder,
                         CancellationToken(monotonic() + operation_timeout, cancel_requested), summary_client)
             continue
+        if command and command[0] == "/facts":
+            for line in (memory.listing() if memory is not None else ["error: the fact sheet is unavailable"]):
+                write(line)
+            continue
         if command and command[0] == "/history":
             write(_history(session.messages) if len(command) == 1 else "usage: /history")
             continue
@@ -346,13 +543,38 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
                 write("usage: /think <request>")
             elif checker is None:
                 write("error: /think is unavailable")
-            else:
+            elif (request := screen(command[1])) is not None:
                 # Each model step gets its own deadline; one cancel callback stops them all.
                 def step_token():
                     return CancellationToken(monotonic() + operation_timeout, cancel_requested)
 
-                _think(session, tool_registry, command[1], checker, step_token, write, recorder)
+                settle_facts(_think(session, tool_registry, request, checker, step_token, write, recorder))
             continue
+        original = branch = None
+        if command and command[0] == "/edit":
+            edited = _parse_edit(command[1] if len(command) > 1 else "", session.messages)
+            if isinstance(edited, str):
+                write(edited)
+                continue
+            number, text = edited
+            if (text := screen(text)) is None:
+                continue
+            original = list(session.messages)
+            session.messages[:] = saved_sessions.messages_before_user(original, number)
+            command = []  # The new text is a plain message, never a command.
+            if recorder is not None:
+                known = {s.id for s in recorder.store.list()}
+                branch = recorder.branch(saved_sessions.new_session_id(known.__contains__),
+                                         [m for m in original if m.role != "system"])
+                write(f"New branch {branch.session_id} from {recorder.session_id} "
+                      f"({recorder.session_id} is kept unchanged).")
+        commands = ("/run", "/docs", "/reindex", "/add", "/remove")
+        if original is None and not (command and command[0] in commands):
+            if attached:
+                text = "\n\n".join([*attached, text])
+                attached.clear()
+            if (text := screen(text)) is None:
+                continue
         token = CancellationToken(monotonic() + operation_timeout, cancel_requested)
         if command and command[0] == "/run":
             if len(command) == 1:
@@ -379,6 +601,10 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
             continue
 
         refresh_docs()  # A document added a moment ago counts for this very question.
+        if web is not None:
+            web.results.clear()  # Sources are listed per answer.
+        if doc_search is not None:
+            doc_search.report = None
 
         def on_tool(call, result):
             if call.name == RUN_PYTHON.name:
@@ -416,10 +642,16 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
             write("\nDélai maximal dépassé")
         except ValueError:
             write("Please type something.")
+        except GuardrailRefused as e:
+            write(f"\nReply blocked: {e} ({e.reason})")
         except SensaiError as e:
             write(f"error: {e}")
         finally:
             stream.close()
+        if original is not None and not completed:
+            session.messages[:] = original  # An interrupted or failed edit leaves the conversation as it was.
+        if completed and branch is not None:
+            recorder = branch
         if completed and context is not None:
             # Count before the title or summary requests report their own usage.
             tokens = context.end_turn(session.messages)
@@ -427,6 +659,17 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
                 write(context.line(tokens))
         if completed and recorder is not None:
             recorder.after_turn(session)
+        settle_facts(completed)
+        if completed and doc_search is not None and doc_search.report is not None and doc_search.report.hits:
+            write("Document sources:")
+            for hit in doc_search.report.hits:
+                relevance = f", relevance {hit['relevance']}/10" if hit["relevance"] is not None else ""
+                write(f"[{hit['n']}] {hit['source']} ({hit['version']}){relevance}")
+        if completed and web is not None and web.results:
+            write("Sources:")
+            for n, result in enumerate(web.results, 1):
+                write(f"[{n}] {sanitize(result.title, keep='')} {sanitize(result.url, keep='')}"
+                      + (f" ({result.date})" if result.date else ""))
         if completed and context is not None:
             if probe is not None:
                 context.learn(probe)
@@ -563,14 +806,19 @@ def prepare_chat(args: argparse.Namespace) -> PreparedChat | None:
 def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedChat) -> None:
     prompt, registry, base_prompt, repository, recorder = prepared
     try:
+        try:
+            guard = load_guardrail(settings.guardrails_file, settings.brand_file)
+        except GuardrailConfigError as e:
+            sys.exit(f"error: {e}")
         # M2: --context-budget is sent to Ollama as num_ctx on every request.
         settings = settings.model_copy(update={"host": args.host, "context_length": args.context_budget})
-        client = create_client(settings)
+        raw_client = create_client(settings)
+        client = GuardedClient(raw_client, guard)  # Every reply is checked line by line before it is shown.
         context = ContextState(args.context_budget)
-        if hasattr(client, "set_usage_sink"):
-            client.set_usage_sink(context.on_usage)
+        if hasattr(raw_client, "set_usage_sink"):
+            raw_client.set_usage_sink(context.on_usage)
         summary_client = None
-        if isinstance(client, OllamaClient):  # The summary's own answer is capped at a quarter of the window.
+        if isinstance(raw_client, OllamaClient):  # The summary's own answer is capped at a quarter of the window.
             def summary_client(budget):
                 return OllamaClient(args.host, settings.timeout, context_length=args.context_budget,
                                     num_predict=summary_cap(budget))
@@ -580,14 +828,39 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
         else:
             print(f"Session {recorder.session_id}")
         with TerminalInput() as terminal:
-            tool_registry = _tools(terminal.read, approval=TerminalApproval(terminal.read_key, print),
-                                   data_dir=args.data_dir)
-            docs = _setup_docs(args, settings, tool_registry)
+            approval = TerminalApproval(terminal.read_key, print)  # Tools and approved campaign edits ask the same way.
+            tool_registry = _tools(terminal.read, approval=approval, data_dir=args.data_dir)
+            found: list[DocSearch] = []
+
+            def advanced(library):  # R2: filter, rerank with the model, drop weak matches.
+                ranker = make_ranker(OllamaStructuredClient(args.host, args.operation_timeout,
+                                                            context_length=settings.context_length), args.model)
+                found.append(DocSearch(library, ranker, on_search=lambda report: print(report.summary())))
+                return found[-1]
+            docs = _setup_docs(args, settings, tool_registry, advanced if settings.rag_mode == "advanced" else None)
+            try:
+                files = open_project(os.getcwd(), args.creator)
+            except (PolicyDenied, PortError) as e:
+                sys.exit(f"error: {e}")
+            if files is not None:
+                allow, deny = files.fs.summary
+                print(f"File access on: {allow} allow rule{'s' * (allow != 1)}, {deny} deny rule{'s' * (deny != 1)} "
+                      "(.sensai/settings.json)")
+                for definition in FILE_TOOLS:  # In this process, with the loaded policy.
+                    tool_registry.register(definition, getattr(files, definition.name), timeout=None)
+            memory = FactMemory(repository.for_creator(args.creator).facts)
+            tool_registry.register(SAVE_FACT, memory.save, timeout=None)  # In this process: the queue is here.
+            tool_registry.register(DELETE_FACT, memory.delete, timeout=None)
+            tool_registry.register(ASK_USER, TerminalForm(terminal.read, print), timeout=None)  # Reads the terminal itself.
+            web = WebSearch(provider_for(settings.search_provider, settings.search_api_key), settings.search_api_key,
+                            on_search=lambda q: print(f"Searching the web for: {q}"))
+            if web.provider != "off":
+                tool_registry.register(WEB_SEARCH, web, timeout=None)  # Keeps this turn's sources here.
             def titler(first_user: str, first_answer: str) -> str | None:
                 token = CancellationToken(
                     monotonic() + min(saved_sessions.TITLE_TIMEOUT, args.operation_timeout),
                     terminal.cancel_requested)
-                return saved_sessions.generate_title(client, args.model, first_user,
+                return saved_sessions.generate_title(raw_client, args.model, first_user,
                                                     first_answer, token)
 
             recorder.titler = titler
@@ -602,9 +875,11 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
                  cancel_requested=terminal.cancel_requested,
                  persona_registry=registry, base_prompt=base_prompt, recorder=recorder,
                  tool_registry=tool_registry, data_dir=args.data_dir,
-                 docs=docs, checker=checker,
+                 docs=docs, checker=checker, memory=memory, guard=guard, files=files,
+                 campaign=CampaignStore(settings.campaigns_dir), approval=approval, web=web,
+                 doc_search=found[0] if found else None, exporter=Exporter(guard, settings.exports_dir),
                  context=context, summary_client=summary_client,
-                 probe=lambda: loaded_window(args.host, args.model) if isinstance(client, OllamaClient) else None)
+                 probe=lambda: loaded_window(args.host, args.model) if isinstance(raw_client, OllamaClient) else None)
     finally:
         try:
             remove_stale_folders()

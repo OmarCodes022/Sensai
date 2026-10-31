@@ -5,9 +5,11 @@ from collections.abc import Mapping, Sequence
 from sensai.chat.blocks import split_block
 from sensai.chat.saved_sessions import TOOL_PROTOCOL_PREFIXES, user_messages
 from sensai.core.messages import Message
+from sensai.tools import normalize_tool_block
 from sensai.sandbox import FIX_IT, RUN_PYTHON
 
 HISTORY_WIDTH = 100
+TOOL_NAMES = {"calculate", "run_python", "search_docs", "save_fact", "delete_fact"}  # Shorthand blocks of these are tool calls.
 ROUND_LIMIT_NOTE = "\nTool round limit reached. Give a final answer without tools."
 REFUSED = "tool approval refused"
 # What run_with_tools adds around the result of a tool with a call limit (T21).
@@ -82,6 +84,7 @@ def display_items(messages: Sequence[Message], persona: str | None,
                     reply["at"] = times[number][1]
                 items.append(reply)
             visible, block = split_block(message.content)
+            block = normalize_tool_block(block, TOOL_NAMES)
             reply["text"] += visible
             if block is not None and "tool" in block:
                 arguments = block.get("arguments")

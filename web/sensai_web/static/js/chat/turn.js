@@ -4,6 +4,7 @@ import { createUser, createEvent } from './messages.js';
 import { createAssistant } from './assistant.js';
 import { createToolCard } from './tool-card.js';
 import { createApproval } from './approval.js';
+import { createQuestionCard } from './question-card.js';
 import { createErrorCard } from './error-card.js';
 import { assistantOptions } from './shared.js';
 import { showLock } from '../components/lock.js';
@@ -11,12 +12,13 @@ import { chip } from '../components/chip.js';
 import { toast } from '../components/toast.js';
 import { announce } from '../a11y.js';
 import { stripInvisible } from '../safetext.js';
+import { hrefFor } from '../router.js';
 import { t } from '../i18n.js';
 
 const LOCK_CODES = ['tab_locked'];
 
-/** deps: { ctx, transcript, composer, model, reconnect, onReuse(text) } */
-export function createTurn({ ctx, transcript, composer, model, reconnect, onReuse }) {
+/** deps: { ctx, transcript, composer, model, reconnect, onReuse(text), onEdit(item, text) } */
+export function createTurn({ ctx, transcript, composer, model, reconnect, onReuse, onEdit }) {
   const { store, api, actions, router } = ctx;
   let st = null;
   const limits = () => store.get().config?.limits || {};
@@ -77,15 +79,24 @@ export function createTurn({ ctx, transcript, composer, model, reconnect, onReus
         requestAnimationFrame(() => { ap.el.scrollIntoView({ block: 'nearest' }); ap.focus(); }); break;
       }
       case 'approval_result': resolveApproval(ev.id, ev.approved); break;
+      case 'question': {  // ask_user (X4): the turn waits for the form, like an approval.
+        const q = createQuestionCard(ev, { send: (answers) => api.answerQuestion(ev.id, { answers }), skip: () => api.answerQuestion(ev.id, { skipped: true }) });
+        st.approvals.set(ev.id, q); ensureBlock().addApproval(q.el); st.paused = true; refreshLock();
+        announce(t('question.title')); requestAnimationFrame(() => { q.el.scrollIntoView({ block: 'nearest' }); q.focus(); }); break;
+      }
+      case 'question_result': st.approvals.get(ev.id)?.finish(ev.skipped); st.paused = false; refreshLock(); break;
       case 'tool_result': st.cards.get(ev.id)?.setResult(ev); st.approvals.forEach((a) => { if (a.callId === ev.id) a.finished(ev.ok); }); announce(t('tool.finished', { name: ev.name })); break;
       case 'usage': st.usage = { prompt_tokens: ev.prompt_tokens, output_tokens: ev.output_tokens, latency_ms: ev.latency_ms, server_duration_ms: ev.server_duration_ms }; break;
       case 'title': store.set({ session: { ...store.get().session, title: ev.title } }); document.title = `${stripInvisible(ev.title)} - Sensai`; break;
       case 'saved': store.set({ session: { ...store.get().session, saved: true } }); announce(t('session.saved')); break;
       case 'warning': warn(ev); break;
-      case 'redacted': st.user.addNote(chip(t('guard.redacted', { classes: (ev.parts || []).map((p) => p.class).join(', ') }), { tone: 'plum', icon: 'eye-off' })); break;
+      case 'redacted': if (ev.sent_as) st.user.setText(ev.sent_as); st.user.addNote(chip(t('guard.redacted', { classes: (ev.parts || []).map((p) => p.class).join(', ') }), { tone: 'plum', icon: 'eye-off' })); break;
       case 'blocked': st.blocked = true; addError({ code: 'guardrail_refused', message: ev.message, reason: ev.reason }); break;
-      case 'sources': st.block?.setSources(ev.items); break;
+      case 'sources': st.block?.setSources(ev.items, ev); break;
+      case 'web_sources': ensureBlock().setWebSources(ev.items); break;
       case 'step': ensureBlock().addStep(ev.step, ev.text); break;
+      case 'branch': st.branch = ev; break;
+      case 'memory': ensureBlock().addNote(h('div', { class: 'row' }, (ev.changes || []).map((c) => chip(t('brand.memory', { change: c }), { tone: 'plum', icon: 'database' })))); break;
       case 'compacting': addNode(createEvent(t('context.compacting', { n: ev.messages, pct: Math.round((ev.tokens / ev.budget) * 100) }))); break;
       case 'compacted': addNode(createEvent(t('context.compactedEvent', { n: ev.messages }))); announce(t('context.compactedEvent', { n: ev.messages })); break;
       case 'done': st.status = ev.status; break;
@@ -128,6 +139,13 @@ export function createTurn({ ctx, transcript, composer, model, reconnect, onReus
     send(me.text);
   }
 
+  /** A completed /edit made the branch the open conversation: show it, with only the history it keeps. */
+  function openBranch(b) {
+    toast(t('chat.branched', { id: b.session_id, from: b.from })); announce(t('chat.branched', { id: b.session_id, from: b.from }));
+    actions.refreshSessions({ silent: true });
+    router.go(hrefFor('chat', b.session_id));
+  }
+
   function complete() {
     if (st.blocked) { st.block?.discard(); model.items = model.items.filter((i) => i !== st.item); st.user.markNotSent(false); return; }
     const n = model.items.filter((i) => i.kind === 'user' && i.n).length + 1;
@@ -151,7 +169,7 @@ export function createTurn({ ctx, transcript, composer, model, reconnect, onReus
     if (st?.busy) return;
     const at = new Date().toISOString();
     const me = {};
-    const user = createUser({ kind: 'user', text, at }, { onReuse, onRetry: () => retry(me) });
+    const user = createUser({ kind: 'user', text, at }, { onReuse, onEdit, onRetry: () => retry(me) });
     const item = user.item;
     model.items.push(item);
     st = me;
@@ -162,11 +180,13 @@ export function createTurn({ ctx, transcript, composer, model, reconnect, onReus
     st.dropped = model.dropped;
     try {
       const asked = /^\/think\s+([\s\S]+)$/i.exec(text);  // /think <request> runs the step-by-step loop
+      const edit = /^\/edit\s+(\d+)\s+([\s\S]+)$/i.exec(text);  // /edit N <text> continues from message N in a new session
       // Its budget is per step and its rounds are not capped at the turn's limit: no ring, no "of 5".
       me.think = !!asked; composer.showRing(!asked);
-      await api.chat(asked ? asked[1] : text, { signal: st.ac.signal, onEvent: handle, think: !!asked });
+      if (edit) await api.chat(edit[2], { signal: st.ac.signal, onEvent: handle, edit: Number(edit[1]) });
+      else await api.chat(asked ? asked[1] : text, { signal: st.ac.signal, onEvent: handle, think: !!asked });
       if (st.failed) { /* error card already shown */ }
-      else if (st.status === 'completed') complete();
+      else if (st.status === 'completed') { complete(); if (st.branch) openBranch(st.branch); }
       else if (st.status === 'interrupted') interruptedUi(false);
       else if (st.status === 'timed_out') interruptedUi(true);
       else fail({ code: 'network', message: 'stream ended without done' });

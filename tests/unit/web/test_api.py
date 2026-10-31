@@ -32,7 +32,7 @@ def test_config_lists_capabilities_and_limits(web):
     page = web(context_length=2048, effective={"model": {"value": "fake", "source": "cli"}})
     body = page.call("GET", "/api/config")[1]
     assert body["capabilities"]["chat"] and body["capabilities"]["run_script"]
-    assert "campaign" not in body["capabilities"]
+    assert "share" not in body["capabilities"]  # A planned feature stays off.
     assert body["context_length"] == 2048 and body["model"] == "fake" and body["creator"] == "default"
     assert body["limits"]["tool_rounds"] == 5 and body["limits"]["sandbox"]["wall_seconds"] == 15
     assert body["effective"]["model"]["source"] == "cli"
@@ -61,9 +61,11 @@ def test_the_configured_persona_is_active_from_the_start(web):
     assert web(persona="communaute").call("GET", "/api/session")[1]["persona"] == "communaute"
 
 
-def test_tools_lists_both_tools_with_their_rules(web):
+def test_tools_lists_the_tools_with_their_rules(web):
     items = web().call("GET", "/api/tools")[1]["items"]
-    assert [(t["name"], t["confirm"], t["timeout"]) for t in items] == [("calculate", False, 30), ("run_python", True, 30)]
+    assert [(t["name"], t["confirm"], t["timeout"]) for t in items] == [("calculate", False, 30), ("run_python", True, 30),
+                                                                            ("save_fact", False, None), ("delete_fact", False, None),
+                                                                            ("ask_user", False, None), ("web_search", False, None)]
     assert items[1]["parameters"]["required"] == ["code"]
 
 

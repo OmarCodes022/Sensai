@@ -27,9 +27,10 @@ function registry(items) {
 }
 
 export function mount(root, { api, store }) {
-  const reg = h('div'), recent = h('div');
+  const reg = h('div'), recent = h('div'), files = h('p', { class: 'muted' });
   const box = createSandbox({ api, store });
-  root.append(viewShell('tools', section(t('tools.registry'), reg), section(t('tools.recent'), recent), section(t('tools.sandboxTitle'), box.el)));
+  root.append(viewShell('tools', section(t('tools.registry'), reg), section(t('files.title'), files), section(t('tools.recent'), recent), section(t('tools.sandboxTitle'), box.el)));
+  api.files().then((f) => { files.textContent = f.on ? t('files.on', { allow: f.allow, deny: f.deny, file: f.settings }) : t('files.off'); }).catch(() => {});
   loadInto(reg, () => api.tools(), (d) => reg.replaceChildren(registry(d.items || [])), t('tools.loadError'));
   const paint = () => recent.replaceChildren(recentCalls(store.get().session));
   paint();

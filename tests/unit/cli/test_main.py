@@ -13,8 +13,12 @@ from sensai.settings import Settings
 from sensai.sandbox import RUN_PYTHON
 from sensai.tools import CALCULATE, tool_instructions
 from sensai.core.cancellation import OperationCancelled, OperationTimedOut
+from sensai.chat.facts import DELETE_FACT, SAVE_FACT
+from sensai.chat.questions import ASK_USER
+from sensai.search import WEB_SEARCH
 
-TOOLS = "\n\n" + tool_instructions([CALCULATE, RUN_PYTHON])
+TOOLS = "\n\n" + tool_instructions([CALCULATE, RUN_PYTHON, SAVE_FACT, DELETE_FACT, ASK_USER, WEB_SEARCH])
+REPL_TOOLS = "\n\n" + tool_instructions([CALCULATE, RUN_PYTHON])  # repl() called directly has no fact sheet
 
 
 def test_cli_model_argument_overrides_settings():
@@ -49,8 +53,8 @@ def test_repl_input_cancel_then_partial_turn_notice_and_next_prompt(error, notic
     assert "interrompre la réponse" not in text
     assert f"partial\n{notice}" in text
     assert text.endswith("complete\n")
-    assert [message.content for message in session.messages] == ["sys" + TOOLS, "next", "complete"]
-    assert client.calls[-1] == ["sys" + TOOLS, "next"]
+    assert [message.content for message in session.messages] == ["sys" + REPL_TOOLS, "next", "complete"]
+    assert client.calls[-1] == ["sys" + REPL_TOOLS, "next"]
 
 
 def test_operation_timeout_env_and_cli_precedence(monkeypatch):

@@ -15,3 +15,12 @@ class ModelNotFoundError(LLMError):
 
 class LLMConnectionError(LLMError):
     pass
+
+
+class GuardrailRefused(SensaiError):
+    """A message or a reply was refused by the content and privacy guardrails (EV2)."""
+
+    def __init__(self, reason: str, message: str, direction: str):
+        super().__init__(message)
+        self.reason = reason
+        self.direction = direction

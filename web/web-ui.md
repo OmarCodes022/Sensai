@@ -95,13 +95,16 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 4. Add strings to BOTH `strings.en.json` and `strings.fr.json` with identical keys, and a nav key `nav.<name>`.
 5. Keep files under 300 lines; build DOM with `h()` (never `innerHTML`).
 
-## String keys (848 per language, identical in en and fr)
+## String keys (928 per language, identical in en and fr)
 
+- `search` (5): `usage`, `title`, `noModel`, `none`, `failed`
+- `question` (8): `title`, `other`, `otherPlaceholder`, `send`, `skip`, `answerAll`, `answered`, `skipped`
+- `files` (8): `title`, `on`, `off`, `read`, `created`, `replaced`, `usageRead`, `usageSave`
 - `common` (25): `na`, `planned`, `mockData`, `cancel`, `confirm`, `close`, `copy`, `copied`, `copyFailed`, `copyCommand`, `retry`, `clear`, `loading`, `remove`, `copyDetails`, `stop`, `send`, `run`, `refuse`, `viewAll`, `saved`, `nothingSent`, `dismiss`, `loadError`, `save`
 - `nav` (14): `chat`, `sessions`, `personas`, `profile`, `tools`, `settings`, `campaign`, `brand`, `documents`, `insights`, `safety`, `schedule`, `keynote`, `views`
 - `theme` (3): `system`, `light`, `dark`
 - `topbar` (4): `toggleSidebar`, `toggleInspector`, `search`, `themeNext`
-- `chat` (33): `new`, `placeholder`, `hint`, `empty`, `thinking`, `greeting`, `greetingName`, `interrupted`, `interruptedToast`, `timeLimit`, `noMessages`, `ariaLabel`, `budget`, `composerLabel`, `interruptedDivider`, `jump`, `loadError`, `noSuchMessage`, `replyComplete`, `replying`, `resumedFrom`, `source`, `sourceNone`, `starters`, `thinkingS`, `timedOutDivider`, `title`, `transcript`, `waitReply`, `disabled.offline`, `disabled.locked`, `disabled.approval`, `disabled.resuming`
+- `chat` (34): `new`, `placeholder`, `hint`, `empty`, `thinking`, `greeting`, `greetingName`, `interrupted`, `interruptedToast`, `timeLimit`, `noMessages`, `ariaLabel`, `budget`, `composerLabel`, `interruptedDivider`, `jump`, `loadError`, `noSuchMessage`, `replyComplete`, `replying`, `resumedFrom`, `source`, `sourceNone`, `starters`, `thinkingS`, `timedOutDivider`, `title`, `transcript`, `waitReply`, `disabled.offline`, `disabled.locked`, `disabled.approval`, `disabled.resuming`, `branched`
 - `everything` (1): `local`
 - `draft` (1): `label`
 - `session` (7): `new`, `id`, `copyId`, `idCopied`, `saved`, `notSaved`, `savedAfter`
@@ -130,28 +133,28 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 - `dev` (9): `export`, `fill`, `inject`, `none`, `reset`, `scenario`, `speed`, `title`, `turn`
 - `errb` (12): `connection`, `model_not_found`, `timeout`, `llm_error`, `invalid_response`, `profile_invalid`, `persona_unknown`, `tab_locked`, `guardrail_refused`, `network`, `storage`, `turn_timeout`
 - `esc` (1): `hidden`
-- `export` (4): `assistant`, `date`, `session`, `you`
+- `export` (11): `assistant`, `date`, `session`, `you`, `title`, `conversation`, `campaign`, `refused`, `noCampaign`, `private`, `failed`
 - `guard` (1): `redacted`
 - `hint` (4): `largePaste`, `privacy`, `privacyGuarded`, `undo`
 - `history` (3): `note`, `noteEdit`, `title`
 - `menu` (12): `copyMd`, `download`, `go`, `hideTokens`, `hideTools`, `jump`, `jumpLabel`, `print`, `serverExport`, `showTokens`, `showTools`, `title`
-- `msg` (11): `assistantLabel`, `copyMd`, `copyPlain`, `details`, `interruptedHidden`, `notSent`, `reuse`, `you`, `youN`, `sources`, `outdated`
+- `msg` (17): `assistantLabel`, `copyMd`, `copyPlain`, `details`, `interruptedHidden`, `notSent`, `reuse`, `you`, `youN`, `sources`, `outdated`, `edit`, `editHint`, `editSend`, `webSources`, `keptOf`, `keptBasic`
 - `py` (16): `code`, `cpuLimit`, `errors`, `exit`, `fileLimit`, `gotoLine`, `limitCpu`, `limitMem`, `limitWall`, `noErrors`, `noOutput`, `output`, `signal`, `tabs`, `timeLimit`, `truncated`
 - `reconnect` (2): `done`, `text`
-- `slash` (30): `label`, `none`, `plannedMsg`, `foot.move`, `foot.complete`, `foot.pick`, `foot.close`, `persona`, `history`, `tools`, `run`, `new`, `help`, `read`, `save`, `docs`, `reindex`, `search`, `facts`, `context`, `campaign`, `export`, `share`, `unshare`, `think`, `team`, `edit`, `add`, `remove`, `thinkUsage`
+- `slash` (31): `label`, `none`, `plannedMsg`, `foot.move`, `foot.complete`, `foot.pick`, `foot.close`, `persona`, `history`, `tools`, `run`, `new`, `help`, `read`, `save`, `docs`, `reindex`, `search`, `facts`, `context`, `campaign`, `export`, `share`, `unshare`, `think`, `team`, `edit`, `add`, `remove`, `thinkUsage`, `editUsage`
 - `starter` (9): `redaction.1`, `redaction.2`, `redaction.3`, `communaute.1`, `communaute.2`, `communaute.3`, `analyse.1`, `analyse.2`, `analyse.3`
-- `tool` (21): `arguments`, `finished`, `label`, `round`, `roundN`, `started`, `timedOut`, `using`, `status.running`, `status.waiting`, `status.ok`, `status.error`, `status.refused`, `status.timeout`, `status.cancelled`, `status.stopped`, `attempt`, `attemptLast`, `stopped`, `desc.calculate`, `desc.run_python`
+- `tool` (26): `arguments`, `finished`, `label`, `round`, `roundN`, `started`, `timedOut`, `using`, `status.running`, `status.waiting`, `status.ok`, `status.error`, `status.refused`, `status.timeout`, `status.cancelled`, `status.stopped`, `attempt`, `attemptLast`, `stopped`, `desc.calculate`, `desc.run_python`, `desc.read_file`, `desc.write_file`, `desc.create_file`, `desc.save_fact`, `desc.delete_fact`
 - `personas` (24): `builtin`, `custom`, `none`, `active`, `use`, `inUse`, `role`, `scope`, `guard`, `editHelp`, `new`, `edit`, `remove`, `saved`, `removed`, `newTitle`, `editTitle`, `fieldName`, `fieldId`, `idHelp`, `idFixed`, `scopeHelp`, `needId`, `idTaken`
 - `profile` (27): `plaintext`, `creatorKey`, `injected`, `empty`, `emptyBody`, `create`, `edit`, `editor`, `line`, `err.empty`, `err.syntax`, `err.notObject`, `err.notString`, `valid`, `replace`, `confirmTitle`, `confirmBody`, `saved`, `noAuto`, `key`, `text`, `addRow`, `removeRow`, `asJson`, `formHelp`, `err.rowBlank`, `err.rowDup`
 - `settings` (55): `effective`, `prefs`, `backend`, `k.ollama_host`, `k.model`, `k.request_timeout`, `k.turn_budget`, `k.context_length`, `k.database_path`, `k.creator`, `k.profile_file`, `k.data_dir`, `k.prompt_file`, `k.personas_file`, `packaged`, `builtin`, `none`, `hidden`, `source`, `sourceNa`, `dataNote`, `noSources`, `prefsNote`, `theme`, `density`, `comfortable`, `compact`, `fontSize`, `small`, `default`, `large`, `motion`, `reduce`, `lang`, `showTokens`, `showTools`, `showNumbers`, `draftLabel`, `reset`, `resetBody`, `resetDone`, `version`, `uptime`, `mode`, `live`, `capCount`, `caps`, `capOn`, `capOff`, `src.cli`, `src.env`, `src.dotenv`, `src.default`, `k.docs_dir`, `k.embed_model`
 - `keynote` (21): `intro`, `needsMock`, `openMock`, `scenario`, `start`, `record`, `recordHelp`, `keys`, `bar`, `play`, `pause`, `step`, `restart`, `exit`, `speed`, `timeline`, `beat`, `fallback`, `notes`, `noNotes`, `done`
 - `preview` (4): `notice`, `inert`, `prev`, `next`
-- `campaign` (67): `prepare`, `export`, `share`, `print`, `sections`, `tab.posts`, `tab.dm`, `tab.report`, `tab.calendar`, `status.draft`, `status.approved`, `approve`, `approveTitle`, `approveBody`, `locked`, `valid`, `invalid`, `neverPublished`, `exportBlocked`, `dmCounters`, `unsent`, `question`, `suggestion`, `leftOut`, `figure`, `value`, `period`, `tz`, `source`, `reached`, `engaged`, `rate`, `formula`, `interp`, `daily`, `chartLabel`, `tableAlt`, `day`, `zeroReach`, `flag28`, `edgeTitle`, `edge.zero`, `edge.invalid`, `edge.missing`, `view`, `grid`, `list`, `proposal`, `notScheduled`, `noDrag`, `cmd`, `cmdHelp`, `showEdit`, `invalidEdit`, `applyQ`, `postsApproved`, `autoDraft`, `action`, `where`, `replacePost`, `before`, `after`, `apply`, `noChange`, `previewApplied`, `weeklyRun`, `saved`
-- `brand` (19): `claims`, `facts`, `readOnly`, `id`, `product`, `text`, `source`, `from`, `until`, `status`, `updated`, `st.valid`, `st.expiring`, `st.expired`, `st.notApproved`, `factsNote`, `memUpdated`, `memWill`, `perCreator`
+- `campaign` (81): `prepare`, `export`, `share`, `print`, `sections`, `tab.posts`, `tab.dm`, `tab.report`, `tab.calendar`, `status.draft`, `status.approved`, `approve`, `approveTitle`, `approveBody`, `locked`, `valid`, `invalid`, `neverPublished`, `exportBlocked`, `dmCounters`, `unsent`, `question`, `suggestion`, `leftOut`, `figure`, `value`, `period`, `tz`, `source`, `reached`, `engaged`, `rate`, `formula`, `interp`, `daily`, `chartLabel`, `tableAlt`, `day`, `zeroReach`, `flag28`, `edgeTitle`, `edge.zero`, `edge.invalid`, `edge.missing`, `view`, `grid`, `list`, `proposal`, `notScheduled`, `noDrag`, `cmd`, `cmdHelp`, `showEdit`, `invalidEdit`, `applyQ`, `postsApproved`, `autoDraft`, `action`, `where`, `replacePost`, `before`, `after`, `apply`, `noChange`, `previewApplied`, `weeklyRun`, `saved`, `ask`, `section`, `requestLabel`, `requestPlaceholder`, `cmdHelpLive`, `runOnly`, `noReport`, `noItems`, `applied`, `claimsNone`, `asking`, `sectionApproved`, `nothing`, `removed`
+- `brand` (34): `claims`, `facts`, `readOnly`, `id`, `product`, `text`, `source`, `from`, `until`, `status`, `updated`, `st.valid`, `st.expiring`, `st.expired`, `st.notApproved`, `factsNote`, `memUpdated`, `memWill`, `perCreator`, `memory`, `noFacts`, `addTitle`, `textPlaceholder`, `idHelp`, `saveFact`, `edit`, `delete`, `deleteTitle`, `deleteBody`, `deleteConfirm`, `deleted`, `saved`, `noClaims`, `noClaimsBody`
 - `documents` (47): `source`, `type`, `product`, `version`, `chunks`, `reindex`, `reindexNote`, `embedOk`, `pullHint`, `search`, `placeholder`, `noModel`, `score`, `notIn`, `state.ready`, `state.indexing`, `state.empty`, `state.unavailable`, `state.off`, `folder`, `help`, `add`, `drop`, `col.name`, `col.state`, `ready`, `pending`, `remove`, `sure`, `removed`, `added`, `badType`, `tooBig`, `notText`, `emptyBody`, `unavailable`, `offBody`, `reindexed`, `searching`, `title`, `view`, `rendered`, `raw`, `viewLabel`, `close`, `bytes`, `notIndexed`
 - `insights` (14): `kind`, `kindHelp`, `allKinds`, `calls`, `errors`, `failures`, `latency`, `tokens`, `perDay`, `day`, `toolUse`, `sparkCalls`, `sparkLatency`, `plain`
 - `safety` (20): `rules`, `direction`, `action`, `reason`, `claimsCount`, `suite`, `defined`, `category`, `cases`, `hold`, `fail`, `notRun`, `suiteTotal`, `eval`, `metric`, `relevance`, `coherence`, `faithfulness`, `flagged`, `planted`
-- `schedule` (11): `banner`, `name`, `prompt`, `every`, `minutes`, `last`, `next`, `st.ok`, `st.failed`, `retry`, `drafts`
+- `schedule` (21): `banner`, `name`, `prompt`, `every`, `minutes`, `last`, `next`, `st.ok`, `st.failed`, `retry`, `drafts`, `tasks`, `intro`, `ok`, `failed`, `notYet`, `runNow`, `saved`, `off`, `offBody`, `noDrafts`
 - `a11y` (2): `skipComposer`, `skipMain`
 - `limits` (4): `cpu`, `mem`, `file`, `chars`
 - `safe` (1): `hidden`

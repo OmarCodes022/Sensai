@@ -24,7 +24,8 @@ def test_a_turn_streams_text_then_usage_save_and_done(web):
     page = web(["Hel", "lo ", "there"])
     status, events = page.stream({"text": "hi"})
     assert status == 200
-    assert kinds(events) == ["turn_start", "text", "text", "text", "usage", "saved", "title", "done"]
+    # Replies go out line by line once the guardrails checked them; a reply without a newline is one chunk.
+    assert kinds(events) == ["turn_start", "text", "usage", "saved", "title", "done"]
     assert events[0]["model"] == "fake" and events[0]["number"] == 1 and events[0]["budget_seconds"] == 30
     assert text(events) == "Hello there"
     assert events[-1]["status"] == "completed" and events[-1]["turn_id"] == events[0]["turn_id"]
@@ -220,7 +221,7 @@ def test_stop_ends_a_streaming_reply_as_interrupted_and_nothing_is_saved(web):
     _, events = page.stream({"text": "long one"})
     stopper.join()
     assert events[-1] == {"type": "done", "status": "interrupted", "turn_id": events[0]["turn_id"]}
-    assert text(events) == "partial " and "saved" not in kinds(events)
+    assert text(events) == "" and "saved" not in kinds(events)  # An unfinished line is never shown unchecked.
     assert page.call("GET", "/api/session")[1]["items"] == []
 
 

@@ -78,3 +78,14 @@ descending score, then ascending source id and chunk id for deterministic ties.
 `VectorIndexError` (a `PortError` / `SensaiError`) reports invalid metadata,
 vectors, dimensions, scores or limits. Neither this index nor the embedding
 adapter provides tenant authorization, privacy filtering or claim approval.
+
+## Advanced search (R2)
+
+`src/sensai/rag_advanced.py` sits on top of `DocLibrary`: it filters the candidates by the
+document headers (`product`, newest `version` per product, products named in the question),
+searches the index wide (50) because it has no filter, keeps the ten closest allowed chunks,
+asks the model for `{passage, score}` entries through `OllamaStructuredClient` (a missing
+passage counts as 0), drops scores under 6 and keeps at most three. A failed scoring request
+falls back to the basic order. Measured with `evals/rag/compare.py` (see the user guide for the
+table): advanced keeps every expected source, no wrong-product or outdated chunk, and keeps
+nothing for the three unsupported questions.

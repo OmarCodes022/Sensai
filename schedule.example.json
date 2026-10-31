@@ -1,0 +1,14 @@
+[
+  {
+    "name": "post-ideas",
+    "prompt": "Propose three Instagram post ideas for this week for Serein Studio, each with a one-line caption draft. Use only approved product claims.",
+    "every_minutes": 10080,
+    "persona": "redaction"
+  },
+  {
+    "name": "dm-themes",
+    "prompt": "List the three most likely DM questions this week about Hydra Glow Serum and Calm Barrier Cream, with a short, kind, unsent reply suggestion for each.",
+    "every_minutes": 1440,
+    "persona": "communaute"
+  }
+]
