@@ -60,16 +60,16 @@ class ObservedRegistry(ToolRegistry):
         if memory is not None:  # In this process: the queue of fact changes is here.
             self.register(SAVE_FACT, memory.save, timeout=None)
             self.register(DELETE_FACT, memory.delete, timeout=None)
+        self._hits: list[dict] = []
+        self._ranker, self._doc_report = ranker, None
+        if library is not None and library.enabled:
+            self.register(SEARCH_DOCS, partial(self._search, library), timeout=None)  # The order of WebApp.tools_text.
         for definition in (FILE_TOOLS if files is not None else ()):  # In this process, with the loaded policy.
             self.register(definition, getattr(files, definition.name), timeout=None)
         if form is not None:  # Waits for the page in this process.
             self.register(ASK_USER, form, timeout=None)
         if web is not None:  # Keeps this turn's results here for the source list.
             self.register(WEB_SEARCH, web, timeout=None)
-        self._hits: list[dict] = []
-        self._ranker, self._doc_report = ranker, None
-        if library is not None and library.enabled:
-            self.register(SEARCH_DOCS, partial(self._search, library), timeout=None)  # In this process: the index is here.
         if mcp is not None:  # After search_docs: the order of WebApp.tools_text, which /think's rules rely on.
             mcp.register(self)
 

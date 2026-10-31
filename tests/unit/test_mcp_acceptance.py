@@ -308,7 +308,8 @@ def test_web_registry_lists_tools_in_prompt_order_with_documents(web, tmp_path):
     assert page.call("POST", "/api/tools/reload")[0] == 200
     app = page.app
     assert app.docs.enabled and app.mcp.definitions()
-    registry = ObservedRegistry(None, lambda event: None, app.data.path, app.meta_dir, app.docs, app.mcp)
+    registry = ObservedRegistry(None, lambda event: None, app.data.path, app.meta_dir, app.docs, app.memory,
+                                app.files, lambda arguments: None, app.web, mcp=app.mcp)  # As a turn builds it.
     assert tool_instructions(registry.definitions()) == app.tools_text()
 
 
