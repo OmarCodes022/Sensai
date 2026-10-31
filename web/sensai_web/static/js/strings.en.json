@@ -879,5 +879,19 @@
  "tool.desc.write_file": "Replace the text of an allowed existing file.",
  "tool.desc.create_file": "Create a new text file where it is allowed.",
  "tool.desc.save_fact": "Save or correct a brand fact.",
- "tool.desc.delete_fact": "Delete a brand fact that is no longer true."
+ "tool.desc.delete_fact": "Delete a brand fact that is no longer true.",
+ "campaign.ask": "Ask Sensai",
+ "campaign.section": "Section",
+ "campaign.requestLabel": "What to change",
+ "campaign.requestPlaceholder": "write a post about Hydra Glow Serum",
+ "campaign.cmdHelpLive": "Sensai answers with one JSON edit that must match the section's schema; it is checked against the document and your approved claims before it is saved. The report and DM replies are filled only by the weekly run.",
+ "campaign.runOnly": "Filled only by the weekly run.",
+ "campaign.noReport": "No data yet: the weekly run fills the report from your engagement data.",
+ "campaign.noItems": "Nothing here yet.",
+ "campaign.applied": "{action}: saved to {file}",
+ "campaign.claimsNone": "No claims",
+ "campaign.asking": "Asking Sensai for an edit…",
+ "campaign.sectionApproved": "Section approved",
+ "campaign.nothing": "(nothing)",
+ "campaign.removed": "(removed)"
 }

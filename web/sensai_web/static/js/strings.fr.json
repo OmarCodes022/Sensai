@@ -879,5 +879,19 @@
  "tool.desc.write_file": "Remplacer le texte d'un fichier autorisé existant.",
  "tool.desc.create_file": "Créer un fichier texte là où c'est autorisé.",
  "tool.desc.save_fact": "Enregistrer ou corriger un fait de la marque.",
- "tool.desc.delete_fact": "Supprimer un fait de la marque qui n'est plus vrai."
+ "tool.desc.delete_fact": "Supprimer un fait de la marque qui n'est plus vrai.",
+ "campaign.ask": "Demander à Sensai",
+ "campaign.section": "Section",
+ "campaign.requestLabel": "Ce qu'il faut changer",
+ "campaign.requestPlaceholder": "écris un post sur Hydra Glow Serum",
+ "campaign.cmdHelpLive": "Sensai répond par une modification JSON qui doit respecter le schéma de la section ; elle est vérifiée par rapport au document et à vos allégations approuvées avant d'être enregistrée. Le rapport et les réponses aux DM ne sont remplis que par l'exécution hebdomadaire.",
+ "campaign.runOnly": "Rempli uniquement par l'exécution hebdomadaire.",
+ "campaign.noReport": "Pas encore de données : l'exécution hebdomadaire remplit le rapport à partir de vos chiffres d'engagement.",
+ "campaign.noItems": "Rien ici pour l'instant.",
+ "campaign.applied": "{action} : enregistré dans {file}",
+ "campaign.claimsNone": "Aucune allégation",
+ "campaign.asking": "Sensai prépare une modification…",
+ "campaign.sectionApproved": "Section approuvée",
+ "campaign.nothing": "(rien)",
+ "campaign.removed": "(supprimé)"
 }
