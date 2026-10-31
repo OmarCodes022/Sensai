@@ -130,7 +130,7 @@ variables win over `.env`, and command-line options win over both.
 | `SENSAI_GUARDRAILS_FILE`, `SENSAI_BRAND_FILE` | extra guardrail rules (JSON) and the brand file with the approved claims | none, `./data/brand.json` if it exists |
 | `SENSAI_DOCS`, `SENSAI_EMBED_MODEL` | document folder (empty switches search off) and embedding model | `./data/docs`, `nomic-embed-text` |
 | `SENSAI_OPERATION_TIMEOUT` | seconds per turn | `120` |
-| `SENSAI_CONTEXT_LENGTH` | context window in tokens, also where summaries start (80%); `--context-budget` in the terminal | Ollama's default |
+| `SENSAI_CONTEXT_LENGTH` | context window in tokens, also where summaries start (80%); `--context-budget` in the terminal | `8192` |
 | `SENSAI_SSH_HOST` | SSH alias for a remote Ollama | none |
 
 If your `.env` still has `SENSAI_PROMPT=prompts/system.txt`, delete that line: the file no longer exists.
