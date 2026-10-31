@@ -13,7 +13,7 @@ from sensai.memory.vector_index import VectorIndexError
 from sensai.rag import MAX_FILE_BYTES, MAX_TOTAL_BYTES, TYPES, DocError
 from sensai.sandbox import SandboxLimits
 from sensai.tools import MAX_TOOL_CALLS
-from sensai_web import manage, models, sandbox, session_view
+from sensai_web import branching, campaign, compaction, exports, scheduling, questions, websearch, facts, files, manage, models, sandbox, session_view
 from sensai_web.app import WebApp
 from sensai_web.errors import ApiError, llm_failure
 from sensai_web.tools import tool_list
@@ -22,7 +22,9 @@ from sensai_web.turn import run_turn
 
 MAX_TEXT_CHARS = 200_000
 CAPABILITIES = ("chat", "personas", "sessions", "profile", "usage", "tools", "approval", "sandbox",
-                "run_script", "history", "think")
+                "run_script", "history", "think", "branching", "facts", "guardrails", "campaign", "ask_user", "export",
+                "context_budget")
+# "schedule" is added when a tasks file is loaded.
 STARTED = monotonic()
 ROUTES: list[tuple[str, re.Pattern, Callable]] = []
 
@@ -58,7 +60,10 @@ def health(app: WebApp, request):
 def config(app: WebApp, request):
     cfg, limits = app.cfg, SandboxLimits()
     return {
-        "capabilities": {name: True for name in (*CAPABILITIES, *(("documents",) if app.docs.enabled else ()))},
+        "capabilities": {name: True for name in (*CAPABILITIES, *(("documents",) if app.docs.enabled else ()),
+                                                  *(("file_access",) if app.files is not None else ()),
+                                                  *(("web_search",) if app.web is not None else ()),
+                                                  *(("schedule",) if app.scheduler is not None else ()))},
         "draft_personas": app.catalogue.drafts(),
         "context_length": cfg.context_length, "creator": cfg.creator, "model": app.model,
         "effective": cfg.effective,
@@ -167,6 +172,23 @@ def chat(app: WebApp, request):
     return Stream(play, stop.set)
 
 
+@route("POST", r"/api/edit")
+def edit(app: WebApp, request):
+    body = request.json()
+    number, text = branching.check(app, body.get("n"), body.get("text"))
+    if len(text) > MAX_TEXT_CHARS:
+        raise ApiError(413, "too_large", "The message is too long.")
+    stop, active = app.begin_turn()
+
+    def play(emit):
+        try:
+            branching.run_edit(app, active, stop, number, text, emit)
+        finally:
+            app.end_turn()
+
+    return Stream(play, stop.set)
+
+
 @route("POST", r"/api/think")
 def think(app: WebApp, request):
     text = request.json().get("text")
@@ -183,6 +205,17 @@ def think(app: WebApp, request):
             app.end_turn()
 
     return Stream(play, stop.set)
+
+
+@route("GET", r"/api/context")
+def context(app: WebApp, request):
+    with app.mutex:
+        return app.context.as_dict()
+
+
+@route("POST", r"/api/context/compact")
+def compact_context(app: WebApp, request):
+    return compaction.compact(app)
 
 
 @route("POST", r"/api/chat/stop")
@@ -202,7 +235,8 @@ def approve(app: WebApp, request, id: str):
 
 @route("GET", r"/api/tools")
 def tools(app: WebApp, request):
-    return {"items": tool_list(documents=app.docs.enabled, mcp=app.mcp),
+    return {"items": tool_list(documents=app.docs.enabled, files=app.files is not None, web=app.web is not None,
+                               mcp=app.mcp),
             "servers": app.mcp.servers, "error": app.mcp.error, "config": app.mcp.config_path(),
             "found": app.mcp.config_found(), "example": EXAMPLE_CONFIG, "guide": GUIDE_URL,
             "untrusted": app.mcp.untrusted, "trust_error": app.mcp.trust_error}
@@ -269,6 +303,93 @@ def read_data(app: WebApp, request, name: str):
 @route("DELETE", r"/api/run/data/(?P<name>[^/]+)")
 def delete_data(app: WebApp, request, name: str):
     return app.data.delete(unquote(name))
+
+
+@route("GET", r"/api/schedule")
+def schedule_status(app: WebApp, request):
+    return scheduling.status(app)
+
+
+@route("POST", r"/api/schedule/(?P<name>[^/]+)/run")
+def schedule_run(app: WebApp, request, name: str):
+    return scheduling.run_now(app, unquote(name))
+
+
+@route("GET", r"/api/drafts/(?P<name>[^/]+)")
+def schedule_draft(app: WebApp, request, name: str):
+    return scheduling.read_draft(app, unquote(name))
+
+
+@route("POST", r"/api/export")
+def export_all(app: WebApp, request):
+    return exports.export_all(app)
+
+
+@route("POST", r"/api/search")
+def web_search(app: WebApp, request):
+    return websearch.run(app, request.json().get("query"))
+
+
+@route("POST", r"/api/questions/(?P<id>[^/]+)")
+def answer_question(app: WebApp, request, id: str):
+    return questions.answer(app, unquote(id), request.json())
+
+
+@route("GET", r"/api/campaign")
+def campaign_show(app: WebApp, request):
+    return campaign.show(app)
+
+
+@route("POST", r"/api/campaign/edit")
+def campaign_edit(app: WebApp, request):
+    body = request.json()
+    return campaign.edit(app, body.get("section"), body.get("request"))
+
+
+@route("POST", r"/api/campaign/confirm")
+def campaign_confirm(app: WebApp, request):
+    body = request.json()
+    return campaign.confirm(app, body.get("token"), body.get("approved"))
+
+
+@route("POST", r"/api/campaign/approve")
+def campaign_approve(app: WebApp, request):
+    return campaign.approve_section(app, request.json().get("section"))
+
+
+@route("GET", r"/api/files")
+def files_status(app: WebApp, request):
+    return files.status(app)
+
+
+@route("POST", r"/api/files/read")
+def read_file(app: WebApp, request):
+    return files.read(app, request.json().get("path"))
+
+
+@route("POST", r"/api/files/save")
+def save_file(app: WebApp, request):
+    return files.save(app, request.json().get("path"))
+
+
+@route("GET", r"/api/facts")
+def list_facts(app: WebApp, request):
+    return facts.listing(app)
+
+
+@route("GET", r"/api/brand/claims")
+def brand_claims(app: WebApp, request):
+    return facts.claims(app)
+
+
+@route("PUT", r"/api/facts/(?P<id>[^/]+)")
+def put_fact(app: WebApp, request, id: str):
+    return facts.put(app, unquote(id), request.json().get("text"))
+
+
+@route("DELETE", r"/api/facts/(?P<id>[^/]+)")
+def delete_fact(app: WebApp, request, id: str):
+    return facts.delete(app, unquote(id))
 
 
 @route("GET", r"/api/profile")

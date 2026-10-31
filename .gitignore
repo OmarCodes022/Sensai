@@ -20,5 +20,9 @@ devtools/
 docs/operations/push-evidence-sync.md
 site/
 
+# Weekly campaign documents (yours, not shared)
+campaigns/
+exports/
+drafts/
 # Local MCP commands and environment overrides
 mcp.json

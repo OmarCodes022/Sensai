@@ -18,6 +18,7 @@ class DataClass(str, Enum):
     REVIEW_DRAFT = "review_draft"
     DIRECT_IDENTIFIER = "direct_identifier"
     SENSITIVE_DETAIL = "sensitive_detail"
+    UNSAFE_REQUEST = "unsafe_request"
 
 
 class PolicyAction(str, Enum):

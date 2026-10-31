@@ -26,11 +26,12 @@ export function createAssistant(opts) {
   const tags = h('div', { class: 'msg__tags' });
   const foot = h('footer', { class: 'msg__foot', hidden: true });
   const cited = h('div', { class: 'msg__sources row', hidden: true });
+  const web = h('div', { class: 'msg__sources stack', hidden: true });  // Web search results the reply could cite (T3).
   const steps = h('ol', { class: 'steps', hidden: true });
   body.addEventListener('click', (e) => { const b = e.target.closest('.md-cite'); if (b) opts.onCite?.(Number(b.dataset.cite), sources); });
   const el = h('article', { class: 'msg msg--assistant', 'aria-busy': 'true', 'aria-label': t('msg.assistantLabel', { name }), tabindex: '-1' },
     h('header', { class: 'msg__head' }, h('span', { class: 'avatar', dataset: { tone: opts.tone || 'accent' }, 'aria-hidden': 'true' }, (name[0] || '?').toUpperCase()), h('span', { class: 'msg__who' }, name), think),
-    group.el, steps, body, cited, tags, foot);
+    group.el, steps, body, cited, web, tags, foot);
   group.el.hidden = true;
 
   const caret = () => {
@@ -59,10 +60,17 @@ export function createAssistant(opts) {
     /** An approval blocks the turn: reopen the group if it was collapsed, or the card stays hidden. */
     addApproval(node) { settled(); group.el.hidden = false; group.el.open = true; group.add(node); },
     addStep(step, line) { settled(); steps.hidden = false; steps.append(h('li', null, h('span', { class: 'chip chip--outline' }, step), ' ', line)); },
-    setSources(items) {
+    setWebSources(items) {
+      web.hidden = !items?.length;
+      web.replaceChildren(...(items?.length ? [h('span', { class: 'muted' }, t('msg.webSources')), h('ol', { class: 'web-sources' }, items.map((s) => h('li', null,
+        h('span', { class: 'num mono' }, `[${s.n}] `), /^https?:\/\//.test(s.url) ? h('a', { href: s.url, target: '_blank', rel: 'noopener noreferrer' }, s.title) : s.title,
+        s.date ? h('span', { class: 'muted' }, ` · ${s.date}`) : null)))] : []));
+    },
+    setSources(items, meta = {}) {
       sources = items;
       cited.hidden = !items?.length;
-      cited.replaceChildren(...(items?.length ? [h('span', { class: 'muted' }, t('msg.sources')), ...items.map((s) => chip(`${s.n ? `${s.n}. ` : ''}${s.source}${s.version ? ` ${s.version}` : ''}${s.outdated ? ` (${t('msg.outdated')})` : ''}`, { outline: true, tone: s.outdated ? 'amber' : undefined, mono: true }))] : []));
+      const kept = meta.candidates ? h('span', { class: 'muted' }, t(meta.reranked ? 'msg.keptOf' : 'msg.keptBasic', { k: meta.kept, n: meta.candidates })) : null;
+      cited.replaceChildren(...(items?.length ? [h('span', { class: 'muted' }, t('msg.sources')), ...items.map((s) => chip(`${s.n ? `${s.n}. ` : ''}${s.source}${s.version ? ` ${s.version}` : ''}${s.relevance != null ? ` · ${s.relevance}/10` : ''}${s.outdated ? ` (${t('msg.outdated')})` : ''}`, { outline: true, tone: s.outdated ? 'amber' : undefined, mono: true })), kept] : []));
       if (!streaming) paint();
     },
     finish(u) {

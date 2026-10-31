@@ -106,6 +106,25 @@ def user_messages(messages: Sequence[Message]) -> list[str]:
             if m.role == "user" and not m.content.startswith(TOOL_PROTOCOL_PREFIXES)]
 
 
+def branch_title(title: str) -> str:
+    """The title of a fork: the original plus "(branch)", never twice."""
+    return title if title.endswith("(branch)") else f"{title} (branch)"
+
+
+def messages_before_user(messages: Sequence[Message], n: int) -> list[Message] | None:
+    """The messages (system prompt included) that come before the creator's message number n.
+
+    None when n is not a number of one of the creator's messages (counted from 1 as in /history).
+    """
+    seen = 0
+    for index, message in enumerate(messages):
+        if message.role == "user" and not message.content.startswith(TOOL_PROTOCOL_PREFIXES):
+            seen += 1
+            if seen == n:
+                return list(messages[:index])
+    return None
+
+
 def first_exchange(messages: Sequence[Message]) -> tuple[str, str]:
     user = next((m.content for m in messages if m.role == "user"), "")
     answer = ""
@@ -139,6 +158,13 @@ class SessionRecorder:
         self.titler = titler
         self.messages = tuple(messages)
         self.write = write
+
+    def branch(self, new_id: str, messages: Sequence[Message]) -> "SessionRecorder":
+        """A recorder for a fork of this session: same store, persona and titler, title plus "(branch)"."""
+        title = self.title or display_title(None, [m for m in messages if m.role != "system"])
+        fork = SessionRecorder(self.store, new_id, self.persona_id, titler=self.titler, write=self.write)
+        fork.title = branch_title(title)  # Written with the first save, not generated again.
+        return fork
 
     def after_turn(self, session) -> None:
         self.messages = tuple(m for m in session.messages if m.role != "system")

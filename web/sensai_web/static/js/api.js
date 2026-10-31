@@ -41,8 +41,9 @@ const real = {
   models: () => req('GET', '/api/models'),
   setModel: (name) => req('POST', '/api/model', { name }),
   history: () => req('GET', '/api/history'),
-  async chat(text, { onEvent, signal, think = false } = {}) {
-    try { await streamNdjson(think ? '/api/think' : '/api/chat', { body: { text }, signal, onEvent, headers: tabHeader }); }
+  async chat(text, { onEvent, signal, think = false, edit } = {}) {
+    const path = edit ? '/api/edit' : think ? '/api/think' : '/api/chat';
+    try { await streamNdjson(path, { body: edit ? { n: edit, text } : { text }, signal, onEvent, headers: tabHeader }); }
     catch (e) { if (e.status === 409) lockedHandler(); throw e; }
   },
   stopChat: () => req('POST', '/api/chat/stop'),
@@ -62,9 +63,28 @@ const real = {
   deleteDoc: (name) => req('DELETE', `/api/docs/${encodeURIComponent(name)}`),
   reindexDocs: () => req('POST', '/api/docs/reindex'),
   searchDocs: (q) => req('GET', `/api/docs/search?q=${encodeURIComponent(q)}`),
+  schedule: () => req('GET', '/api/schedule'),
+  runTask: (name) => req('POST', `/api/schedule/${encodeURIComponent(name)}/run`),
+  draft: (name) => req('GET', `/api/drafts/${encodeURIComponent(name)}`),
+  exportAll: () => req('POST', '/api/export'),
+  webSearch: (query) => req('POST', '/api/search', { query }),
+  answerQuestion: (id, body) => req('POST', `/api/questions/${encodeURIComponent(id)}`, body),
+  campaign: () => req('GET', '/api/campaign'),
+  campaignEdit: (section, request) => req('POST', '/api/campaign/edit', { section, request }),
+  campaignConfirm: (token, approved) => req('POST', '/api/campaign/confirm', { token, approved }),
+  campaignApprove: (section) => req('POST', '/api/campaign/approve', { section }),
+  files: () => req('GET', '/api/files'),
+  readFile: (path) => req('POST', '/api/files/read', { path }),
+  saveFile: (path) => req('POST', '/api/files/save', { path }),
+  facts: () => req('GET', '/api/facts'),
+  putFact: (id, text) => req('PUT', `/api/facts/${encodeURIComponent(id)}`, { text }),
+  deleteFact: (id) => req('DELETE', `/api/facts/${encodeURIComponent(id)}`),
+  brandClaims: () => req('GET', '/api/brand/claims'),
   profile: () => req('GET', '/api/profile'),
   putProfile: (preferences) => req('PUT', '/api/profile', { preferences }),
   takeover: () => req('POST', '/api/session/takeover'),
+  context: () => req('GET', '/api/context'),
+  compactContext: () => req('POST', '/api/context/compact'),
 };
 
 let impl = real;

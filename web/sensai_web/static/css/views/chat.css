@@ -12,6 +12,8 @@
   .msg.is-flash { animation: flash 1.6s var(--ease); }
   @keyframes flash { 0%, 60% { background: var(--accent-tint); box-shadow: 0 0 0 6px var(--accent-tint); } }
   .msg--user { align-self: flex-end; max-width: 80%; display: flex; flex-direction: column; align-items: flex-end; gap: var(--s-1); }
+  .msg__edit { width: min(560px, 100%); }
+  .msg__edit .row { justify-content: flex-end; }
   .bubble { background: var(--surface-2); border-radius: 16px 16px 4px 16px; padding: var(--s-3) var(--s-4); font-size: var(--fs-16); line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
   .msg__meta, .msg__actions { opacity: 0; transition: opacity var(--dur-hover); }
   .msg__meta { display: flex; gap: var(--s-2); align-items: center; font-size: var(--fs-12); color: var(--ink-3); }

@@ -51,7 +51,7 @@ function mcpPanel(d, onTrust) {
 }
 
 export function mount(root, { api, store }) {
-  const mcp = h('div'), reg = h('div'), recent = h('div');
+  const mcp = h('div'), reg = h('div'), recent = h('div'), files = h('p', { class: 'muted' });
   const render = (d) => { mcp.replaceChildren(...mcpPanel(d, trust).flat().filter(Boolean)); reg.replaceChildren(registry(d.items || [])); };
   const load = async (call) => {
     reload.disabled = true;
@@ -62,7 +62,8 @@ export function mount(root, { api, store }) {
   const trust = (digest) => load(() => api.trustTools(digest));
   const reload = button(t('tools.reload'), { onClick: () => load(() => api.reloadTools()) });
   const box = createSandbox({ api, store });
-  root.append(viewShell('tools', section(t('tools.mcp.title'), h('div', { class: 'row' }, reload), mcp), section(t('tools.registry'), reg), section(t('tools.recent'), recent), section(t('tools.sandboxTitle'), box.el)));
+  root.append(viewShell('tools', section(t('tools.mcp.title'), h('div', { class: 'row' }, reload), mcp), section(t('tools.registry'), reg), section(t('files.title'), files), section(t('tools.recent'), recent), section(t('tools.sandboxTitle'), box.el)));
+  api.files().then((f) => { files.textContent = f.on ? t('files.on', { allow: f.allow, deny: f.deny, file: f.settings }) : t('files.off'); }).catch(() => {});
   loadInto(reg, () => api.tools(), render, t('tools.loadError'));
   const paint = () => recent.replaceChildren(recentCalls(store.get().session));
   paint();

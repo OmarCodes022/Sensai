@@ -8,6 +8,9 @@ import { createReconnect } from '../chat/reconnect.js';
 import { createRestorer } from '../chat/restore.js';
 import { createMenu } from '../chat/menu.js';
 import { createDocCommands } from '../chat/doc-commands.js';
+import { createSearchCommand } from '../chat/search-command.js';
+import { createExportCommand } from '../chat/export-command.js';
+import { createContextCommands } from '../chat/context-commands.js';
 import { createEvent } from '../chat/messages.js';
 import { openHistory } from '../chat/history.js';
 import { createPrintHead } from '../chat/print-head.js';
@@ -33,7 +36,9 @@ export function mount(root, ctx) {
     const target = transcript.content.querySelector(`[data-n="${n}"]`);
     if (target) transcript.flash(target); else toast(t('chat.noSuchMessage', { n }));
   };
-  const restorer = createRestorer({ ctx, onReuse: (text) => composer.fill(text) });
+  // Edit a message in place (X2): sending continues from it as a new conversation (/edit N).
+  const onEdit = store.get().capabilities.branching ? (item, text) => turn.send(`/edit ${item.n} ${text}`) : null;
+  const restorer = createRestorer({ ctx, onReuse: (text) => composer.fill(text), onEdit });
 
   const docCommands = createDocCommands({ api, transcript, router });
   const reloadMcp = async () => {
@@ -42,26 +47,42 @@ export function mount(root, ctx) {
       toast(mcpReloadFailed(d) ? t('tools.mcp.reloadFailed') : t('tools.mcp.reloaded', { n: d.servers.length }));
     } catch (e) { toast(e.message); }
   };
+  const webSearch = createSearchCommand({ api, transcript });
+  const exportAll = createExportCommand({ api, transcript });
+  const contextCommands = createContextCommands({ api, store, transcript });
   const commands = {
     persona: () => document.querySelector('.persona-pill')?.click(),
-    history: () => openHistory(composer.textarea, { api, plannedEdit: !store.get().capabilities.branching, onPick: jump }),
+    history: () => openHistory(composer.textarea, { api, canEdit: !!store.get().capabilities.branching, onPick: jump }),
     tools: () => { layout.openInspector(); document.querySelector('.inspector')?.select?.('tools'); },
     run: () => router.go('#/tools'),
     mcp: (args) => (args === 'reload' ? reloadMcp() : router.go('#/tools')),
     think: (args) => (args ? turn.send(`/think ${args}`) : toast(t('slash.thinkUsage'))),
+    edit: (args) => (/^\d+\s+\S/.test(args || '') ? turn.send(`/edit ${args}`) : toast(t('slash.editUsage'))),
+    facts: () => router.go('#/brand'),
+    campaign: () => router.go('#/campaign'),
+    search: (query) => webSearch(query),
+    export: () => exportAll(),
+    // File access (T4): /read puts the file into the box for your next message; /save writes the last reply.
+    read: (path) => (!path ? toast(t('files.usageRead')) : api.readFile(path).then((r) => {
+      composer.fill(`File ${r.path}:\n${r.text}\n\n`); toast(t('files.read', { n: r.chars, path: r.path }));
+    }).catch((e) => toast(e.message, { tone: 'rose' }))),
+    save: (path) => (!path ? toast(t('files.usageSave')) : api.saveFile(path).then((r) => toast(t(`files.${r.result.toLowerCase()}`, { path: r.path })))
+      .catch((e) => toast(e.message, { tone: 'rose' }))),
     new: () => actions.newChat(),
     help: () => openShortcuts(),
     docs: (args) => docCommands.docs(args),
     add: () => docCommands.add(),
     remove: (args) => docCommands.remove(args),
     reindex: () => docCommands.reindex(),
+    context: () => contextCommands.context(),
+    compact: () => contextCommands.compact(),
   };
   const composer = createComposer({
     getUserTexts: () => model.items.filter((i) => i.kind === 'user').map((i) => i.text),
     onSend: (text) => turn.send(text), onStop: () => turn.interrupt(), onCommand: (n, args) => commands[n]?.(args), onAttach: (kind) => docCommands.attach(kind), capabilities: () => store.get().capabilities,
     guardrails: () => !!store.get().capabilities.guardrails,
   });
-  const turn = createTurn({ ctx, transcript, composer, model, reconnect, onReuse: (text) => composer.fill(text) });
+  const turn = createTurn({ ctx, transcript, composer, model, reconnect, onReuse: (text) => composer.fill(text), onEdit });
 
   const bar = h('div', { class: 'chat__bar' }, h('span', { class: 'grow' }), createMenu({ store, actions, model, jump }));
   const printHead = createPrintHead(store);

@@ -45,11 +45,14 @@ including an unknown `/word`, is sent to the model.
 | `/mcp reload` | Reloads the MCP configuration, keeping the conversation |
 | `/run <file.py>` | Runs a local Python file in the sandbox, without the model |
 | `/think <request>` | Plans, uses tools, drafts, checks and revises, showing every step |
+| `/context` | Shows the window, the last turn's token count and what summaries saved |
+| `/compact` | Summarizes the older messages now |
 | `exit` or `quit` | Leaves Sensai, in any letter case |
 | Ctrl+D on an empty line | Leaves Sensai |
 
 Details: [Personas](personas.md), [Sessions and profile](sessions.md),
-[Tools and sandbox](tools.md), [MCP tools](mcp.md) and [Reasoning step by step](thinking.md).
+[Tools and sandbox](tools.md), [MCP tools](mcp.md), [Reasoning step by step](thinking.md) and
+[Long conversations](context.md).
 
 ## Interrupt a reply
 

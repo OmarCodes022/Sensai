@@ -1,8 +1,8 @@
-# Task brief: creator-scoped filesystem permissions (not implemented)
+# Task brief: creator-scoped filesystem permissions
 
-This is a work brief for the File Access within Permissions feature (T4 in the
-subject catalogue). **None of it is implemented yet**: only the typed
-`FileSystemPort` contract exists. The files listed under "Create" do not exist.
+This was the work brief for the File Access within Permissions feature (T4 in the
+subject catalogue). It is now implemented in `src/sensai/security/` (policy, adapter,
+settings loader and the model's file tools); how to use it: [File access](../user-guide/files.md).
 
 Goal: check a creator's allowlist before reading, writing or creating a file.
 

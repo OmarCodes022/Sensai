@@ -114,3 +114,10 @@ def test_controlled_factory_keeps_configured_context_and_public_length_error(mon
                               CancellationToken(deadline=monotonic() + 10))) == ["Answer"]
     assert len(usages) == 2
     assert usages[1].error is None
+
+
+def test_num_predict_caps_the_answer_next_to_num_ctx():
+    resp = response({"message": {"role": "assistant", "content": "Summary"}, "done": True})
+    with patch("sensai.llm.ollama.requests.post", return_value=resp) as post:
+        list(OllamaClient(context_length=2048, num_predict=512).stream("m", [Message(role="user", content="q")]))
+    assert post.call_args.kwargs["json"]["options"] == {"num_ctx": 2048, "num_predict": 512}

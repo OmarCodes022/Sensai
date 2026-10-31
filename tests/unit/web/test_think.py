@@ -54,7 +54,7 @@ def test_think_shows_tool_calls_as_cards_not_as_act_and_observe_text(web):
 
 
 def test_a_problem_found_by_the_check_is_revised_in_the_stream(web):
-    page = web(["1. Write"], ["Cures eczema!"], ["Hydrates."])
+    page = web(["1. Write"], ["Off-brand slang!"], ["Hydrates."])
     checker = Checker(Check(ok=False, problems=["not an approved claim"]), Check(ok=True))
     text = reply(think(page, checker=checker)[1])
     assert "**Check — 1 problem**" in text and "- not an approved claim" in text and "**Revise**" in text
