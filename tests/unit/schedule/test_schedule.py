@@ -69,3 +69,27 @@ def test_main_refuses_a_bad_file_and_needs_a_model(tmp_path, monkeypatch, capsys
     monkeypatch.setenv("SENSAI_MODEL", "m")
     assert main([str(tmp_path / "nope.json")]) == 2 and "cannot read" in capsys.readouterr().out
     assert main([]) == 2
+
+
+def test_brand_block_lists_products_with_only_their_valid_claims(tmp_path):
+    from sensai.schedule import brand_block
+    brand = tmp_path / "brand.json"
+    brand.write_text(json.dumps({"products": [
+        {"name": "Hydra Glow Serum", "claims": [
+            {"id": "C01", "text": "Hydrates skin for up to 8 hours", "valid_from": "2020-01-01", "valid_until": "2999-01-01", "approved": True},
+            {"id": "C02", "text": "Cures eczema", "approved": False}]},
+        {"name": "Calm Barrier Cream", "claims": []}]}), encoding="utf-8")
+    block = brand_block(str(brand))
+    assert '- Hydra Glow Serum: "Hydrates skin for up to 8 hours"' in block
+    assert "- Calm Barrier Cream: no approved claim yet" in block
+    assert "Cures eczema" not in block and "Never invent products" in block
+    assert brand_block(None) == ""
+
+
+def test_a_run_sends_the_context_read_at_that_run():
+    client = FakeClient(["Idea 1"], ["Idea 2"])
+    facts = iter(["Products: A", "Products: A, B"])
+    runner = make_runner(client, "m", "Rules", PERSONAS, 30, context=lambda: next(facts))
+    task = Task("ideas", "Two ideas", 60, None)
+    runner(task), runner(task)
+    assert [request[1][0].content for request in client.requests] == ["Rules\n\nProducts: A", "Rules\n\nProducts: A, B"]

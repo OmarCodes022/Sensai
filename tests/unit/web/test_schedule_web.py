@@ -39,3 +39,18 @@ def test_without_a_tasks_file_scheduling_is_off(web):
     assert page.call("GET", "/api/schedule")[1] == {"on": False}
     assert page.call("POST", "/api/schedule/x/run")[1]["error"]["code"] == "schedule_off"
     assert "schedule" not in page.call("GET", "/api/config")[1]["capabilities"]
+
+
+def test_a_scheduled_run_knows_the_products_claims_and_saved_facts(scheduled, tmp_path, monkeypatch):
+    from fakes import FakeClient
+    brand = tmp_path / "brand.json"
+    brand.write_text(json.dumps({"products": [{"name": "Calm Barrier Cream", "claims": [
+        {"id": "C03", "text": "Reduces redness in 4 weeks", "valid_from": "2020-01-01", "valid_until": "2999-01-01", "approved": True}]}]}))
+    monkeypatch.setenv("SENSAI_BRAND_FILE", str(brand))
+    client = FakeClient(["Idea A"], ["Idea B"])
+    page = scheduled(client=client)
+    assert page.call("PUT", "/api/facts/launch.date", {"text": "Launch on 3 December"})[0] == 200
+    assert page.call("POST", "/api/schedule/post-ideas/run")[1]["ok"]
+    prompt = client.requests[-1][1][0].content
+    assert '- Calm Barrier Cream: "Reduces redness in 4 weeks"' in prompt
+    assert "launch.date: Launch on 3 December" in prompt and "Never invent products" in prompt
