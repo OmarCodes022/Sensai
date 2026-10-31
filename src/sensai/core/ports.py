@@ -226,6 +226,7 @@ class ApprovalRequest:
     action: str
     resource: str
     reason: str
+    content: str = ""  # Exactly what will change (e.g. before and after), shown before asking.
 
 
 @dataclass(frozen=True)

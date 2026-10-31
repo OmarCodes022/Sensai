@@ -82,7 +82,22 @@ class TerminalApproval:
             lines.append(f"    … (+{hidden} more line{'s' if hidden != 1 else ''})")
         return lines, bool(hidden or cut)
 
+    def _change(self, request: ApprovalRequest) -> ApprovalDecision:
+        """An irreversible change (A3): what, where and the exact before/after, then y or no."""
+        self._write("")
+        self._write(f"{sanitize(request.reason, keep='')}. Sensai wants to:")
+        self._write(f"  Action:  {sanitize(request.action, keep='')}")
+        self._write(f"  Where:   {sanitize(request.resource, keep='')}")
+        for line in request.content.splitlines():
+            self._write(f"  {sanitize(line)}")
+        try:
+            return ApprovalDecision(self._read_key("Apply this change? [y/N] ", "yn", "n") == "y")
+        except (EOFError, KeyboardInterrupt):
+            return ApprovalDecision(False)
+
     def request(self, request: ApprovalRequest) -> ApprovalDecision:
+        if request.content:
+            return self._change(request)
         lines, incomplete = self._preview(request.resource)
         self._write("")
         self._write(f"Run {sanitize(request.action, keep='')}?")
