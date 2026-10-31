@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import threading
 import time
 from types import SimpleNamespace
 
@@ -253,6 +254,58 @@ def test_web_tools_reports_config_location_and_setup(web, tmp_path):
     assert body["found"] is True and body["servers"][0]["name"] == "fixture"
 
 
+@pytest.mark.parametrize("mode", ["older", "ping"])
+def test_older_protocol_and_server_ping_keep_a_server_usable(tmp_path, mode):
+    path = tmp_path / "mcp.json"
+    config(path, MCP_TEST_MODE=mode)
+    catalogue = Catalogue(path)
+    assert catalogue.reload()
+    assert catalogue.servers[0]["error"] is None and catalogue.definitions()
+
+
+def test_long_tool_output_is_cut(tmp_path):
+    path = tmp_path / "mcp.json"
+    config(path, MCP_TEST_MODE="large")
+    catalogue = Catalogue(path)
+    assert catalogue.reload()
+    registry = ToolRegistry(read=lambda _: "yes")
+    catalogue.register(registry)
+    output = registry.execute(ToolCall("fixture.first", {})).output
+    assert output == "x" * 10_000 + "\n(output truncated)"
+
+
+def test_web_reload_discovers_outside_the_app_lock(web, tmp_path):
+    page = web(["hello"])
+    acquired = []
+
+    def reload():
+        def probe():
+            acquired.append(page.app.mutex.acquire(timeout=1))
+            page.app.mutex.release()
+        thread = threading.Thread(target=probe)
+        thread.start()
+        thread.join()
+        return True
+
+    page.app.mcp.reload = reload
+    assert page.call("POST", "/api/tools/reload")[0] == 200
+    assert acquired == [True]
+
+
+def test_web_registry_lists_tools_in_prompt_order_with_documents(web, tmp_path):
+    from sensai.tools import tool_instructions
+    from sensai_web.tools import ObservedRegistry
+
+    config(tmp_path / "mcp.json")
+    (tmp_path / "docs").mkdir()
+    page = web(["hello"], docs_dir=str(tmp_path / "docs"))
+    assert page.call("POST", "/api/tools/reload")[0] == 200
+    app = page.app
+    assert app.docs.enabled and app.mcp.definitions()
+    registry = ObservedRegistry(None, lambda event: None, app.data.path, app.meta_dir, app.docs, app.mcp)
+    assert tool_instructions(registry.definitions()) == app.tools_text()
+
+
 def dead(pid):
     try:
         state = Path(f"/proc/{pid}/stat").read_text().split()[2]
@@ -329,3 +382,28 @@ def test_invalid_metrics_counts_are_errors(tmp_path, reached, engaged):
     csv.write_text("date,channel,accounts_reached,accounts_engaged,engagement_rate,source\n"
                    f"2026-09-21,Instagram,{reached},{engaged},n/a,daily\n", encoding="utf-8")
     assert metrics(csv, {"week_start": "2026-09-21"})["isError"] is True
+
+
+def test_csv_with_a_byte_order_mark_is_read(tmp_path):
+    from sensai.mcp_server import weekly_engagement
+
+    path = tmp_path / "metrics.csv"
+    path.write_text("date,channel,accounts_reached,accounts_engaged\n2026-09-21,Instagram,10,2\n", encoding="utf-8-sig")
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setenv("SENSAI_ENGAGEMENT_CSV", str(path))
+        assert json.loads(weekly_engagement("2026-09-21"))[0]["engagement_rate"] == 20
+
+
+def test_csv_parser_error_is_a_tool_error_not_a_dead_server(tmp_path):
+    path = tmp_path / "mcp.json"
+    metrics = tmp_path / "metrics.csv"
+    metrics.write_text("date,channel,accounts_reached,accounts_engaged\n" + "x" * 200_000 + ",a,1,1\n", encoding="utf-8")
+    path.write_text(json.dumps({"mcpServers": {"sensai": {
+        "command": sys.executable, "args": ["-m", "sensai.mcp_server"],
+        "env": {"SENSAI_ENGAGEMENT_CSV": str(metrics), "PYTHONPATH": str(ROOT / "src")}}}}), encoding="utf-8")
+    catalogue = Catalogue(path)
+    assert catalogue.reload()
+    registry = ToolRegistry(read=lambda _: "yes")
+    catalogue.register(registry)
+    result = registry.execute(ToolCall("sensai.weekly_engagement", {"week_start": "2026-09-21"}))
+    assert "Cannot read engagement" in result.error

@@ -19,7 +19,7 @@ def weekly_engagement(week_start):
     days = [(start + timedelta(days=i)).isoformat() for i in range(7)]
     period = f"{days[0]}/{days[-1]}"
     path = os.environ.get("SENSAI_ENGAGEMENT_CSV")
-    source = open(path, encoding="utf-8", newline="") if path else files("sensai").joinpath("engagement_demo.csv").open(encoding="utf-8", newline="")
+    source = open(path, encoding="utf-8-sig", newline="") if path else files("sensai").joinpath("engagement_demo.csv").open(encoding="utf-8", newline="")
     channels, seen = {}, set()
     with source:
         reader = csv.DictReader(source)
@@ -80,7 +80,7 @@ def main():
                         raise ValueError("Expected weekly_engagement(week_start)")
                     output = weekly_engagement(arguments["week_start"])
                     result = {"content": [{"type": "text", "text": output}], "isError": False}
-                except (OSError, ValueError, TypeError, KeyError, OverflowError):
+                except (OSError, ValueError, TypeError, KeyError, OverflowError, csv.Error):
                     result = {"content": [{"type": "text", "text": "Cannot read engagement: check the ISO Monday date and CSV data"}], "isError": True}
             else:
                 print(json.dumps({"jsonrpc": "2.0", "id": request_id, "error": {"code": -32601, "message": "Method not supported"}}), flush=True)

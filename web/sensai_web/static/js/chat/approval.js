@@ -28,7 +28,7 @@ export function createApproval(req, { getCall, onDecide }) {
   const more = h('button', { type: 'button', class: 'btn btn--ghost', 'aria-keyshortcuts': 'v', hidden: true }, t('common.viewAll'), ...kbd('V'));
   const el = h('section', { class: 'approval', role: 'alertdialog', 'aria-labelledby': `${uid}-t`, 'aria-describedby': `${uid}-r`, tabindex: '-1', dataset: { id: req.id } },
     h('div', { class: 'row' }, icon('shield-check', { size: 20 }), h('h3', { id: `${uid}-t` }, t('approval.title', { action })), h('span', { class: 'grow' }), paused),
-    h('p', { id: `${uid}-r` }, stripInvisible(req.reason || t('approval.reason'))), previewBox, note,
+    h('p', { id: `${uid}-r` }, stripInvisible(req.reason || t(String(req.action).includes('.') ? 'approval.reasonMcp' : 'approval.reason'))), previewBox, note,
     req.action === 'run_python' ? h('p', { class: 'approval__honesty' }, t('approval.honesty')) : null, err,
     h('div', { class: 'approval__foot' }, run, refuse, more));
 

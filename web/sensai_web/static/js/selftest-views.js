@@ -1,5 +1,7 @@
 // Self tests for the view logic added with the live and planned views. Browser only (views import DOM helpers).
 import { mount as mountTools } from './views/tools.js';
+import { createApproval } from './chat/approval.js';
+import { mcpReloadFailed, findCommand } from './chat/commands.js';
 import { validateProfile } from './profile/validate.js';
 import { claimStatus } from './views/preview/brand.js';
 import { score } from './views/preview/documents.js';
@@ -36,6 +38,28 @@ export const VIEW_TESTS = [
       if (!root.textContent.includes('Fixture tool') || !root.textContent.includes('broken: unavailable')) throw new Error('reload result missing');
       eq(root.querySelector('details').open, false, 'setup stays folded once a server is configured');
     } finally { dispose(); root.remove(); }
+  }],
+  ['tools: an MCP tool name keeps every part after the server', async () => {
+    const root = document.createElement('div'); document.body.append(root);
+    const dispose = mountTools(root, {
+      api: { tools: async () => ({ items: [{ name: 'fs.files.read', description: 'Read', timeout: 30, confirm: true }] }), runData: async () => ({ files: [] }) },
+      store: { get: () => ({ session: null }), subscribe: () => () => {} },
+    });
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      if (!root.textContent.includes('files.read')) throw new Error('tool name cut');
+    } finally { dispose(); root.remove(); }
+  }],
+  ['an MCP approval does not say the model runs code', () => {
+    const say = (action) => createApproval({ id: 'a', call_id: 'c', action, preview: { lines: [] } }, { getCall: () => null, onDecide: () => {} }).el.textContent;
+    if (!say('time.get_current_time').includes('MCP')) throw new Error('MCP wording missing');
+    if (say('run_python').includes('MCP')) throw new Error('run_python wording changed');
+  }],
+  ['chat: /mcp is live and a reload reports failures', () => {
+    eq(findCommand('mcp', {}).live, true);
+    eq(mcpReloadFailed({ servers: [{ name: 'a', error: null }] }), false);
+    eq(mcpReloadFailed({ error: 'bad file', servers: [] }), true);
+    eq(mcpReloadFailed({ servers: [{ name: 'a', error: 'down' }] }), true);
   }],
   ['tools: without MCP config the setup steps are open and show the file and example', async () => {
     const root = document.createElement('div'); document.body.append(root);

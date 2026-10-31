@@ -17,7 +17,8 @@ function registry(items) {
   return h('div', { class: 'table-wrap' }, h('table', { class: 'table table--cards' }, h('caption', { class: 'sr-only' }, t('tools.registry')),
     h('thead', null, h('tr', null, ['name', 'description', 'timeout', 'confirm', 'max'].map((k) => h('th', { scope: 'col', class: k === 'timeout' || k === 'max' ? 'num' : '' }, t(`tools.col.${k}`))))),
     h('tbody', null, items.map((x) => {
-      const [server, short] = x.name.includes('.') ? x.name.split('.', 2) : [null, x.name];
+      const dot = x.name.indexOf('.');
+      const [server, short] = dot > 0 ? [x.name.slice(0, dot), x.name.slice(dot + 1)] : [null, x.name];
       return h('tr', null,
         h('td', { 'data-label': t('tools.col.name') }, server ? chip(server, { tone: 'teal', outline: true }) : null, h('code', { class: 'chip chip--mono' }, server ? short : x.name)),
         h('td', { 'data-label': t('tools.col.description') }, describe(x)),

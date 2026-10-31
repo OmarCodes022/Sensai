@@ -20,9 +20,15 @@ def main():
                       "serverInfo": {"name": "acceptance", "version": "1"}}
             if mode == "version":
                 result["protocolVersion"] = "2099-01-01"
+            if mode == "older":
+                result["protocolVersion"] = "2025-06-18"
             if mode == "closed":
                 return
         elif method == "tools/list":
+            if mode == "ping":  # A server may ping mid-request; only an empty result is valid.
+                print(json.dumps({"jsonrpc": "2.0", "id": "p", "method": "ping"}), flush=True)
+                if json.loads(sys.stdin.readline()).get("result") != {}:
+                    return
             cursor = message.get("params", {}).get("cursor")
             result = {"tools": [{"name": "second" if cursor else "first",
                                  "description": "acceptance tool", "inputSchema": {"type": "object"}}]}
@@ -43,7 +49,7 @@ def main():
                 Path(os.environ["MCP_TEST_PID"]).write_text(str(child.pid), encoding="utf-8")
                 if mode == "hang":
                     time.sleep(60)
-            result = {"content": [{"type": "text", "text": "fixture value"}],
+            result = {"content": [{"type": "text", "text": "x" * 50_000 if mode == "large" else "fixture value"}],
                       "isError": mode == "tool-error"}
         print(json.dumps({"jsonrpc": "2.0", "id": message["id"], "result": result}), flush=True)
 

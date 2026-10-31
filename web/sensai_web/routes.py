@@ -211,8 +211,10 @@ def tools(app: WebApp, request):
 def reload_tools(app: WebApp, request):
     with app.mutex:
         app.require_idle()
-        app.mcp.reload()
-        app.active.session.set_system_prompt(app.system_prompt(app.active.persona_id))
+    app.mcp.reload()  # Outside the lock: discovery can take 30 s per server.
+    with app.mutex:
+        if app.turn is None:  # Otherwise the next turn's refresh_prompt catches up.
+            app.active.session.set_system_prompt(app.system_prompt(app.active.persona_id))
         return tools(app, request)
 
 

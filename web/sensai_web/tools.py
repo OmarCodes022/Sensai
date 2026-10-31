@@ -48,11 +48,11 @@ class ObservedRegistry(ToolRegistry):
         self.register(CALCULATE, calculate)
         self.register(RUN_PYTHON, run_handler(data_dir, self._meta_path, permission=None), confirm=True,
                       max_calls=PYTHON_ATTEMPTS)  # No permission policy yet (T26).
-        if mcp is not None:
-            mcp.register(self)
         self._hits: list[dict] = []
         if library is not None and library.enabled:
             self.register(SEARCH_DOCS, partial(self._search, library), timeout=None)  # In this process: the index is here.
+        if mcp is not None:  # After search_docs: the order of WebApp.tools_text, which /think's rules rely on.
+            mcp.register(self)
 
     def execute(self, call: ToolCall, cancellation=None) -> ToolResult:
         call_id = self._announce(call)

@@ -1,6 +1,6 @@
 # MCP tools
 
-Sensai supports MCP stdio tools using protocol **2025-11-25** and its `initialize` handshake. HTTP servers, resources, prompts, and the newer stateless protocol are outside this feature.
+Sensai supports MCP stdio tools using protocol **2025-11-25** and its `initialize` handshake, and accepts servers answering with an older version of that handshake (2024-11-05 onwards). HTTP servers, resources, prompts, and the newer stateless protocol are outside this feature.
 
 Inside Sensai, **`/mcp`** shows the config file in use, each server's status and these setup steps: in the terminal it prints them, in web chat it opens the **MCP servers** section of the Tools view. Sensai never edits the file for you, because each entry runs a local command.
 
@@ -26,6 +26,6 @@ Columns: `date`, `channel`, `accounts_reached`, `accounts_engaged`. Dates are IS
 
 ## Lifecycle and failures
 
-Discovery and calls each have a 30-second budget. Servers start afresh for every call and are stopped afterwards, including on timeout or cancellation. This makes cleanup simple but adds startup latency to every call. Server stderr is discarded; protocol errors are surfaced without dumping commands or environment values.
+Discovery and calls each have a 30-second budget. Servers start afresh for every call and are stopped afterwards, including on timeout or cancellation. This makes cleanup simple but adds startup latency to every call. Results are cut at 10,000 characters. Startup and `/mcp reload` check servers one at a time and cannot be interrupted, so a hung server delays them by up to 30 seconds. Server stderr is discarded; protocol errors are surfaced without dumping commands or environment values.
 
 For a demonstration, try the question above and “What time is it in Tokyo?” Approve each call. Then try an invalid server command, deny a call, or interrupt a slow call: chat remains usable. The two user stories are in [MCP stories](https://github.com/OmarCodes022/Sensai/blob/main/docs/stories/t1-mcp-tools.md).

@@ -11,8 +11,11 @@ from sensai.core.ports import ToolCall, ToolDefinition, ToolResult
 from sensai.tools import ToolRegistry
 
 PROTOCOL = "2025-11-25"
+# Older versions use the same initialize, tools/list and tools/call subset.
+PROTOCOLS = (PROTOCOL, "2025-06-18", "2025-03-26", "2024-11-05")
 TIMEOUT = 30.0
 MAX_MESSAGE = 1024 * 1024
+MAX_OUTPUT = 10_000  # As for run_python: a result goes to the model and into the saved session.
 GUIDE_URL = "https://omarcodes022.github.io/Sensai/user-guide/mcp/"
 EXAMPLE_CONFIG = """{
   "mcpServers": {
@@ -58,8 +61,9 @@ class Connection:
                 raise MCPError("invalid MCP response")
             if "method" in message:
                 if "id" in message:
-                    self.send({"jsonrpc": "2.0", "id": message["id"], "error": {
-                        "code": -32601, "message": "Client method not supported"}})
+                    self.send({"jsonrpc": "2.0", "id": message["id"], "result": {}} if message["method"] == "ping"
+                              else {"jsonrpc": "2.0", "id": message["id"], "error": {
+                                  "code": -32601, "message": "Client method not supported"}})
                 continue
             if message.get("id") != self.id:
                 raise MCPError("MCP response id mismatch")
@@ -73,8 +77,8 @@ class Connection:
     def initialize(self):
         result = self.request("initialize", {"protocolVersion": PROTOCOL, "capabilities": {},
                               "clientInfo": {"name": "sensai", "version": "0.1.0"}})
-        if result.get("protocolVersion") != PROTOCOL:
-            raise MCPError("unsupported MCP protocol version (expected " + PROTOCOL + ")")
+        if result.get("protocolVersion") not in PROTOCOLS:
+            raise MCPError("unsupported MCP protocol version (expected " + PROTOCOL + " or older)")
         self.send({"jsonrpc": "2.0", "method": "notifications/initialized"})
 
     def close(self):
@@ -121,6 +125,8 @@ def exchange(server, tool, arguments, cancellation=None):
         parts = [item["text"] for item in content if isinstance(item, dict)
                  and item.get("type") == "text" and isinstance(item.get("text"), str)]
         text = "\n".join(parts)
+        if len(text) > MAX_OUTPUT:
+            text = text[:MAX_OUTPUT] + "\n(output truncated)"
         if result.get("isError") is True:
             return ToolResult("", text or "MCP tool failed")
         if not parts:

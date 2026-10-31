@@ -14,6 +14,7 @@ import { createPrintHead } from '../chat/print-head.js';
 import { openShortcuts } from '../components/shortcuts.js';
 import { showLock } from '../components/lock.js';
 import { errorState, skeletonRows } from '../components/state.js';
+import { mcpReloadFailed } from '../chat/commands.js';
 import { toast } from '../components/toast.js';
 import { formatDate } from '../format.js';
 import { stripInvisible } from '../safetext.js';
@@ -36,7 +37,10 @@ export function mount(root, ctx) {
 
   const docCommands = createDocCommands({ api, transcript, router });
   const reloadMcp = async () => {
-    try { toast(t('tools.mcp.reloaded', { n: (await api.reloadTools()).servers.length })); } catch (e) { toast(e.message); }
+    try {
+      const d = await api.reloadTools();
+      toast(mcpReloadFailed(d) ? t('tools.mcp.reloadFailed') : t('tools.mcp.reloaded', { n: d.servers.length }));
+    } catch (e) { toast(e.message); }
   };
   const commands = {
     persona: () => document.querySelector('.persona-pill')?.click(),

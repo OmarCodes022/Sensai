@@ -859,5 +859,7 @@
  "tools.mcp.step3": "Use Reload MCP, or /mcp reload in chat. Tools appear below, and each call asks for your approval.",
  "tools.mcp.guide": "Read the full guide",
  "tools.mcp.reloaded": "MCP reloaded: {n} server(s) configured.",
- "slash.mcp": "Show MCP status and setup, or reload it with /mcp reload"
+ "slash.mcp": "Show MCP status and setup, or reload it with /mcp reload",
+ "approval.reasonMcp": "The model wants to call a tool from an MCP server, which runs on your computer.",
+ "tools.mcp.reloadFailed": "MCP reload found a problem. See the Tools view."
 }
