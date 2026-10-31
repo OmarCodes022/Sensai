@@ -128,3 +128,27 @@ def test_health_reports_remote(web):
     page = web(ssh_host="gpu-box")
     assert page.call("GET", "/api/health")[1]["remote"] is True
     assert web().call("GET", "/api/health")[1]["remote"] is False
+
+
+def test_token_counts_are_kept_with_the_times_and_copied_to_a_branch(tmp_path):
+    import sqlite3
+    path = str(tmp_path / "t.sqlite3")
+    with sqlite3.connect(path) as old:  # A table made before token counts were kept.
+        old.execute("CREATE TABLE web_turn_times (creator_id TEXT NOT NULL, session_id TEXT NOT NULL, "
+                    "turn INTEGER NOT NULL, started_at TEXT NOT NULL, finished_at TEXT NOT NULL, "
+                    "PRIMARY KEY (creator_id, session_id, turn))")
+    times = TurnTimes(path, "amy")
+    counts = {"prompt_tokens": 2491, "output_tokens": 74, "latency_ms": 15000, "server_duration_ms": None}
+    times.record("s1", 1, "a", "b", counts)
+    times.record("s1", 2, "c", "d")
+    assert times.usage("s1") == {1: counts} and times.load("s1") == {1: ("a", "b"), 2: ("c", "d")}
+    times.copy("s1", "branch", 1)
+    assert times.usage("branch") == {1: counts}
+
+
+def test_reopened_replies_show_their_token_counts(web):
+    page = web(["Hello"])
+    page.stream({"text": "hi"})
+    page.app.times.record(page.app.active.recorder.session_id, 1, "a", "b", {"prompt_tokens": 120, "output_tokens": 30})
+    reply = page.call("GET", "/api/session")[1]["items"][1]
+    assert reply["usage"] == {"prompt_tokens": 120, "output_tokens": 30}
