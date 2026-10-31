@@ -65,7 +65,7 @@ def test_tools_lists_the_tools_with_their_rules(web):
     items = web().call("GET", "/api/tools")[1]["items"]
     assert [(t["name"], t["confirm"], t["timeout"]) for t in items] == [("calculate", False, 30), ("run_python", True, 30),
                                                                             ("save_fact", False, None), ("delete_fact", False, None),
-                                                                            ("ask_user", False, None)]
+                                                                            ("ask_user", False, None), ("web_search", False, None)]
     assert items[1]["parameters"]["required"] == ["code"]
 
 

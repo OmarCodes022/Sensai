@@ -32,7 +32,7 @@ def test_documents_are_off_when_the_folder_is_switched_off(web):
     page = web()
     assert "documents" not in page.call("GET", "/api/config")[1]["capabilities"]
     assert page.call("GET", "/api/docs")[1]["state"] == "off"
-    assert [t["name"] for t in page.call("GET", "/api/tools")[1]["items"]] == ["calculate", "run_python", "save_fact", "delete_fact", "ask_user"]
+    assert [t["name"] for t in page.call("GET", "/api/tools")[1]["items"]] == ["calculate", "run_python", "save_fact", "delete_fact", "ask_user", "web_search"]
     status, body = page.call("PUT", "/api/docs/a.md", {"text": "some text here"})
     assert status == 400 and "switched off" in body["error"]["message"]
     assert page.call("POST", "/api/docs/reindex")[0] == 400

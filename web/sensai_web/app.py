@@ -25,6 +25,7 @@ from sensai.rag import DOCS_PROMPT, SEARCH_DOCS, DocLibrary
 from sensai.campaign import CampaignStore
 from sensai.chat.facts import DELETE_FACT, SAVE_FACT
 from sensai.chat.questions import ASK_USER
+from sensai.search import WEB_SEARCH
 from sensai.security.file_tools import FILE_TOOLS, open_project
 from sensai.guardrails import GuardedClient, GuardrailConfigError, load_guardrail
 from sensai.tools import CALCULATE, tool_instructions
@@ -35,6 +36,7 @@ from sensai_web.config import WebConfig
 from sensai_web.datafiles import DataFolder
 from sensai_web.errors import ApiError
 from sensai_web.facts import make_memory
+from sensai_web.websearch import make as make_search
 from sensai_web.health import Health
 from sensai_web.profile import clean_preferences
 from sensai_web.tabs import TabLock
@@ -124,7 +126,8 @@ class WebApp:
         self.chat_client = GuardedClient(make_client(settings, self.usage.add), self.guard)
         self.campaign = CampaignStore(settings.campaigns_dir)  # The weekly document (M4).
         self.pending_change = None
-        self.questions = Approvals()  # ask_user forms waiting for the page (X4).  # An approved-section edit waiting for the creator's yes (A3).
+        self.questions = Approvals()
+        self.web = make_search(settings)  # Web search (T3), or None when switched off.  # ask_user forms waiting for the page (X4).  # An approved-section edit waiting for the creator's yes (A3).
         self.title_client = make_client(settings)
         try:
             self.catalogue = Catalogue(cfg.personas_file)
@@ -177,7 +180,8 @@ class WebApp:
 
     def tools_text(self) -> str:
         return tool_instructions((CALCULATE, RUN_PYTHON, SAVE_FACT, DELETE_FACT, *((SEARCH_DOCS,) if self.docs.enabled else ()),
-                                  *(FILE_TOOLS if self.files is not None else ()), ASK_USER))
+                                  *(FILE_TOOLS if self.files is not None else ()), ASK_USER,
+                                  *((WEB_SEARCH,) if self.web is not None else ())))
 
     def data_text(self) -> str:
         """The data file names for the model (as in the CLI), or "" without a readable data folder."""
