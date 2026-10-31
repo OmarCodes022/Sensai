@@ -63,7 +63,8 @@ def _mcp_load(mcp: Catalogue, read, write) -> bool:
     if mcp.untrusted is None:
         return changed
     write(sanitize(f"This MCP config is not trusted yet: {mcp.config_path()}"))
-    write("Trusting it runs these commands on this computer, with your environment:")
+    write(sanitize(f"Trusting it runs these commands in {mcp.untrusted['folder']}, with your environment,"))
+    write("and they can load code from that folder:")
     for line in mcp.untrusted["commands"]:
         write(f"  {sanitize(line)}")
     try:

@@ -65,7 +65,7 @@ export const VIEW_TESTS = [
   ['tools: an untrusted config shows its commands and trusts only on a click', async () => {
     const root = document.createElement('div'); document.body.append(root);
     const trusted = [];
-    const untrusted = { digest: 'abc', commands: ['evil: sh -c x'] };
+    const untrusted = { digest: 'abc', folder: '/some/folder', commands: ['evil: sh -c x'] };
     const dispose = mountTools(root, {
       api: { tools: async () => ({ items: [], servers: [], untrusted }), trustTools: async (d) => { trusted.push(d); return { items: [], servers: [] }; }, runData: async () => ({ files: [] }) },
       store: { get: () => ({ session: null }), subscribe: () => () => {} },
@@ -73,6 +73,7 @@ export const VIEW_TESTS = [
     try {
       await new Promise((resolve) => setTimeout(resolve, 0));
       if (!root.querySelector('[role=alert] pre').textContent.includes('evil: sh -c x')) throw new Error('commands missing');
+      if (!root.querySelector('[role=alert]').textContent.includes('/some/folder')) throw new Error('folder missing');
       eq(trusted, []);
       root.querySelector('[role=alert] button').click();
       await new Promise((resolve) => setTimeout(resolve, 0));

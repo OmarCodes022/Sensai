@@ -115,8 +115,63 @@ def test_question_escapes_tricks_and_hides_env_values(tmp_path):
     catalogue.reload()
     first, second = catalogue.untrusted["commands"]
     assert "\n" not in first and "\x1b" not in first and "\u202e" not in first
-    assert "TOKEN" in first and "do-not-show" not in first
+    assert "TOKEN=<hidden>" in first and "do-not-show" not in first
     assert second == "bad: (invalid entry)"
+
+
+def accept(path):
+    catalogue = Catalogue(path)
+    catalogue.reload()
+    assert catalogue.trust(catalogue.untrusted["digest"])
+    return catalogue
+
+
+def test_accepted_file_used_from_another_folder_asks_again(setup, tmp_path, monkeypatch):
+    path, marker = setup
+    accept(path)
+    evil = tmp_path / "evil"
+    evil.mkdir()
+    monkeypatch.chdir(evil)  # As with SENSAI_MCP_CONFIG=../mcp.json in that folder's .env.
+    catalogue = Catalogue(path)
+    catalogue.reload()
+    assert catalogue.untrusted["folder"] == str(evil) and not marker.exists()
+
+
+def test_a_folders_symlink_to_an_accepted_file_asks_again(setup, tmp_path, monkeypatch):
+    path, marker = setup
+    monkeypatch.chdir(tmp_path)
+    accept(path)
+    link = tmp_path / "link.json"
+    link.symlink_to(path)
+    catalogue = Catalogue(link)
+    catalogue.reload()
+    assert catalogue.untrusted and not marker.exists()
+
+
+def test_same_folder_and_file_are_remembered(setup, tmp_path, monkeypatch):
+    path, marker = setup
+    monkeypatch.chdir(tmp_path)
+    accept(path)
+    catalogue = Catalogue(path)
+    catalogue.reload()
+    assert catalogue.untrusted is None and marker.exists()
+
+
+def test_question_shows_values_that_decide_what_runs(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "bin").mkdir()
+    program = tmp_path / "bin" / "uvx"
+    program.write_text("#!/bin/sh\n", encoding="utf-8")
+    program.chmod(0o755)
+    path = tmp_path / "mcp.json"
+    path.write_text(json.dumps({"mcpServers": {"time": {"command": "uvx", "args": ["mcp-server-time"], "env": {
+        "PATH": "./bin", "LD_PRELOAD": "./x.so", "API_KEY": "do-not-show", "GIT_ASKPASS": "./ask"}}}}), encoding="utf-8")
+    catalogue = Catalogue(path)
+    catalogue.reload()
+    line = catalogue.untrusted["commands"][0]
+    assert f"(program: {program})" in line
+    assert "PATH=./bin" in line and "LD_PRELOAD=./x.so" in line and "GIT_ASKPASS=./ask" in line
+    assert "API_KEY=<hidden>" in line and "do-not-show" not in line
 
 
 def test_empty_or_missing_config_needs_no_question(tmp_path):
@@ -156,6 +211,7 @@ def test_cli_reload_refused_runs_nothing(setup, answer):
     output, registry, _ = cli(path, [answer], "/mcp reload")
     assert not marker.exists()
     assert "fixture:" in output and "MCP tools stay off" in output
+    assert f"in {os.getcwd()}" in output and "load code from that folder" in output
     assert "reloaded" not in output and not any("." in d.name for d in registry.definitions())
 
 

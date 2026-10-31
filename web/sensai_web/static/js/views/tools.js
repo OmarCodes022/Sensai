@@ -33,6 +33,7 @@ function mcpPanel(d, onTrust) {
   const servers = d.servers || [];
   return [
     d.untrusted ? h('div', { class: 'stack', role: 'alert' }, h('p', null, t('tools.mcp.untrusted')),
+      d.untrusted.folder ? h('p', null, t('tools.mcp.folder', { path: d.untrusted.folder })) : null,
       h('pre', { class: 'code code--wrap', tabindex: '0', dir: 'ltr' }, d.untrusted.commands.join('\n')),
       h('div', { class: 'row' }, button(t('tools.mcp.trust'), { onClick: () => onTrust(d.untrusted.digest) }))) : null,
     d.trust_error ? h('p', { role: 'alert' }, d.trust_error) : null,

@@ -863,5 +863,6 @@
  "approval.reasonMcp": "The model wants to call a tool from an MCP server, which runs on your computer.",
  "tools.mcp.reloadFailed": "MCP reload found a problem. See the Tools view.",
  "tools.mcp.untrusted": "This config file is not trusted yet, so nothing from it has run. Trusting it runs these commands on this computer, with your environment:",
- "tools.mcp.trust": "Trust this file and run them"
+ "tools.mcp.trust": "Trust this file and run them",
+ "tools.mcp.folder": "They run in {path} and can load code from that folder."
 }

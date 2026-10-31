@@ -863,5 +863,6 @@
  "approval.reasonMcp": "Le modèle veut appeler un outil d'un serveur MCP, qui s'exécute sur votre ordinateur.",
  "tools.mcp.reloadFailed": "Le rechargement MCP a rencontré un problème. Voir la vue Outils.",
  "tools.mcp.untrusted": "Ce fichier de configuration n'est pas encore approuvé : rien de ce qu'il contient n'a été exécuté. L'approuver exécute ces commandes sur cet ordinateur, avec votre environnement :",
- "tools.mcp.trust": "Approuver ce fichier et les exécuter"
+ "tools.mcp.trust": "Approuver ce fichier et les exécuter",
+ "tools.mcp.folder": "Elles s'exécutent dans {path} et peuvent charger du code de ce dossier."
 }

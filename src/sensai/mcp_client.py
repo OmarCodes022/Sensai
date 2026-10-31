@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import re
 import shlex
+import shutil
 import subprocess
 
 from sensai.core.ports import ToolCall, ToolDefinition, ToolResult
@@ -168,6 +169,9 @@ def _valid_schema(schema):
     return True
 
 
+_SECRET_NAME = re.compile(r"token|secret|password|passwd|api_?key|credential|auth", re.I)
+
+
 def _trust_file():
     """Outside any project, and not a setting: a folder's own .env must not choose it."""
     base = os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config"
@@ -183,15 +187,22 @@ def _read_trusted():
 
 
 def _describe(name, spec):
-    """One escaped line for a trust question; env values can be secrets, so only their names."""
+    """One escaped line for a trust question, with what really decides the program that runs.
+
+    Values such as PATH or LD_PRELOAD change that program, so only secret-looking ones are hidden.
+    """
     if not isinstance(spec, dict) or not isinstance(spec.get("command"), str):
         line = f"{name}: (invalid entry)"
     else:
-        args = spec.get("args", [])
-        line = f"{name}: {shlex.join([spec['command'], *map(str, args if isinstance(args, list) else [])])}"
-        env = spec.get("env")
-        if isinstance(env, dict) and env:
-            line += f" (sets {', '.join(map(str, env))})"
+        command, args = spec["command"], spec.get("args", [])
+        line = f"{name}: {shlex.join([command, *map(str, args if isinstance(args, list) else [])])}"
+        env = spec.get("env") if isinstance(spec.get("env"), dict) else {}
+        found = shutil.which(command, path=str(env.get("PATH", os.environ.get("PATH", ""))))
+        if found and os.path.abspath(found) != command:
+            line += f" (program: {os.path.abspath(found)})"
+        if env:
+            line += " (sets " + ", ".join(
+                f"{key}=<hidden>" if _SECRET_NAME.search(str(key)) else f"{key}={value}" for key, value in env.items()) + ")"
     return line.encode("unicode_escape").decode("ascii")
 
 
@@ -205,22 +216,29 @@ class Catalogue:
         self.trust_error = None
         self._accepted = set()
 
+    def _trust_key(self):
+        """The launch folder counts: servers start there, and relative commands and `python -m` load from it.
+
+        The path is not resolved, so a folder's symlink to an accepted file is a new question.
+        """
+        return f"{os.getcwd()}\0{os.path.abspath(self.path)}"
+
     def _trusted(self, digest):
-        path = self.config_path()
-        return (path, digest) in self._accepted or _read_trusted().get(path) == digest
+        key = self._trust_key()
+        return (key, digest) in self._accepted or _read_trusted().get(key) == digest
 
     def trust(self, digest):
         """Remember the file content the user was shown; the next reload then runs it."""
         if not self.untrusted or digest != self.untrusted["digest"]:
             return False
-        path, self.trust_error = self.config_path(), None
-        self._accepted.add((path, digest))
+        key, self.trust_error = self._trust_key(), None
+        self._accepted.add((key, digest))
         target = _trust_file()
         try:
             target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
             partial_file = target.with_suffix(".tmp")
             partial_file.touch(mode=0o600)
-            partial_file.write_text(json.dumps({**_read_trusted(), path: digest}), encoding="utf-8")
+            partial_file.write_text(json.dumps({**_read_trusted(), key: digest}), encoding="utf-8")
             partial_file.replace(target)
         except OSError:
             self.trust_error = "Could not save MCP trust; Sensai will ask again next time"
@@ -255,7 +273,7 @@ class Catalogue:
         digest = hashlib.sha256(raw).hexdigest()
         if config["mcpServers"] and not self._trusted(digest):
             self.tools, self.servers, self.error = [], [], None
-            self.untrusted = {"digest": digest, "commands": [
+            self.untrusted = {"digest": digest, "folder": os.getcwd(), "commands": [
                 _describe(name, spec) for name, spec in config["mcpServers"].items()]}
             return True
         tools, statuses = [], []
