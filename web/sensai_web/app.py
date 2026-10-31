@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from threading import Event, Lock, RLock
 
 from sensai.chat import saved_sessions
+from sensai.chat.context import ContextState
 from sensai.chat.prompts import load_system_prompt
 from sensai.chat.saved_sessions import SessionRecorder, profile_block
 from sensai.chat.session import ChatSession
@@ -92,6 +93,7 @@ class WebApp:
         self.cfg = cfg
         self.started = now()
         self.usage = UsageCollector()
+        self.context = ContextState(cfg.context_length)  # M2: the window and what summaries saved
         self.approvals = Approvals()
         self.turn: Event | None = None
         self.mutex = RLock()
@@ -228,6 +230,7 @@ class WebApp:
         with self.mutex:
             self.require_idle()
             self.active = self.fresh_session(self.active.persona_id)
+            self.context.restart()
             return self.session_json(self.active)
 
     def resume(self, session_id: str) -> dict:
@@ -239,6 +242,7 @@ class WebApp:
             if snapshot is None:
                 raise ApiError(404, "not_found", f"unknown session: {session_id}")
             self.active = self._resumed(snapshot, meta, None)
+            self.context.restart()
             return self.session_json(self.active)
 
     def set_persona(self, persona_id: object) -> str:

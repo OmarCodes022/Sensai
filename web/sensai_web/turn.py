@@ -11,6 +11,7 @@ from sensai.sandbox import remove_stale_folders
 from sensai.tools import run_with_tools
 from sensai_web.app import ActiveSession, WebApp, now
 from sensai_web.approvals import WebApproval
+from sensai_web.compaction import after_turn
 from sensai_web.errors import llm_failure
 from sensai_web.tools import INVALID, ObservedRegistry
 
@@ -88,4 +89,5 @@ def run_turn(app: WebApp, active: ActiveSession, stop, text: str, emit: Emit) ->
         active.updated_at = now()
         if active.recorder.saved:
             app.times.record(active.recorder.session_id, number, started_at, active.updated_at)
+        after_turn(app, active, stop, emit)
     emit({"type": "done", "status": status, "turn_id": turn_id})
