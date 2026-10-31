@@ -63,7 +63,7 @@ def run_turn(app: WebApp, active: ActiveSession, stop, text: str, emit: Emit) ->
         emit({"type": "warning", "code": "documents", "message": notice})
     approval = WebApproval(app.approvals, emit, stop, turn_id)
     app.memory.drop()
-    registry = ObservedRegistry(approval, emit, app.data.path, app.meta_dir, app.docs, app.memory)
+    registry = ObservedRegistry(approval, emit, app.data.path, app.meta_dir, app.docs, app.memory, app.files)
     status = None
     stream = run_with_tools(
         session, registry, text, token,

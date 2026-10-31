@@ -14,7 +14,7 @@ from sensai.chat.saved_sessions import SessionRecorder, profile_block
 from sensai.chat.session import ChatSession
 from sensai.core.errors import SensaiError
 from sensai.core.messages import Message
-from sensai.core.ports import PortError, Profile, SessionSnapshot
+from sensai.core.ports import PolicyDenied, PortError, Profile, SessionSnapshot
 from sensai.llm.ollama import OllamaClient
 from sensai.llm.structured import OllamaStructuredClient
 from sensai.memory.sqlite_store import StorageRepository
@@ -23,6 +23,7 @@ from sensai.settings import Settings
 from sensai.llm.embeddings import OllamaEmbeddingAdapter
 from sensai.rag import DOCS_PROMPT, SEARCH_DOCS, DocLibrary
 from sensai.chat.facts import DELETE_FACT, SAVE_FACT
+from sensai.security.file_tools import FILE_TOOLS, open_project
 from sensai.guardrails import GuardedClient, GuardrailConfigError, load_guardrail
 from sensai.tools import CALCULATE, tool_instructions
 from sensai_web import session_view
@@ -105,6 +106,10 @@ class WebApp:
         self.docs = DocLibrary(cfg.docs_dir, make_embedding(cfg), cfg.creator, cache_path=cfg.db_path, model=cfg.embed_model)
         self.model = cfg.model  # the page can change it while running
         self.checker = make_checker(cfg)
+        try:  # File access (T4): on when .sensai/settings.json exists where Sensai starts.
+            self.files = open_project(os.getcwd(), cfg.creator)
+        except (PolicyDenied, PortError) as exc:
+            raise StartupError(str(exc)) from None
         self.memory = make_memory(self)  # The brand fact sheet (M3); the model edits it through two tools.
         self.health = Health(cfg.host, cfg.model)
         self.meta_dir = tempfile.mkdtemp(prefix="sensai-web-")
@@ -166,7 +171,8 @@ class WebApp:
     # Prompt and sessions
 
     def tools_text(self) -> str:
-        return tool_instructions((CALCULATE, RUN_PYTHON, SAVE_FACT, DELETE_FACT, *((SEARCH_DOCS,) if self.docs.enabled else ())))
+        return tool_instructions((CALCULATE, RUN_PYTHON, SAVE_FACT, DELETE_FACT, *((SEARCH_DOCS,) if self.docs.enabled else ()),
+                                  *(FILE_TOOLS if self.files is not None else ())))
 
     def data_text(self) -> str:
         """The data file names for the model (as in the CLI), or "" without a readable data folder."""

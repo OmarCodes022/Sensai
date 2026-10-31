@@ -12,7 +12,7 @@ from sensai.memory.vector_index import VectorIndexError
 from sensai.rag import MAX_FILE_BYTES, MAX_TOTAL_BYTES, TYPES, DocError
 from sensai.sandbox import SandboxLimits
 from sensai.tools import MAX_TOOL_CALLS
-from sensai_web import branching, facts, manage, models, sandbox, session_view
+from sensai_web import branching, facts, files, manage, models, sandbox, session_view
 from sensai_web.app import WebApp
 from sensai_web.errors import ApiError, llm_failure
 from sensai_web.tools import tool_list
@@ -57,7 +57,8 @@ def health(app: WebApp, request):
 def config(app: WebApp, request):
     cfg, limits = app.cfg, SandboxLimits()
     return {
-        "capabilities": {name: True for name in (*CAPABILITIES, *(("documents",) if app.docs.enabled else ()))},
+        "capabilities": {name: True for name in (*CAPABILITIES, *(("documents",) if app.docs.enabled else ()),
+                                                  *(("file_access",) if app.files is not None else ()))},
         "draft_personas": app.catalogue.drafts(),
         "context_length": cfg.context_length, "creator": cfg.creator, "model": app.model,
         "effective": cfg.effective,
@@ -218,7 +219,7 @@ def approve(app: WebApp, request, id: str):
 
 @route("GET", r"/api/tools")
 def tools(app: WebApp, request):
-    return {"items": tool_list(documents=app.docs.enabled)}
+    return {"items": tool_list(documents=app.docs.enabled, files=app.files is not None)}
 
 
 @route("POST", r"/api/run")
@@ -256,6 +257,21 @@ def read_data(app: WebApp, request, name: str):
 @route("DELETE", r"/api/run/data/(?P<name>[^/]+)")
 def delete_data(app: WebApp, request, name: str):
     return app.data.delete(unquote(name))
+
+
+@route("GET", r"/api/files")
+def files_status(app: WebApp, request):
+    return files.status(app)
+
+
+@route("POST", r"/api/files/read")
+def read_file(app: WebApp, request):
+    return files.read(app, request.json().get("path"))
+
+
+@route("POST", r"/api/files/save")
+def save_file(app: WebApp, request):
+    return files.save(app, request.json().get("path"))
 
 
 @route("GET", r"/api/facts")
