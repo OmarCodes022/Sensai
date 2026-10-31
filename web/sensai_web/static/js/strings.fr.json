@@ -893,5 +893,13 @@
  "campaign.asking": "Sensai prépare une modification…",
  "campaign.sectionApproved": "Section approuvée",
  "campaign.nothing": "(rien)",
- "campaign.removed": "(supprimé)"
+ "campaign.removed": "(supprimé)",
+ "question.title": "Sensai a besoin d'une précision",
+ "question.other": "Autre (à préciser)",
+ "question.otherPlaceholder": "Tapez votre réponse",
+ "question.send": "Envoyer les réponses",
+ "question.skip": "Passer",
+ "question.answerAll": "Répondez à chaque question, ou passez.",
+ "question.answered": "Répondu.",
+ "question.skipped": "Passé."
 }

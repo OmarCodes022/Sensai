@@ -61,6 +61,7 @@ const real = {
   deleteDoc: (name) => req('DELETE', `/api/docs/${encodeURIComponent(name)}`),
   reindexDocs: () => req('POST', '/api/docs/reindex'),
   searchDocs: (q) => req('GET', `/api/docs/search?q=${encodeURIComponent(q)}`),
+  answerQuestion: (id, body) => req('POST', `/api/questions/${encodeURIComponent(id)}`, body),
   campaign: () => req('GET', '/api/campaign'),
   campaignEdit: (section, request) => req('POST', '/api/campaign/edit', { section, request }),
   campaignConfirm: (token, approved) => req('POST', '/api/campaign/confirm', { token, approved }),

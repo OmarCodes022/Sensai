@@ -893,5 +893,13 @@
  "campaign.asking": "Asking Sensai for an edit…",
  "campaign.sectionApproved": "Section approved",
  "campaign.nothing": "(nothing)",
- "campaign.removed": "(removed)"
+ "campaign.removed": "(removed)",
+ "question.title": "Sensai needs a detail",
+ "question.other": "Other (type it)",
+ "question.otherPlaceholder": "Type your answer",
+ "question.send": "Send answers",
+ "question.skip": "Skip",
+ "question.answerAll": "Answer every question, or skip.",
+ "question.answered": "Answered.",
+ "question.skipped": "Skipped."
 }

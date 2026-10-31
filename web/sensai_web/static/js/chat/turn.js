@@ -4,6 +4,7 @@ import { createUser, createEvent } from './messages.js';
 import { createAssistant } from './assistant.js';
 import { createToolCard } from './tool-card.js';
 import { createApproval } from './approval.js';
+import { createQuestionCard } from './question-card.js';
 import { createErrorCard } from './error-card.js';
 import { assistantOptions } from './shared.js';
 import { showLock } from '../components/lock.js';
@@ -78,6 +79,12 @@ export function createTurn({ ctx, transcript, composer, model, reconnect, onReus
         requestAnimationFrame(() => { ap.el.scrollIntoView({ block: 'nearest' }); ap.focus(); }); break;
       }
       case 'approval_result': resolveApproval(ev.id, ev.approved); break;
+      case 'question': {  // ask_user (X4): the turn waits for the form, like an approval.
+        const q = createQuestionCard(ev, { send: (answers) => api.answerQuestion(ev.id, { answers }), skip: () => api.answerQuestion(ev.id, { skipped: true }) });
+        st.approvals.set(ev.id, q); ensureBlock().addApproval(q.el); st.paused = true; refreshLock();
+        announce(t('question.title')); requestAnimationFrame(() => { q.el.scrollIntoView({ block: 'nearest' }); q.focus(); }); break;
+      }
+      case 'question_result': st.approvals.get(ev.id)?.finish(ev.skipped); st.paused = false; refreshLock(); break;
       case 'tool_result': st.cards.get(ev.id)?.setResult(ev); st.approvals.forEach((a) => { if (a.callId === ev.id) a.finished(ev.ok); }); announce(t('tool.finished', { name: ev.name })); break;
       case 'usage': st.usage = { prompt_tokens: ev.prompt_tokens, output_tokens: ev.output_tokens, latency_ms: ev.latency_ms, server_duration_ms: ev.server_duration_ms }; break;
       case 'title': store.set({ session: { ...store.get().session, title: ev.title } }); document.title = `${stripInvisible(ev.title)} - Sensai`; break;
