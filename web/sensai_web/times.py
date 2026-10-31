@@ -1,15 +1,25 @@
-"""When each turn started and finished.
+"""When each turn started and finished, and the token counts Ollama reported for it.
 
 Session storage keeps messages without timestamps, so the web layer records its
 own in an extra table of the same database. Turns made in the terminal have no
 entry, and the page then simply shows no time for them.
 """
+import json
 import sqlite3
 
 SCHEMA = ("CREATE TABLE IF NOT EXISTS web_turn_times ("
           "creator_id TEXT NOT NULL, session_id TEXT NOT NULL, turn INTEGER NOT NULL, "
           "started_at TEXT NOT NULL, finished_at TEXT NOT NULL, "
-          "PRIMARY KEY (creator_id, session_id, turn))")
+          "usage TEXT, PRIMARY KEY (creator_id, session_id, turn))")
+COLUMNS = "creator_id, session_id, turn, started_at, finished_at, usage"
+
+
+def _prepare(connection) -> None:
+    connection.execute(SCHEMA)
+    try:  # Tables made before token counts were kept.
+        connection.execute("ALTER TABLE web_turn_times ADD COLUMN usage TEXT")
+    except sqlite3.OperationalError:
+        pass
 
 
 class TurnTimes:
@@ -19,15 +29,16 @@ class TurnTimes:
         self._path = path
         self._creator = creator
 
-    def record(self, session_id: str, turn: int, started: str, finished: str) -> None:
+    def record(self, session_id: str, turn: int, started: str, finished: str, usage: dict | None = None) -> None:
         """Remember one finished turn; a failure only costs a timestamp, so it is ignored."""
         try:
             connection = sqlite3.connect(self._path, timeout=5)
             try:
                 with connection:
-                    connection.execute(SCHEMA)
-                    connection.execute("INSERT OR REPLACE INTO web_turn_times VALUES (?, ?, ?, ?, ?)",
-                                       (self._creator, session_id, turn, started, finished))
+                    _prepare(connection)
+                    connection.execute(f"INSERT OR REPLACE INTO web_turn_times ({COLUMNS}) VALUES (?, ?, ?, ?, ?, ?)",
+                                       (self._creator, session_id, turn, started, finished,
+                                        json.dumps(usage) if usage else None))
             finally:
                 connection.close()
         except sqlite3.Error:
@@ -47,13 +58,28 @@ class TurnTimes:
             return {}
         return {turn: (started, finished) for turn, started, finished in rows}
 
+    def usage(self, session_id: str) -> dict[int, dict]:
+        """{turn number: token counts and latency} of the turns that have them."""
+        try:
+            connection = sqlite3.connect(self._path, timeout=5)
+            try:
+                _prepare(connection)
+                rows = connection.execute(
+                    "SELECT turn, usage FROM web_turn_times WHERE creator_id = ? AND session_id = ? AND usage IS NOT NULL",
+                    (self._creator, session_id)).fetchall()
+            finally:
+                connection.close()
+        except sqlite3.Error:
+            return {}
+        return {turn: json.loads(usage) for turn, usage in rows}
+
     def forget(self, session_id: str) -> None:
         """Drop the times of a deleted session."""
         try:
             connection = sqlite3.connect(self._path, timeout=5)
             try:
                 with connection:
-                    connection.execute(SCHEMA)
+                    _prepare(connection)
                     connection.execute("DELETE FROM web_turn_times WHERE creator_id = ? AND session_id = ?",
                                        (self._creator, session_id))
             finally:
@@ -62,15 +88,15 @@ class TurnTimes:
             pass
 
     def copy(self, source: str, target: str, last_turn: int) -> None:
-        """Give a branch the times of the turns it kept (1 to last_turn) from the session it came from."""
+        """Give a branch the times and counts of the turns it kept (1 to last_turn) from the session it came from."""
         try:
             connection = sqlite3.connect(self._path, timeout=5)
             try:
                 with connection:
-                    connection.execute(SCHEMA)
+                    _prepare(connection)
                     connection.execute(
-                        "INSERT OR IGNORE INTO web_turn_times SELECT creator_id, ?, turn, started_at, finished_at "
-                        "FROM web_turn_times WHERE creator_id = ? AND session_id = ? AND turn <= ?",
+                        f"INSERT OR IGNORE INTO web_turn_times ({COLUMNS}) SELECT creator_id, ?, turn, started_at, "
+                        "finished_at, usage FROM web_turn_times WHERE creator_id = ? AND session_id = ? AND turn <= ?",
                         (target, self._creator, source, last_turn))
             finally:
                 connection.close()

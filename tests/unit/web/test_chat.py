@@ -80,6 +80,8 @@ def test_a_turn_reports_usage_from_ollama(web):
                      "server_duration_ms": 800.0}
     assert page.call("GET", "/api/session")[1]["usage"] == {
         "prompt_tokens": 120, "output_tokens": 30, "turns": 1, "last_prompt_tokens": 120}
+    reopened = page.call("GET", "/api/session")[1]["items"][1]["usage"]  # Kept for when the chat is reopened.
+    assert reopened == {"prompt_tokens": 120, "output_tokens": 30, "latency_ms": 900, "server_duration_ms": 800.0}
     assert module is web_app
 
 

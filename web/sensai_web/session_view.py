@@ -56,12 +56,14 @@ def _tool_result(entry: dict, content: str, earlier: Sequence[dict] = ()) -> Non
 
 
 def display_items(messages: Sequence[Message], persona: str | None,
-                  times: Mapping[int, tuple[str, str]] | None = None) -> list[dict]:
+                  times: Mapping[int, tuple[str, str]] | None = None,
+                  usage: Mapping[int, dict] | None = None) -> list[dict]:
     """User and assistant items; tool rounds become entries of the assistant item they belong to.
 
-    `times` maps a turn number to (started, finished) and becomes each item's `at`.
+    `times` maps a turn number to (started, finished) and becomes each item's `at`;
+    `usage` maps it to the reply's token counts and latency.
     """
-    times = times or {}
+    times, usage = times or {}, usage or {}
     items: list[dict] = []
     reply: dict | None = None
     pending: dict | None = None
@@ -79,7 +81,7 @@ def display_items(messages: Sequence[Message], persona: str | None,
             reply = None
         elif message.role == "assistant":
             if reply is None:
-                reply = {"kind": "assistant", "text": "", "persona": persona, "usage": None, "tools": []}
+                reply = {"kind": "assistant", "text": "", "persona": persona, "usage": usage.get(number), "tools": []}
                 if number in times:
                     reply["at"] = times[number][1]
                 items.append(reply)
