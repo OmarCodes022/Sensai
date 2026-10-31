@@ -12,7 +12,7 @@ from sensai.memory.vector_index import VectorIndexError
 from sensai.rag import MAX_FILE_BYTES, MAX_TOTAL_BYTES, TYPES, DocError
 from sensai.sandbox import SandboxLimits
 from sensai.tools import MAX_TOOL_CALLS
-from sensai_web import branching, facts, files, manage, models, sandbox, session_view
+from sensai_web import branching, campaign, facts, files, manage, models, sandbox, session_view
 from sensai_web.app import WebApp
 from sensai_web.errors import ApiError, llm_failure
 from sensai_web.tools import tool_list
@@ -21,7 +21,7 @@ from sensai_web.turn import run_turn
 
 MAX_TEXT_CHARS = 200_000
 CAPABILITIES = ("chat", "personas", "sessions", "profile", "usage", "tools", "approval", "sandbox",
-                "run_script", "history", "think", "branching", "facts", "guardrails")
+                "run_script", "history", "think", "branching", "facts", "guardrails", "campaign")
 STARTED = monotonic()
 ROUTES: list[tuple[str, re.Pattern, Callable]] = []
 
@@ -257,6 +257,28 @@ def read_data(app: WebApp, request, name: str):
 @route("DELETE", r"/api/run/data/(?P<name>[^/]+)")
 def delete_data(app: WebApp, request, name: str):
     return app.data.delete(unquote(name))
+
+
+@route("GET", r"/api/campaign")
+def campaign_show(app: WebApp, request):
+    return campaign.show(app)
+
+
+@route("POST", r"/api/campaign/edit")
+def campaign_edit(app: WebApp, request):
+    body = request.json()
+    return campaign.edit(app, body.get("section"), body.get("request"))
+
+
+@route("POST", r"/api/campaign/confirm")
+def campaign_confirm(app: WebApp, request):
+    body = request.json()
+    return campaign.confirm(app, body.get("token"), body.get("approved"))
+
+
+@route("POST", r"/api/campaign/approve")
+def campaign_approve(app: WebApp, request):
+    return campaign.approve_section(app, request.json().get("section"))
 
 
 @route("GET", r"/api/files")

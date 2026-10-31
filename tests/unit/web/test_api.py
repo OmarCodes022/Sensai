@@ -32,7 +32,7 @@ def test_config_lists_capabilities_and_limits(web):
     page = web(context_length=2048, effective={"model": {"value": "fake", "source": "cli"}})
     body = page.call("GET", "/api/config")[1]
     assert body["capabilities"]["chat"] and body["capabilities"]["run_script"]
-    assert "campaign" not in body["capabilities"]
+    assert "share" not in body["capabilities"]  # A planned feature stays off.
     assert body["context_length"] == 2048 and body["model"] == "fake" and body["creator"] == "default"
     assert body["limits"]["tool_rounds"] == 5 and body["limits"]["sandbox"]["wall_seconds"] == 15
     assert body["effective"]["model"]["source"] == "cli"

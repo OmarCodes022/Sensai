@@ -22,6 +22,7 @@ from sensai.sandbox import RUN_PYTHON, SandboxError, data_file_names, data_promp
 from sensai.settings import Settings
 from sensai.llm.embeddings import OllamaEmbeddingAdapter
 from sensai.rag import DOCS_PROMPT, SEARCH_DOCS, DocLibrary
+from sensai.campaign import CampaignStore
 from sensai.chat.facts import DELETE_FACT, SAVE_FACT
 from sensai.security.file_tools import FILE_TOOLS, open_project
 from sensai.guardrails import GuardedClient, GuardrailConfigError, load_guardrail
@@ -120,6 +121,8 @@ class WebApp:
             raise StartupError(str(exc)) from None
         # Every reply is checked line by line before the page sees it (EV2).
         self.chat_client = GuardedClient(make_client(settings, self.usage.add), self.guard)
+        self.campaign = CampaignStore(settings.campaigns_dir)  # The weekly document (M4).
+        self.pending_change = None  # An approved-section edit waiting for the creator's yes (A3).
         self.title_client = make_client(settings)
         try:
             self.catalogue = Catalogue(cfg.personas_file)
