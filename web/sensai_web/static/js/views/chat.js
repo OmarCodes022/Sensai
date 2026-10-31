@@ -32,15 +32,18 @@ export function mount(root, ctx) {
     const target = transcript.content.querySelector(`[data-n="${n}"]`);
     if (target) transcript.flash(target); else toast(t('chat.noSuchMessage', { n }));
   };
-  const restorer = createRestorer({ ctx, onReuse: (text) => composer.fill(text) });
+  // Edit a message in place (X2): sending continues from it as a new conversation (/edit N).
+  const onEdit = store.get().capabilities.branching ? (item, text) => turn.send(`/edit ${item.n} ${text}`) : null;
+  const restorer = createRestorer({ ctx, onReuse: (text) => composer.fill(text), onEdit });
 
   const docCommands = createDocCommands({ api, transcript, router });
   const commands = {
     persona: () => document.querySelector('.persona-pill')?.click(),
-    history: () => openHistory(composer.textarea, { api, plannedEdit: !store.get().capabilities.branching, onPick: jump }),
+    history: () => openHistory(composer.textarea, { api, canEdit: !!store.get().capabilities.branching, onPick: jump }),
     tools: () => { layout.openInspector(); document.querySelector('.inspector')?.select?.('tools'); },
     run: () => router.go('#/tools'),
     think: (args) => (args ? turn.send(`/think ${args}`) : toast(t('slash.thinkUsage'))),
+    edit: (args) => (/^\d+\s+\S/.test(args || '') ? turn.send(`/edit ${args}`) : toast(t('slash.editUsage'))),
     new: () => actions.newChat(),
     help: () => openShortcuts(),
     docs: (args) => docCommands.docs(args),
@@ -53,7 +56,7 @@ export function mount(root, ctx) {
     onSend: (text) => turn.send(text), onStop: () => turn.interrupt(), onCommand: (n, args) => commands[n]?.(args), onAttach: (kind) => docCommands.attach(kind), capabilities: () => store.get().capabilities,
     guardrails: () => !!store.get().capabilities.guardrails,
   });
-  const turn = createTurn({ ctx, transcript, composer, model, reconnect, onReuse: (text) => composer.fill(text) });
+  const turn = createTurn({ ctx, transcript, composer, model, reconnect, onReuse: (text) => composer.fill(text), onEdit });
 
   const bar = h('div', { class: 'chat__bar' }, h('span', { class: 'grow' }), createMenu({ store, actions, model, jump }));
   const printHead = createPrintHead(store);

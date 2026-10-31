@@ -41,8 +41,9 @@ const real = {
   models: () => req('GET', '/api/models'),
   setModel: (name) => req('POST', '/api/model', { name }),
   history: () => req('GET', '/api/history'),
-  async chat(text, { onEvent, signal, think = false } = {}) {
-    try { await streamNdjson(think ? '/api/think' : '/api/chat', { body: { text }, signal, onEvent, headers: tabHeader }); }
+  async chat(text, { onEvent, signal, think = false, edit } = {}) {
+    const path = edit ? '/api/edit' : think ? '/api/think' : '/api/chat';
+    try { await streamNdjson(path, { body: edit ? { n: edit, text } : { text }, signal, onEvent, headers: tabHeader }); }
     catch (e) { if (e.status === 409) lockedHandler(); throw e; }
   },
   stopChat: () => req('POST', '/api/chat/stop'),

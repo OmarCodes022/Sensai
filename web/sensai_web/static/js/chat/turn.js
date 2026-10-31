@@ -11,12 +11,13 @@ import { chip } from '../components/chip.js';
 import { toast } from '../components/toast.js';
 import { announce } from '../a11y.js';
 import { stripInvisible } from '../safetext.js';
+import { hrefFor } from '../router.js';
 import { t } from '../i18n.js';
 
 const LOCK_CODES = ['tab_locked'];
 
-/** deps: { ctx, transcript, composer, model, reconnect, onReuse(text) } */
-export function createTurn({ ctx, transcript, composer, model, reconnect, onReuse }) {
+/** deps: { ctx, transcript, composer, model, reconnect, onReuse(text), onEdit(item, text) } */
+export function createTurn({ ctx, transcript, composer, model, reconnect, onReuse, onEdit }) {
   const { store, api, actions, router } = ctx;
   let st = null;
   const limits = () => store.get().config?.limits || {};
@@ -86,6 +87,7 @@ export function createTurn({ ctx, transcript, composer, model, reconnect, onReus
       case 'blocked': st.blocked = true; addError({ code: 'guardrail_refused', message: ev.message, reason: ev.reason }); break;
       case 'sources': st.block?.setSources(ev.items); break;
       case 'step': ensureBlock().addStep(ev.step, ev.text); break;
+      case 'branch': st.branch = ev; break;
       case 'done': st.status = ev.status; break;
       case 'error': st.failed = true; fail(ev); break;
       default: break;
@@ -126,6 +128,13 @@ export function createTurn({ ctx, transcript, composer, model, reconnect, onReus
     send(me.text);
   }
 
+  /** A completed /edit made the branch the open conversation: show it, with only the history it keeps. */
+  function openBranch(b) {
+    toast(t('chat.branched', { id: b.session_id, from: b.from })); announce(t('chat.branched', { id: b.session_id, from: b.from }));
+    actions.refreshSessions({ silent: true });
+    router.go(hrefFor('chat', b.session_id));
+  }
+
   function complete() {
     if (st.blocked) { st.block?.discard(); model.items = model.items.filter((i) => i !== st.item); st.user.markNotSent(false); return; }
     const n = model.items.filter((i) => i.kind === 'user' && i.n).length + 1;
@@ -149,7 +158,7 @@ export function createTurn({ ctx, transcript, composer, model, reconnect, onReus
     if (st?.busy) return;
     const at = new Date().toISOString();
     const me = {};
-    const user = createUser({ kind: 'user', text, at }, { onReuse, onRetry: () => retry(me) });
+    const user = createUser({ kind: 'user', text, at }, { onReuse, onEdit, onRetry: () => retry(me) });
     const item = user.item;
     model.items.push(item);
     st = me;
@@ -160,11 +169,13 @@ export function createTurn({ ctx, transcript, composer, model, reconnect, onReus
     st.dropped = model.dropped;
     try {
       const asked = /^\/think\s+([\s\S]+)$/i.exec(text);  // /think <request> runs the step-by-step loop
+      const edit = /^\/edit\s+(\d+)\s+([\s\S]+)$/i.exec(text);  // /edit N <text> continues from message N in a new session
       // Its budget is per step and its rounds are not capped at the turn's limit: no ring, no "of 5".
       me.think = !!asked; composer.showRing(!asked);
-      await api.chat(asked ? asked[1] : text, { signal: st.ac.signal, onEvent: handle, think: !!asked });
+      if (edit) await api.chat(edit[2], { signal: st.ac.signal, onEvent: handle, edit: Number(edit[1]) });
+      else await api.chat(asked ? asked[1] : text, { signal: st.ac.signal, onEvent: handle, think: !!asked });
       if (st.failed) { /* error card already shown */ }
-      else if (st.status === 'completed') complete();
+      else if (st.status === 'completed') { complete(); if (st.branch) openBranch(st.branch); }
       else if (st.status === 'interrupted') interruptedUi(false);
       else if (st.status === 'timed_out') interruptedUi(true);
       else fail({ code: 'network', message: 'stream ended without done' });

@@ -7,7 +7,7 @@ export const COMMANDS = [
   { name: 'read', task: 'T26' }, { name: 'save', task: 'T26' },
   { name: 'search', task: 'T41' }, { name: 'facts', task: 'T32' }, { name: 'context', task: 'T31' }, { name: 'campaign', task: 'T40' },
   { name: 'export', task: 'T50' }, { name: 'share', task: 'T53' }, { name: 'unshare', task: 'T53' }, { name: 'think', task: 'T20', cap: 'think' },
-  { name: 'team', task: 'T48' }, { name: 'edit', task: 'T34' },
+  { name: 'team', task: 'T48' }, { name: 'edit', task: 'T34', cap: 'branching' },
 ];
 
 /** A command is live when it is wired today, or when the capability that turns it on is true. */
