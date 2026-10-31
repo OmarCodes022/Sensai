@@ -324,7 +324,8 @@ class WebApp:
     def session_json(self, active: ActiveSession) -> dict:
         messages = [m for m in active.session.messages if m.role != "system"]
         items = session_view.display_items(messages, active.persona_id,
-                                           self.times.load(active.recorder.session_id))
+                                           self.times.load(active.recorder.session_id),
+                                           self.times.usage(active.recorder.session_id))
         return {
             "id": active.recorder.session_id, "saved": active.recorder.saved, "title": active.recorder.title,
             "persona": active.persona_id, "creator": self.cfg.creator, "items": items,

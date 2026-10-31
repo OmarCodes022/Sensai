@@ -114,7 +114,7 @@ def run_turn(app: WebApp, active: ActiveSession, stop, text: str, emit: Emit) ->
         _persist(app, active, emit, stop, cfg.operation_timeout)
         active.updated_at = now()
         if active.recorder.saved:
-            app.times.record(active.recorder.session_id, number, started_at, active.updated_at)
+            app.times.record(active.recorder.session_id, number, started_at, active.updated_at, usage)
         after_turn(app, active, stop, emit)
     emit({"type": "done", "status": status, "turn_id": turn_id})
     return status
