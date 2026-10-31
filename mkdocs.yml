@@ -24,6 +24,7 @@ nav:
       - Personas: user-guide/personas.md
       - Sessions and profile: user-guide/sessions.md
       - Tools and sandbox: user-guide/tools.md
+      - MCP tools: user-guide/mcp.md
       - Reasoning step by step: user-guide/thinking.md
       - Document search: user-guide/documents.md
   - Developer guide:
