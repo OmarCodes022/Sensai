@@ -21,7 +21,7 @@ from sensai_web.turn import run_turn
 
 MAX_TEXT_CHARS = 200_000
 CAPABILITIES = ("chat", "personas", "sessions", "profile", "usage", "tools", "approval", "sandbox",
-                "run_script", "history", "think", "branching", "facts")
+                "run_script", "history", "think", "branching", "facts", "guardrails")
 STARTED = monotonic()
 ROUTES: list[tuple[str, re.Pattern, Callable]] = []
 

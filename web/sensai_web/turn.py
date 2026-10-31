@@ -6,13 +6,14 @@ from uuid import uuid4
 from sensai.chat import saved_sessions
 from sensai.chat.saved_sessions import user_messages
 from sensai.core.cancellation import CancellationToken, OperationCancelled, OperationTimedOut
-from sensai.core.errors import LLMError, SensaiError
+from sensai.core.errors import GuardrailRefused, LLMError, SensaiError
 from sensai.sandbox import remove_stale_folders
 from sensai.tools import run_with_tools
 from sensai_web.app import ActiveSession, WebApp, now
 from sensai_web.approvals import WebApproval
 from sensai_web.errors import llm_failure
 from sensai_web.facts import settle
+from sensai_web.guard import screen, stopped
 from sensai_web.tools import INVALID, ObservedRegistry
 
 Emit = Callable[[dict], None]
@@ -53,6 +54,10 @@ def run_turn(app: WebApp, active: ActiveSession, stop, text: str, emit: Emit) ->
     number = len(user_messages(session.messages)) + 1
     emit({"type": "turn_start", "turn_id": turn_id, "model": app.model, "persona": active.persona_id,
           "number": number, "budget_seconds": cfg.operation_timeout})
+    text = screen(app, text, emit)
+    if text is None:  # Refused before the model: nothing is sent, kept or saved.
+        emit({"type": "done", "status": "completed", "turn_id": turn_id})
+        return "blocked"
     token = CancellationToken(monotonic() + cfg.operation_timeout, stop.is_set)
     for notice in app.refresh_prompt(active):
         emit({"type": "warning", "code": "documents", "message": notice})
@@ -75,6 +80,9 @@ def run_turn(app: WebApp, active: ActiveSession, stop, text: str, emit: Emit) ->
         emit({"type": "error", "code": "empty_input", "message": "Please type something.", "hint": None})
     except LLMError as exc:
         emit({"type": "error", **llm_failure(exc, app.model)})
+    except GuardrailRefused as exc:
+        stopped(emit, exc)
+        status = "blocked"
     except SensaiError as exc:
         emit({"type": "error", "code": "error", "message": str(exc), "hint": None})
     finally:
@@ -82,6 +90,9 @@ def run_turn(app: WebApp, active: ActiveSession, stop, text: str, emit: Emit) ->
         registry.close()
         remove_stale_folders()  # A killed tool worker may not have removed its folder.
     settle(app, active, status == "completed", emit)  # Fact changes count only for a completed reply.
+    if status == "blocked":  # The reply was stopped: the page drops it, nothing is saved.
+        emit({"type": "done", "status": "completed", "turn_id": turn_id})
+        return status
     if status is None:
         return None
     if status == "completed":

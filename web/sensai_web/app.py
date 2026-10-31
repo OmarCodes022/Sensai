@@ -23,6 +23,7 @@ from sensai.settings import Settings
 from sensai.llm.embeddings import OllamaEmbeddingAdapter
 from sensai.rag import DOCS_PROMPT, SEARCH_DOCS, DocLibrary
 from sensai.chat.facts import DELETE_FACT, SAVE_FACT
+from sensai.guardrails import GuardedClient, GuardrailConfigError, load_guardrail
 from sensai.tools import CALCULATE, tool_instructions
 from sensai_web import session_view
 from sensai_web.approvals import Approvals
@@ -108,7 +109,12 @@ class WebApp:
         self.health = Health(cfg.host, cfg.model)
         self.meta_dir = tempfile.mkdtemp(prefix="sensai-web-")
         settings = (settings or Settings()).model_copy(update={"host": cfg.host})
-        self.chat_client = make_client(settings, self.usage.add)
+        try:
+            self.guard = load_guardrail(settings.guardrails_file, settings.brand_file)
+        except GuardrailConfigError as exc:
+            raise StartupError(str(exc)) from None
+        # Every reply is checked line by line before the page sees it (EV2).
+        self.chat_client = GuardedClient(make_client(settings, self.usage.add), self.guard)
         self.title_client = make_client(settings)
         try:
             self.catalogue = Catalogue(cfg.personas_file)

@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from sensai.chat.reasoning import Section, think
 from sensai.core.cancellation import CancellationToken, OperationCancelled, OperationTimedOut
-from sensai.core.errors import LLMError, SensaiError
+from sensai.core.errors import GuardrailRefused, LLMError, SensaiError
 from sensai.core.messages import Message
 from sensai.chat.saved_sessions import user_messages
 from sensai.sandbox import remove_stale_folders
@@ -12,6 +12,7 @@ from sensai_web.app import ActiveSession, WebApp, now
 from sensai_web.approvals import WebApproval
 from sensai_web.errors import llm_failure
 from sensai_web.facts import settle
+from sensai_web.guard import screen, stopped
 from sensai_web.tools import ObservedRegistry
 from sensai_web.turn import Emit, _add, _persist
 
@@ -43,6 +44,10 @@ def run_think(app: WebApp, active: ActiveSession, stop, request: str, emit: Emit
     number = len(user_messages(session.messages)) + 1
     emit({"type": "turn_start", "turn_id": turn_id, "model": cfg.model, "persona": active.persona_id,
           "number": number, "budget_seconds": cfg.operation_timeout, "think": True})
+    request = screen(app, request, emit)
+    if request is None:  # Refused before the model: nothing is sent, kept or saved.
+        emit({"type": "done", "status": "completed", "turn_id": turn_id})
+        return "blocked"
     for notice in app.refresh_prompt(active):
         emit({"type": "warning", "code": "documents", "message": notice})
     approval = WebApproval(app.approvals, emit, stop, turn_id)
@@ -69,6 +74,9 @@ def run_think(app: WebApp, active: ActiveSession, stop, request: str, emit: Emit
         status = "timed_out"
     except LLMError as exc:
         emit({"type": "error", **llm_failure(exc, cfg.model)})
+    except GuardrailRefused as exc:
+        stopped(emit, exc)
+        status = "blocked"
     except SensaiError as exc:
         emit({"type": "error", "code": "error", "message": str(exc), "hint": None})
     finally:
@@ -76,6 +84,9 @@ def run_think(app: WebApp, active: ActiveSession, stop, request: str, emit: Emit
         registry.close()
         remove_stale_folders()
     settle(app, active, status == "completed", emit)  # Fact changes count only for a completed reply.
+    if status == "blocked":  # The reply was stopped: the page drops it, nothing is saved.
+        emit({"type": "done", "status": "completed", "turn_id": turn_id})
+        return status
     if status is None:
         return
     if status == "completed":
