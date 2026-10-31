@@ -12,7 +12,7 @@ from sensai.memory.vector_index import VectorIndexError
 from sensai.rag import MAX_FILE_BYTES, MAX_TOTAL_BYTES, TYPES, DocError
 from sensai.sandbox import SandboxLimits
 from sensai.tools import MAX_TOOL_CALLS
-from sensai_web import branching, campaign, exports, questions, websearch, facts, files, manage, models, sandbox, session_view
+from sensai_web import branching, campaign, exports, scheduling, questions, websearch, facts, files, manage, models, sandbox, session_view
 from sensai_web.app import WebApp
 from sensai_web.errors import ApiError, llm_failure
 from sensai_web.tools import tool_list
@@ -22,6 +22,7 @@ from sensai_web.turn import run_turn
 MAX_TEXT_CHARS = 200_000
 CAPABILITIES = ("chat", "personas", "sessions", "profile", "usage", "tools", "approval", "sandbox",
                 "run_script", "history", "think", "branching", "facts", "guardrails", "campaign", "ask_user", "export")
+# "schedule" is added when a tasks file is loaded.
 STARTED = monotonic()
 ROUTES: list[tuple[str, re.Pattern, Callable]] = []
 
@@ -59,7 +60,8 @@ def config(app: WebApp, request):
     return {
         "capabilities": {name: True for name in (*CAPABILITIES, *(("documents",) if app.docs.enabled else ()),
                                                   *(("file_access",) if app.files is not None else ()),
-                                                  *(("web_search",) if app.web is not None else ()))},
+                                                  *(("web_search",) if app.web is not None else ()),
+                                                  *(("schedule",) if app.scheduler is not None else ()))},
         "draft_personas": app.catalogue.drafts(),
         "context_length": cfg.context_length, "creator": cfg.creator, "model": app.model,
         "effective": cfg.effective,
@@ -258,6 +260,21 @@ def read_data(app: WebApp, request, name: str):
 @route("DELETE", r"/api/run/data/(?P<name>[^/]+)")
 def delete_data(app: WebApp, request, name: str):
     return app.data.delete(unquote(name))
+
+
+@route("GET", r"/api/schedule")
+def schedule_status(app: WebApp, request):
+    return scheduling.status(app)
+
+
+@route("POST", r"/api/schedule/(?P<name>[^/]+)/run")
+def schedule_run(app: WebApp, request, name: str):
+    return scheduling.run_now(app, unquote(name))
+
+
+@route("GET", r"/api/drafts/(?P<name>[^/]+)")
+def schedule_draft(app: WebApp, request, name: str):
+    return scheduling.read_draft(app, unquote(name))
 
 
 @route("POST", r"/api/export")

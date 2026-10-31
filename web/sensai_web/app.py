@@ -37,6 +37,7 @@ from sensai_web.config import WebConfig
 from sensai_web.datafiles import DataFolder
 from sensai_web.errors import ApiError
 from sensai_web.facts import make_memory
+from sensai_web.scheduling import start as start_schedule
 from sensai_web.websearch import make as make_search
 from sensai_web.health import Health
 from sensai_web.profile import clean_preferences
@@ -126,17 +127,22 @@ class WebApp:
         # Every reply is checked line by line before the page sees it (EV2).
         self.chat_client = GuardedClient(make_client(settings, self.usage.add), self.guard)
         self.campaign = CampaignStore(settings.campaigns_dir)  # The weekly document (M4).
-        self.pending_change = None
-        self.questions = Approvals()
-        self.web = make_search(settings)
-        self.rag_mode = settings.rag_mode
-        self.exporter = Exporter(self.guard, settings.exports_dir)  # Private export (X3)  # advanced (R2) or basic (R1) document search  # Web search (T3), or None when switched off.  # ask_user forms waiting for the page (X4).  # An approved-section edit waiting for the creator's yes (A3).
+        self.pending_change = None  # An approved-section edit waiting for the creator's yes (A3).
+        self.questions = Approvals()  # ask_user forms waiting for the page (X4).
+        self.web = make_search(settings)  # Web search (T3), or None when switched off.
+        self.rag_mode = settings.rag_mode  # advanced (R2) or basic (R1) document search
+        self.exporter = Exporter(self.guard, settings.exports_dir)  # Private export (X3)
         self.title_client = make_client(settings)
         try:
             self.catalogue = Catalogue(cfg.personas_file)
             self.base_prompt = load_system_prompt(cfg.prompt_path)
         except (OSError, ValueError) as exc:
             raise StartupError(f"cannot load personas or prompt: {exc}") from None
+        self.schedule_stop = Event()  # Scheduling (X5): drafts on a timer, in a background thread.
+        try:
+            self.scheduler = start_schedule(self, settings, GuardedClient(make_client(settings), self.guard))
+        except ValueError as exc:
+            raise StartupError(f"schedule: {exc}") from None
         if cfg.data_dir and not os.path.isdir(cfg.data_dir):
             raise StartupError(f"data folder not found: {cfg.data_dir}")
         self.preferences: dict[str, str] = {}
@@ -373,6 +379,7 @@ class WebApp:
             return stopping
 
     def close(self) -> None:
+        self.schedule_stop.set()
         self.stop_turn()
         shutil.rmtree(self.meta_dir, ignore_errors=True)
         remove_stale_folders()
