@@ -1,0 +1,8 @@
+@layer components {
+  .tabs { display: flex; gap: var(--s-1); border-bottom: var(--bw) solid var(--line); overflow-x: auto; }
+  .tab { min-height: var(--target); padding: 0 var(--s-4); border: 0; border-bottom: 2px solid transparent; background: none; color: var(--ink-2); font-weight: 500; white-space: nowrap; display: inline-flex; align-items: center; gap: var(--s-2); }
+  .tab:hover { color: var(--ink); background: var(--surface-2); }
+  .tab[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+  .tabpanel { padding-top: var(--s-4); }
+  .tabpanel:focus-visible { outline-offset: -2px; }
+}

@@ -1,0 +1,31 @@
+/* Print (spec 15): transcript, campaign report and calendar. Unlayered, so it wins over layered screen styles. */
+@media print {
+  @page { margin: 18mm; }
+  body { background: #fff; color: #000; font: 11pt/1.5 var(--font-display); }
+  .topbar, .sidebar, .inspector, .composer, .scrim, .toasts, .banners, .skip, .no-print, .presenter, .devpanel, .chat__bar, .jump, .msg__actions, dialog { display: none !important; }
+  .app { display: block; height: auto; overflow: visible; }
+  .body { display: block; }
+  .main { overflow: visible; background: #fff; display: block; }
+  .view { max-width: none; padding: 0; }
+  .chat, .transcript-wrap, .transcript { display: block; overflow: visible; }
+  .transcript__content { max-width: none; }
+  .print-head { display: block !important; border-bottom: 1px solid #000; margin-bottom: 12pt; padding-bottom: 6pt; }
+  .print-head h1 { font-size: 16pt; }
+  .print-head p { font-size: 9pt; font-family: var(--font-mono); }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 9pt; word-break: break-all; }
+  a.md-link::after { content: " (" attr(data-url) ")"; font-size: 9pt; word-break: break-all; }
+  .msg, .toolcard, .card, tr, figure { break-inside: avoid; }
+  .msg__meta { opacity: 1; }
+  .bubble { background: none; border: 1px solid #000; }
+  * { box-shadow: none !important; animation: none !important; color-adjust: exact; }
+  .chip { border: 1px solid #000 !important; background: none !important; color: #000 !important; }
+  .ribbon::after { display: none; }
+  /* Campaign: report figures and week grid as a clean one-page document */
+  .planned:has(.print-doc) > :not(.preview-box) { display: none !important; }
+  .preview-box { border: 0; padding: 0; }
+  .preview-box.has-print > :not(.print-doc) { display: none !important; }
+  .print-doc { display: block !important; }
+  .print-doc .cal { grid-template-columns: repeat(7, 1fr); }
+  .print-doc .cal__day { min-height: 4rem; background: none; }
+  .print-doc .chip { display: none !important; }
+}

@@ -7,11 +7,13 @@ from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 
 from sensai.core.cancellation import CancellationToken
-from sensai.core.ports import PortError, SessionSnapshot
+from sensai.core.ports import PortError, Profile, SessionSnapshot
 from sensai.core.errors import SensaiError
 from sensai.core.messages import Message
 from sensai.llm.client import LLMClient, close_stream
+from sensai.chat.blocks import split_block
 
+DEFAULT_PROFILE_FILE = "data/profile.json"  # sample profile, stored for a creator who has none
 ID_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789"
 PROFILE_HEADER = "Profil de la créatrice (instructions personnalisées) :"
 TITLE_PROMPT = (
@@ -20,6 +22,7 @@ TITLE_PROMPT = (
 )
 QUOTES = "\"'«»“”‘’`"
 TITLE_TIMEOUT = 15.0
+TOOL_PROTOCOL_PREFIXES = ("Tool result from ", "Tool error from ")
 
 
 def new_session_id(exists: Callable[[str], bool]) -> str:
@@ -41,6 +44,13 @@ def load_profile_file(path: str | Path) -> dict[str, str]:
             raise ValueError(f"duplicate profile key: {key.strip()}")
         preferences[key.strip()] = value.strip()
     return preferences
+
+
+def seed_profile(profiles, path: str | Path | None = None) -> None:
+    """Store the shared sample profile when this creator has none yet (never overwrites one)."""
+    path = Path(path or DEFAULT_PROFILE_FILE)
+    if path.is_file() and profiles.load("default") is None:
+        profiles.save(Profile("default", load_profile_file(path)))
 
 
 def profile_block(preferences: Mapping[str, str]) -> str:
@@ -87,9 +97,25 @@ def generate_title(client: LLMClient, model: str, first_user: str, first_answer:
     return title
 
 
+def user_messages(messages: Sequence[Message]) -> list[str]:
+    """The creator's own messages in order; /history and /edit N number them from 1.
+
+    Tool-loop results and errors are sent as user turns but are not the creator's words.
+    """
+    return [m.content for m in messages
+            if m.role == "user" and not m.content.startswith(TOOL_PROTOCOL_PREFIXES)]
+
+
 def first_exchange(messages: Sequence[Message]) -> tuple[str, str]:
     user = next((m.content for m in messages if m.role == "user"), "")
-    answer = next((m.content for m in messages if m.role == "assistant"), "")
+    answer = ""
+    for message in messages:
+        if message.role != "assistant":
+            continue
+        visible, block = split_block(message.content)
+        if (block is None or "tool" not in block) and visible.strip():
+            answer = visible
+            break
     return user, answer
 
 

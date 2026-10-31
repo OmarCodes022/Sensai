@@ -1,10 +1,13 @@
 """Validated persona catalogues, selectable at startup or between turns."""
 
 import json
+import os
 from importlib.resources import files
 from pathlib import Path
 
 from sensai.core.ports import Persona
+
+DEFAULT_FILE = "data/personas.json"  # used when it exists and no file is given
 
 
 class PersonaRegistry:
@@ -57,6 +60,7 @@ class PersonaRegistry:
 
     @classmethod
     def from_file(cls, path: str | None = None) -> "PersonaRegistry":
+        path = path or (DEFAULT_FILE if os.path.isfile(DEFAULT_FILE) else None)
         source = Path(path) if path is not None else files("sensai.chat").joinpath("personas.json")
         return cls(json.loads(source.read_text(encoding="utf-8")))
 

@@ -13,7 +13,11 @@ from sensai.chat import saved_sessions
 from sensai.cli import remote
 from sensai.chat.personas import PersonaRegistry
 from sensai.settings import Settings
+from sensai.sandbox import RUN_PYTHON
+from sensai.tools import CALCULATE, tool_instructions
 from sensai.memory.sqlite_store import StorageRepository
+
+TOOLS = "\n\n" + tool_instructions([CALCULATE, RUN_PYTHON])
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -351,7 +355,7 @@ def test_launcher_switches_with_context_loaded_once_before_tunnel(
     registry = PersonaRegistry(profiles)
     settings = Settings(
         _env_file=None, SENSAI_MODEL="fake-model", SENSAI_PERSONA="editor",
-        SENSAI_PERSONAS_FILE=str(catalogue), SENSAI_PROMPT=str(prompt),
+        SENSAI_PERSONAS_FILE=str(catalogue), SENSAI_PROMPT=str(prompt), SENSAI_DATA_DIR="",
         SENSAI_SSH_HOST="alias" if over_ssh else None,
         OLLAMA_HOST="http://127.0.0.1:11435" if over_ssh else "http://127.0.0.1:11434",
     )
@@ -377,7 +381,7 @@ def test_launcher_switches_with_context_loaded_once_before_tunnel(
         yield
         events.append("tunnel closed")
 
-    def create_client(client_settings, usage_sink=None):
+    def create_client(client_settings):
         assert client_settings.host == settings.host
         assert events == (["tunnel opened"] if over_ssh else [])
         invalidate_loaded_files()
@@ -398,10 +402,10 @@ def test_launcher_switches_with_context_loaded_once_before_tunnel(
     assert events == (["tunnel opened", "client created", "tunnel closed"]
                       if over_ssh else ["client created"])
     assert client.calls == [
-        ["Shared rules\n\n" + registry.get("editor").system_prompt, "Draft"],
-        ["Shared rules\n\n" + registry.get("Review Team").system_prompt,
+        ["Shared rules\n\n" + registry.get("editor").system_prompt + TOOLS, "Draft"],
+        ["Shared rules\n\n" + registry.get("Review Team").system_prompt + TOOLS,
          "Draft", "first reply",
-         "Shared rules\n\n" + registry.get("Review Team").system_prompt, "Revise"],
+         "Shared rules\n\n" + registry.get("Review Team").system_prompt + TOOLS, "Revise"],
     ]
     load_registry.assert_called_once()
     load_prompt.assert_called_once()
@@ -445,7 +449,7 @@ def test_launcher_forwards_session_options(monkeypatch, tmp_path, capsys, over_s
     database = str(tmp_path / "cli.db")
     client = FakeClient(["R1"], ["R2"])
 
-    def create_client(client_settings, usage_sink=None):
+    def create_client(client_settings):
         events.append("client created")
         return client
 
@@ -458,7 +462,7 @@ def test_launcher_forwards_session_options(monkeypatch, tmp_path, capsys, over_s
     expected = ["tunnel opened", "client created", "tunnel closed"] if over_ssh else ["client created"]
     assert events == expected * 2
     system = "Shared rules\n\n" + SESSION_PROFILE + "\n\n" + PersonaRegistry.from_file().get(
-        "analyse").system_prompt
+        "analyse").system_prompt + TOOLS
     assert client.calls == [[system, "Q1"], [system, "Q1", "R1", "Q2"]]
     assert "Session k7f2qa — Q1" in capsys.readouterr().out
     with StorageRepository(database) as repository:

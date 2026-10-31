@@ -16,6 +16,10 @@ from sensai.core.messages import Message
 from sensai.llm.client import LLMClient, close_stream
 from sensai.llm.ollama_api import OllamaUsage, UsageError
 
+# How long a stopped worker gets after SIGTERM to clean up (the sandbox kills its code and
+# removes its folder) before SIGKILL; a worker that exits at once returns sooner. Stays
+# well under the 1 s a cancelled worker must take to stop (test_isolation.py).
+STOP_GRACE_SECONDS = 0.5
 
 _ERRORS = {cls.__name__: cls for cls in (
     LLMError, LLMConnectionError, ModelNotFoundError, PortError, PolicyDenied,
@@ -58,9 +62,26 @@ def _child(channel, factory, kind, arguments, deadline):
             token.raise_if_cancelled()
             result = worker.execute(arguments[0], cancellation=token)
             token.raise_if_cancelled()
-            emit("result", result.output)
+            if (not isinstance(result, ToolResult) or not isinstance(result.output, str)
+                    or result.error is not None and not isinstance(result.error, str)):
+                raise PortError("tool returned an invalid ToolResult")
+            emit("result", {"output": result.output, "error": result.error})
         emit("done")
     except BaseException as exc:
+        if (kind == "tool" and isinstance(exc, OperationTimedOut)
+                and (deadline is None or monotonic() < deadline)):
+            try:
+                emit("handler_timeout", str(exc))
+            except (OSError, ValueError):
+                pass
+            return
+        if kind == "tool" and not isinstance(exc, Exception):
+            # Only the handler stopped; the parent was not interrupted: a tool failure.
+            try:
+                emit("error", ["PortError", f"tool handler raised {type(exc).__name__}"])
+            except (OSError, ValueError):
+                pass
+            return
         name = type(exc).__name__
         message = str(exc) if name in _ERRORS else "execution worker failed"
         if name not in _ERRORS:
@@ -91,7 +112,7 @@ def _stop(process):
         kill_group(signal.SIGTERM)
     finally:
         try:
-            process.join(.2)
+            process.join(STOP_GRACE_SECONDS)
             # Also kill descendants whose parent already exited normally.
             kill_group(signal.SIGKILL)
             process.join()
@@ -138,6 +159,10 @@ def _frames(factory, kind, arguments, cancellation):
                 if name == "error":
                     cls, message = value
                     raise _ERRORS[cls](message)
+                if name == "handler_timeout" and kind == "tool":
+                    error = OperationTimedOut(value)
+                    error._handler_raised = True  # Preserve origin across worker teardown.
+                    raise error
                 yield name, value
     except BaseException as exc:
         failure = exc
@@ -224,7 +249,7 @@ class ControlledTool:
         try:
             for name, value in frames:
                 if name == "result":
-                    result = ToolResult(value)
+                    result = ToolResult(**value)
         finally:
             frames.close()
         if cancellation is not None:

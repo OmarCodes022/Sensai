@@ -66,6 +66,21 @@ def test_valid_reply_uses_model_schema_and_non_streaming_http():
     assert response.closed
 
 
+def test_context_length_is_sent_as_num_ctx():
+    with patch(POST, return_value=reply('{"name":"task","confidence":0.8}')) as post:
+        OllamaStructuredClient("localhost:11434", 4, context_length=8192).complete(
+            "gemma3:1b", MESSAGES, Label
+        )
+    assert post.call_args.kwargs["json"]["options"] == {"num_ctx": 8192}
+
+
+@pytest.mark.parametrize("value", [0, -1, True, 2.0, "8192"])
+def test_invalid_context_length_is_rejected_before_any_request(value):
+    with patch(POST) as post, pytest.raises(ValueError, match="context_length"):
+        OllamaStructuredClient(context_length=value)
+    post.assert_not_called()
+
+
 def test_each_call_selects_its_own_model_and_schema():
     class Priority(BaseModel):
         level: int

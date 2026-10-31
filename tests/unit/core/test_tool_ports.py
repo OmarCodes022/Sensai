@@ -1,4 +1,4 @@
-"""Tool-loop contract examples (T18); no working loop is tested here."""
+"""Stable public tool-loop contracts; behavior lives in test_tools.py."""
 
 import inspect
 import subprocess
@@ -73,26 +73,6 @@ def test_registry_takes_optional_approval_port():
     assert parameter.default is None
     assert parameter.annotation == ApprovalPort | None
     ToolRegistry()
-
-
-@pytest.mark.parametrize("call", [
-    lambda: ToolRegistry().register(ToolDefinition("x", "y"), lambda a, c: ToolResult("")),
-    lambda: ToolRegistry().register(ToolDefinition("x", "y"), lambda a, c: ToolResult(""),
-                                    timeout=None, confirm=True, max_calls=1),
-    lambda: ToolRegistry().definitions(),
-    lambda: ToolRegistry().execute(ToolCall("x", {})),
-    lambda: tool_instructions([]),
-    lambda: parse_tool_call({"tool": "x"}),
-    lambda: next(run_with_tools(None, ToolRegistry(), "hi")),
-    lambda: next(run_with_tools(None, ToolRegistry(), "hi", max_rounds=2,
-                                on_tool=lambda call, result: None)),
-    lambda: BlockReader().feed("hi"),
-    lambda: BlockReader().finish(),
-    lambda: split_block("hi"),
-])
-def test_placeholders_raise_not_implemented_for_t18(call):
-    with pytest.raises(NotImplementedError, match="T18"):
-        call()
 
 
 def test_modules_import_without_loading_cli():

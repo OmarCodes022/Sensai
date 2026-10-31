@@ -10,7 +10,11 @@ from sensai.cli import main as cli
 from sensai.cli.main import parse_args, repl
 from sensai.chat.session import ChatSession
 from sensai.settings import Settings
+from sensai.sandbox import RUN_PYTHON
+from sensai.tools import CALCULATE, tool_instructions
 from sensai.core.cancellation import OperationCancelled, OperationTimedOut
+
+TOOLS = "\n\n" + tool_instructions([CALCULATE, RUN_PYTHON])
 
 
 def test_cli_model_argument_overrides_settings():
@@ -45,8 +49,8 @@ def test_repl_input_cancel_then_partial_turn_notice_and_next_prompt(error, notic
     assert "interrompre la réponse" not in text
     assert f"partial\n{notice}" in text
     assert text.endswith("complete\n")
-    assert [message.content for message in session.messages] == ["sys", "next", "complete"]
-    assert client.calls[-1] == ["sys", "next"]
+    assert [message.content for message in session.messages] == ["sys" + TOOLS, "next", "complete"]
+    assert client.calls[-1] == ["sys" + TOOLS, "next"]
 
 
 def test_operation_timeout_env_and_cli_precedence(monkeypatch):
@@ -81,11 +85,11 @@ def test_default_prompt_is_packaged_and_overrides_still_apply(monkeypatch, tmp_p
     elif source == "env":
         monkeypatch.setenv("SENSAI_PROMPT", str(custom))
     client = FakeClient(["ok"])
-    monkeypatch.setattr(cli, "create_client", lambda settings, usage_sink=None: client)
+    monkeypatch.setattr(cli, "create_client", lambda settings: client)
     monkeypatch.setattr(cli, "TerminalInput", scripted_terminal(["Hi", "exit"]))
     cli.main(argv)
     expected = load_system_prompt() if source == "default" else "Custom rules"
-    assert client.calls == [[expected, "Hi"]]
+    assert client.calls == [[expected + TOOLS, "Hi"]]
 
 
 @pytest.mark.usefixtures("isolated_settings")
@@ -104,7 +108,7 @@ def test_prompt_option_precedence_and_empty_values(monkeypatch, tmp_path, case):
     else:
         argv += ["--prompt", ""]
     client = FakeClient(["ok"])
-    monkeypatch.setattr(cli, "create_client", lambda settings, usage_sink=None: client)
+    monkeypatch.setattr(cli, "create_client", lambda settings: client)
     monkeypatch.setattr(cli, "TerminalInput", scripted_terminal(["Hi", "exit"]))
     cli.main(argv)
-    assert client.calls == [[expected, "Hi"]]
+    assert client.calls == [[expected + TOOLS, "Hi"]]

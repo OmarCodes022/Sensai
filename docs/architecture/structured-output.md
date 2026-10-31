@@ -34,6 +34,10 @@ label: Label = client.complete(
 ```
 
 Calls send `stream: false` and use the schema from `Label.model_json_schema()`.
+`OllamaStructuredClient(host, timeout, context_length=None)`: `timeout` is the
+HTTP timeout of each call, and a positive integer `context_length` is sent as
+`"options": {"num_ctx": context_length}`, as `OllamaClient` does (anything else
+raises `ValueError`).
 The Ollama response must contain `message.content` as a nonempty JSON string.
 The adapter strictly validates it with Pydantic, closes the HTTP response on
 success or failure, and does not log prompts or responses. It raises
@@ -47,8 +51,11 @@ primary.
 
 JSON-schema prompting cannot guarantee a valid model response: callers must
 handle errors, and any retries, policy decisions, persistence, and session
-history are their responsibility. This is only a reusable foundation for the
-Structured Output (T5) feature: nothing in the CLI calls it yet, and it does
-**not** implement report or calendar generation.
+history are their responsibility. The CLI uses it for the `/think` check
+(`chat/reasoning.py`): it builds the client with the chat's host, the
+`--operation-timeout` value (one `/think` step) as `timeout` and
+`SENSAI_CONTEXT_LENGTH`, and treats a `StructuredOutputError` as
+`Check unavailable`. It does **not** implement the Structured Output (T5)
+feature: no report or calendar generation.
 Tests mock `requests.post` and do not require Ollama:
 `.venv/bin/python -m pytest -q tests/unit/llm/test_structured.py`.

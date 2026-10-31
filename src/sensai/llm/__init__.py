@@ -7,9 +7,9 @@ if TYPE_CHECKING:
     from sensai.settings import Settings
 
 
-def create_client(settings: "Settings", usage_sink=None) -> LLMClient:
+def create_client(settings: "Settings") -> LLMClient:
     """Single place to pick a backend as more are added."""
-    return OllamaClient(settings.host, settings.timeout, context_length=settings.context_length, usage_sink=usage_sink)
+    return OllamaClient(settings.host, settings.timeout, context_length=settings.context_length)
 
 
 __all__ = ["LLMClient", "OllamaClient", "create_client"]

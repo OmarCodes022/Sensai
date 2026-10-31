@@ -153,6 +153,14 @@ def ssh_tunnel(alias: str):
                 signal.signal(sig, handler)
 
 
+def check_remote(alias: str, host: str) -> None:
+    """The alias must be a plain SSH alias and Ollama must be reached through the tunnel port."""
+    if alias.startswith("-") or not alias.isprintable() or any(c.isspace() for c in alias):
+        raise RemoteError("SENSAI_SSH_HOST must be an SSH alias without whitespace, controls or leading '-'")
+    if host not in ("http://127.0.0.1:11435", "http://127.0.0.1:11435/"):
+        raise RemoteError("SENSAI_SSH_HOST requires OLLAMA_HOST/--host=http://127.0.0.1:11435")
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     settings = Settings()
@@ -165,10 +173,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             cli.run_chat(settings, args, prepared)
             return 0
         alias = settings.ssh_host
-        if alias.startswith("-") or not alias.isprintable() or any(c.isspace() for c in alias):
-            raise RemoteError("SENSAI_SSH_HOST must be an SSH alias without whitespace, controls or leading '-'")
-        if args.host not in ("http://127.0.0.1:11435", "http://127.0.0.1:11435/"):
-            raise RemoteError("SENSAI_SSH_HOST requires OLLAMA_HOST/--host=http://127.0.0.1:11435")
+        check_remote(alias, args.host)
         with ssh_tunnel(alias):
             cli.run_chat(settings, args, prepared)
         return 0

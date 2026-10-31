@@ -1,71 +1,187 @@
 """Command line interface."""
 import argparse
+import json
 import os
 import sqlite3
+import stat
 import sys
 from datetime import datetime, timezone
 from math import isfinite
 from time import monotonic
 from collections.abc import Callable, Sequence
+from functools import partial
 from typing import NamedTuple
 
 from sensai.core.errors import SensaiError
 from sensai.core.cancellation import CancellationToken, OperationCancelled, OperationTimedOut
-from sensai.core.ports import PortError, Profile
-from sensai.chat import compression, saved_sessions
+from sensai.core.ports import PortError, Profile, ToolCall
+from sensai.chat import saved_sessions
 from sensai.chat.saved_sessions import SessionRecorder, display_title, profile_block
+from sensai.chat.reasoning import Section, think
+from sensai.cli.approval import TerminalApproval, sanitize
 from sensai.cli.terminal import TerminalInput
 from sensai.llm import create_client
+from sensai.llm.structured import OllamaStructuredClient
 from sensai.chat.prompts import load_system_prompt
 from sensai.chat.personas import PersonaRegistry
 from sensai.chat.session import ChatSession
 from sensai.settings import Settings
 from sensai.memory.sqlite_store import StorageError, StorageRepository
+from sensai.core.messages import Message
+from sensai.sandbox import (PYTHON_ATTEMPTS, RUN_PYTHON, SandboxError, SandboxLimits, data_file_names,
+                            data_prompt, format_run, python_tool, remove_stale_folders, report_summary)
+from sensai.tools import CALCULATE, ToolRegistry, calculate, run_with_tools, tool_instructions
+from sensai.rag import (DOCS_PROMPT, SEARCH_DOCS, DocLibrary, add_command, docs_command, reindex_command,
+                       remove_command, search_docs_handler)
+from sensai.llm.embeddings import OllamaEmbeddingAdapter
 
 DEFAULT_DB_PATH = "sensai.sqlite3"
+MAX_SCRIPT_BYTES = 1024 * 1024
+SUMMARY_WIDTH = 160
 
 
-DEFAULT_CONTEXT_BUDGET = 4096
+def _tool_prompt(prompt, registry):
+    instructions = tool_instructions(registry.definitions())
+    return prompt if prompt.endswith(instructions) else f"{prompt}\n\n{instructions}"
 
 
-class ContextState:
-    """Token budget, the last turn's count and what summaries saved (M2)."""
+def _tools(read, approval=None, data_dir=None, permission=None):
+    registry = ToolRegistry(approval, read=read)
+    registry.register(CALCULATE, calculate)
+    registry.register(RUN_PYTHON, partial(python_tool, data_dir=data_dir, permission=permission),
+                      confirm=True, max_calls=PYTHON_ATTEMPTS)
+    return registry
 
-    def __init__(self, budget: int):
-        self.budget = budget
-        self.reported: int | None = None
-        self.last_tokens: int | None = None
-        self.summaries = 0
-        self.saved = 0
-        self.before_summary: int | None = None
-        self.after_summary = False
+def _setup_docs(args, settings, tool_registry) -> DocLibrary | None:
+    """The documents folder as a library that indexes itself in the background; None if switched off."""
+    if not args.docs:
+        return None
+    embedding = OllamaEmbeddingAdapter(settings.embed_model, host=args.host)
+    library = DocLibrary(args.docs, embedding, args.creator, cache_path=args.db or DEFAULT_DB_PATH,
+                         model=settings.embed_model)
+    tool_registry.register(SEARCH_DOCS, partial(search_docs_handler, library=library), timeout=None)
+    library.sync()
+    return library
 
-    def on_usage(self, usage) -> None:
-        # Called once per request; the last request of a turn holds the whole history.
-        if usage.prompt_tokens is not None and usage.output_tokens is not None:
-            self.reported = usage.prompt_tokens + usage.output_tokens
 
-    def start_turn(self) -> None:
-        self.reported = None
+def _with_docs(prompt: str, on: bool, registry: ToolRegistry) -> str:
+    """The system prompt with the search instructions present exactly while there are documents."""
+    instructions = tool_instructions(registry.definitions())
+    core = prompt.removesuffix(instructions).rstrip()
+    core = core.replace(f"\n\n{DOCS_PROMPT}", "")
+    return _tool_prompt(f"{core}\n\n{DOCS_PROMPT}" if on else core, registry)
 
-    def end_turn(self, messages) -> int:
-        """Real count if Ollama reported one this turn, else characters / 4."""
-        tokens = self.reported if self.reported is not None else compression.estimate_tokens(messages)
-        self.last_tokens = tokens
-        self.after_summary = self.before_summary is not None
-        if self.before_summary is not None:
-            self.saved += max(self.before_summary - tokens, 0)
-            self.before_summary = None
-        return tokens
 
-    def line(self, tokens: int) -> str:
-        return f"Context: {tokens:,} / {self.budget:,} tokens ({tokens * 100 // self.budget}%)"
+def _read_script(path):
+    try:
+        # Non-blocking open so a FIFO cannot hang the chat; only regular files are read.
+        fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+        try:
+            if not stat.S_ISREG(os.fstat(fd).st_mode):
+                raise ValueError(f"{path} is not a regular file")
+            with open(fd, "rb", closefd=False) as f:
+                data = f.read(MAX_SCRIPT_BYTES + 1)
+        finally:
+            os.close(fd)
+    except OSError as e:
+        raise ValueError(f"cannot read {path}: {e.strerror or e}") from None
+    if len(data) > MAX_SCRIPT_BYTES:
+        raise ValueError(f"{path} is larger than 1 MiB")
+    try:
+        return data.decode("utf-8")
+    except UnicodeDecodeError:
+        raise ValueError(f"{path} is not UTF-8 text") from None
 
-    def report(self) -> str:
-        last = "—" if self.last_tokens is None else \
-            f"{self.last_tokens:,} ({self.last_tokens * 100 // self.budget}%)"
-        return (f"Budget {self.budget:,}   Last turn {last}   "
-                f"Summaries {self.summaries}   Saved about {self.saved:,} tokens")
+
+def _sweep_quietly():
+    """Remove folders of killed tool workers; a second Ctrl+C must not escape the REPL."""
+    try:
+        remove_stale_folders()
+    except KeyboardInterrupt:
+        pass
+
+
+def _run_script(path, data_dir, token, write):
+    """/run: the tool's timed worker path, without approval or chat history."""
+    try:
+        code = _read_script(path)
+    except ValueError as e:
+        write(f"error: {e}")
+        return
+    write(f"Running in the sandbox (limit {SandboxLimits().wall_seconds:g} s)…")
+    registry = ToolRegistry()
+    registry.register(RUN_PYTHON, partial(python_tool, data_dir=data_dir, report=format_run))
+    try:
+        result = registry.execute(ToolCall(RUN_PYTHON.name, {"code": code}), token)
+    except (KeyboardInterrupt, OperationCancelled):
+        token.cancel()
+        _sweep_quietly()
+        write("\nExécution interrompue")
+    except OperationTimedOut:
+        _sweep_quietly()
+        write("\nDélai maximal dépassé")
+    except SensaiError as e:
+        write(f"error: {e}")
+    else:
+        write(result.output or f"error: {result.error}")
+
+
+def _think(session, tool_registry, request, checker, new_token, write, recorder):
+    """/think: show every step; only the request and the final answer join the chat."""
+    tokens = []
+
+    def token():
+        tokens.append(new_token())
+        return tokens[-1]
+
+    tool_text, line_start, result = False, True, None
+
+    def end_line():
+        return "" if line_start else "\n"
+
+    def show(item):
+        nonlocal tool_text, line_start
+        if isinstance(item, Section):
+            write(end_line() + item.title)
+            # Only the call or result line under Act/Observe is tool text, not the narration.
+            tool_text, line_start = item.title in ("Act", "Observe"), True
+            return
+        if tool_text:
+            item = sanitize(item, keep="\t\n")  # Tool output may hold control characters.
+            tool_text = False
+        if item:
+            write(item, end="", flush=True)
+            line_start = item.endswith("\n")
+
+    # Tool rounds arrive through ``emit`` as they finish, before the next model request.
+    stream = think(session, tool_registry, request, checker, new_token=token, emit=show)
+    try:
+        while True:
+            try:
+                show(next(stream))
+            except StopIteration as stop:
+                result = stop.value
+                break
+        if not line_start:
+            write()
+    except (KeyboardInterrupt, OperationCancelled):
+        if tokens:
+            tokens[-1].cancel()
+        _sweep_quietly()  # A killed tool worker may not have removed its folder.
+        write(end_line() + "Réponse interrompue")
+    except OperationTimedOut:
+        _sweep_quietly()
+        write(end_line() + "Délai maximal dépassé")
+    except SensaiError as e:
+        write(f"{end_line()}error: {e}")
+    finally:
+        stream.close()
+    if result is None:
+        return
+    session.messages.append(Message(role="user", content=request))
+    session.messages.append(Message(role="assistant", content=result.answer))
+    if recorder is not None:
+        recorder.after_turn(session)
 
 
 class PreparedChat(NamedTuple):
@@ -94,6 +210,8 @@ def parse_args(settings: Settings, argv: Sequence[str] | None = None) -> argpars
     p.add_argument("--profile-file", default=settings.profile_file,
                    help="JSON object replacing the stored creator profile")
     p.add_argument("--host", default=settings.host, help="Ollama base URL")
+    p.add_argument("--docs", default=settings.docs_dir,
+                   help="folder of brand documents to search (default: data/docs; empty switches it off)")
     def positive_timeout(value):
         try:
             number = float(value)
@@ -103,21 +221,11 @@ def parse_args(settings: Settings, argv: Sequence[str] | None = None) -> argpars
             raise argparse.ArgumentTypeError("timeout must be a positive finite number")
         return number
     p.add_argument("--operation-timeout", type=positive_timeout,
-                   default=settings.operation_timeout, help="maximum seconds per complete turn")
-    def positive_int(value):
-        try:
-            number = int(value)
-        except ValueError:
-            raise argparse.ArgumentTypeError("context budget must be a positive integer") from None
-        if number <= 0:
-            raise argparse.ArgumentTypeError("context budget must be a positive integer")
-        return number
-    p.add_argument("--context-budget", type=positive_int,
-                   default=settings.context_budget or settings.context_length or DEFAULT_CONTEXT_BUDGET,
-                   help="token budget; older messages are summarized at 80%% "
-                        "(default: SENSAI_CONTEXT_BUDGET, SENSAI_CONTEXT_LENGTH or 4096)")
+                   default=settings.operation_timeout,
+                   help="maximum seconds per complete turn, and per step of a /think")
     args = p.parse_args(argv)
     args.persona_explicit = args.persona is not None
+    args.data_dir = settings.data_dir or None
     if args.persona is None:
         args.persona = settings.persona
     if not args.model and not args.list_personas and not args.list_sessions:
@@ -125,14 +233,53 @@ def parse_args(settings: Settings, argv: Sequence[str] | None = None) -> argpars
     return args
 
 
+HISTORY_WIDTH = 100
+
+
+def _history_line(text: str) -> str:
+    lines = text.strip().splitlines()
+    line = lines[0].strip() if lines else ""
+    if len(line) > HISTORY_WIDTH:
+        return line[:HISTORY_WIDTH].rstrip() + " …"
+    return line + " …" if len(lines) > 1 else line
+
+
+def _history(messages) -> str:
+    lines = [f"{n}. {_history_line(text)}"
+             for n, text in enumerate(saved_sessions.user_messages(messages), 1)]
+    return "\n".join(lines) or "Aucun message dans cette session."
+
+
 def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
          operation_timeout: float = 120.0, cancel_requested=None,
          persona_registry: PersonaRegistry | None = None,
          base_prompt: str | None = None, recorder: SessionRecorder | None = None,
-         context: ContextState | None = None) -> None:
+         tool_registry: ToolRegistry | None = None, data_dir: str | None = None,
+         docs: DocLibrary | None = None, checker=None) -> None:
     if base_prompt is None:
         base_prompt = session.messages[0].content
+    if tool_registry is None:
+        tool_registry = _tools(read)
+    session.messages[0] = Message(role="system", content=_tool_prompt(
+        session.messages[0].content, tool_registry))
+    docs_on = False
+
+    def refresh_docs() -> None:
+        """Notice new, edited and removed documents; show what happened; keep the prompt in step."""
+        nonlocal docs_on
+        if docs is None:
+            return
+        docs.sync()
+        for line in docs.notices():
+            write(line)
+        on = docs.ready_count() > 0
+        if on != docs_on:
+            docs_on = on
+            session.messages[0] = Message(role="system", content=_with_docs(
+                session.messages[0].content, on, tool_registry))
+
     while True:
+        refresh_docs()
         try:
             text = read("\n> ")
         except EOFError:
@@ -144,6 +291,10 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
         if text.strip().lower() in ("exit", "quit"):
             return
         command = text.strip().split(maxsplit=1)
+        if command and command[0] == "/tools":
+            for definition in tool_registry.definitions():
+                write(f"{definition.name}: {definition.description}")
+            continue
         if command and command[0] == "/persona":
             if persona_registry is None:
                 write("error: persona selection is unavailable")
@@ -155,18 +306,73 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
                 if persona is None:
                     write(f"error: unknown persona: {command[1]}")
                 else:
-                    session.set_system_prompt(f"{base_prompt}\n\n{persona.system_prompt}")
+                    session.set_system_prompt(_with_docs(
+                        _tool_prompt(f"{base_prompt}\n\n{persona.system_prompt}", tool_registry), docs_on, tool_registry))
                     write(f"Persona sélectionnée : {persona.id}")
                     if recorder is not None:
                         recorder.persona_changed(persona.id)
             continue
-        if command and command[0] == "/context":
-            write(context.report() if context is not None else "error: context budget is unavailable")
+        if command and command[0] == "/history":
+            write(_history(session.messages) if len(command) == 1 else "usage: /history")
             continue
-        if context is not None:
-            context.start_turn()
+        if command and command[0] == "/think":
+            if len(command) == 1:
+                write("usage: /think <request>")
+            elif checker is None:
+                write("error: /think is unavailable")
+            else:
+                # Each model step gets its own deadline; one cancel callback stops them all.
+                def step_token():
+                    return CancellationToken(monotonic() + operation_timeout, cancel_requested)
+
+                _think(session, tool_registry, command[1], checker, step_token, write, recorder)
+            continue
         token = CancellationToken(monotonic() + operation_timeout, cancel_requested)
-        stream = session.send(text, token)
+        if command and command[0] == "/run":
+            if len(command) == 1:
+                write("usage: /run <file.py>")
+            else:
+                _run_script(command[1], data_dir, token, write)
+            continue
+        if command and command[0] in ("/docs", "/reindex", "/add", "/remove"):
+            if docs is None:
+                write("Document search is off (SENSAI_DOCS is empty).")
+            else:
+                argument = command[1] if len(command) > 1 else ""
+                if command[0] == "/add":
+                    lines = add_command(docs, argument)
+                elif command[0] == "/remove":
+                    lines = remove_command(docs, argument)
+                elif command[0] == "/reindex":
+                    lines = reindex_command(docs)
+                else:
+                    lines = docs_command(docs, argument)
+                for line in lines:
+                    write(line)
+                refresh_docs()
+            continue
+
+        refresh_docs()  # A document added a moment ago counts for this very question.
+
+        def on_tool(call, result):
+            if call.name == RUN_PYTHON.name:
+                calls, limit = tool_registry.usage(call.name)
+                if limit and calls > limit:
+                    write(f"Using tool: {call.name} · Stopped after {limit} attempts")
+                    return
+                first, detail = report_summary(
+                    result.error if result.error is not None else result.output)
+                write(f"Using tool: {call.name} · Run {calls} · {sanitize(first)}")
+                if detail is not None:
+                    write(sanitize(detail)[:SUMMARY_WIDTH])
+                return
+            # Visible text before a block always ends a line: no extra newline.
+            arguments = json.dumps(dict(call.arguments), ensure_ascii=False)
+            # Lone surrogates from model JSON cannot be printed as UTF-8.
+            arguments = arguments.encode("utf-8", "backslashreplace").decode("utf-8")
+            write(f"Using tool: {call.name}({arguments})")
+
+        stream = run_with_tools(session, tool_registry, text, token, on_tool=on_tool)
         completed = False
         try:
             for chunk in stream:
@@ -175,8 +381,10 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
             completed = True
         except (KeyboardInterrupt, OperationCancelled):
             token.cancel()
+            _sweep_quietly()  # A killed tool worker may not have removed its folder.
             write("\nRéponse interrompue")
         except OperationTimedOut:
+            _sweep_quietly()
             write("\nDélai maximal dépassé")
         except ValueError:
             write("Please type something.")
@@ -184,33 +392,8 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
             write(f"error: {e}")
         finally:
             stream.close()
-        if not completed:
-            continue
-        # Count before the title or summary requests report their own usage.
-        tokens = context.end_turn(session.messages) if context is not None else None
-        if context is not None and context.after_summary:
-            write(context.line(tokens))
-        if recorder is not None:
+        if completed and recorder is not None:
             recorder.after_turn(session)
-        if context is not None and compression.should_compress(tokens, context.budget):
-            _summarize(session, context, tokens, write, recorder,
-                       CancellationToken(monotonic() + operation_timeout, cancel_requested))
-
-
-def _summarize(session: ChatSession, context: ContextState, tokens: int, write,
-               recorder: SessionRecorder | None, token: CancellationToken) -> None:
-    """Between turns only: condense the oldest messages; a failure keeps the full history."""
-    cut = compression.choose_cut(session.messages)
-    if cut is None:
-        return
-    write(f"{context.line(tokens)}, summarizing {cut - 1} older messages…")
-    if not compression.compress(session, cut, token):
-        write("warning: summary failed, full history kept")
-        return
-    context.summaries += 1
-    context.before_summary = tokens
-    if recorder is not None:
-        recorder.after_turn(session)
 
 
 def _open_storage(args: argparse.Namespace):
@@ -298,6 +481,14 @@ def prepare_chat(args: argparse.Namespace) -> PreparedChat | None:
         base_prompt = load_system_prompt(args.prompt)
     except OSError as e:
         sys.exit(f"error: cannot read system prompt: {e}")
+    if args.data_dir and not os.path.isdir(args.data_dir):
+        sys.exit(f"error: data folder not found: {args.data_dir}")
+    if args.data_dir:
+        # Names only, never contents; T26 will pass its permission policy here.
+        try:
+            base_prompt = f"{base_prompt}\n\n{data_prompt(data_file_names(args.data_dir))}"
+        except SandboxError as e:
+            sys.exit(f"error: {e}")
     preferences = None
     if args.profile_file:
         try:
@@ -309,6 +500,8 @@ def prepare_chat(args: argparse.Namespace) -> PreparedChat | None:
         recorder, persona = _resume(args, creator, registry, persona)
         if preferences is not None:
             creator.profiles.save(Profile("default", preferences))
+        else:
+            saved_sessions.seed_profile(creator.profiles)
         profile = creator.profiles.load("default")
     except PortError as e:
         repository.close()
@@ -331,17 +524,17 @@ def prepare_chat(args: argparse.Namespace) -> PreparedChat | None:
 def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedChat) -> None:
     prompt, registry, base_prompt, repository, recorder = prepared
     try:
-        state = ContextState(args.context_budget)
-        client = create_client(settings.model_copy(update={"host": args.host}), usage_sink=state.on_usage)
-        print(f"Chatting with {args.model}. Type '/persona' to list profiles, "
-              "'/context' for token usage or 'exit' to quit.")
+        client = create_client(settings.model_copy(update={"host": args.host}))
+        print(f"Chatting with {args.model}. Type '/persona' to list profiles or 'exit' to quit.")
         if recorder.saved:
             print(f"Session {recorder.session_id} — {display_title(recorder.title, recorder.messages)}")
         else:
             print(f"Session {recorder.session_id}")
         with TerminalInput() as terminal:
+            tool_registry = _tools(terminal.read, approval=TerminalApproval(terminal.read_key, print),
+                                   data_dir=args.data_dir)
+            docs = _setup_docs(args, settings, tool_registry)
             def titler(first_user: str, first_answer: str) -> str | None:
-                print("Titre de la session…")
                 token = CancellationToken(
                     monotonic() + min(saved_sessions.TITLE_TIMEOUT, args.operation_timeout),
                     terminal.cancel_requested)
@@ -349,15 +542,23 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
                                                     first_answer, token)
 
             recorder.titler = titler
-            session = ChatSession(client, args.model, prompt)
+            # Same host as the chat client, so the SSH tunnel serves the check calls too.
+            # Its HTTP timeout is the per-step budget: a check is one /think step.
+            checker = OllamaStructuredClient(args.host, args.operation_timeout,
+                                             context_length=settings.context_length)
+            session = ChatSession(client, args.model, _tool_prompt(prompt, tool_registry))
             session.messages.extend(recorder.messages)
             repl(session, read=terminal.read,
                  operation_timeout=args.operation_timeout,
                  cancel_requested=terminal.cancel_requested,
                  persona_registry=registry, base_prompt=base_prompt, recorder=recorder,
-                 context=state)
+                 tool_registry=tool_registry, data_dir=args.data_dir,
+                 docs=docs, checker=checker)
     finally:
-        repository.close()
+        try:
+            remove_stale_folders()
+        finally:
+            repository.close()
 
 
 def main(argv: Sequence[str] | None = None) -> None:

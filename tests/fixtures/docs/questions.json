@@ -1,0 +1,67 @@
+[{
+        "question": "What is the Hydra Glow Serum useful for ?",
+        "source": "hydra-glow-serum",
+        "answer": "moisturize the skin",
+        "kind": "direct"
+    },
+    {
+        "question": "What is the calm barrier cream useful for ?",
+        "source": "calm-barrier-cream",
+        "answer": "helps to reduce redness",
+        "kind": "direct"
+    },
+    {
+        "question": "How long does the Calm Barrier Cream take to reduce redness ?",
+        "source": "calm-barrier-cream",
+        "answer": "4 weeks",
+        "kind": "direct"
+    },
+    {
+        "question": "How long does Hydra Glow Serum keep skin hydrated ?",
+        "source": "hydra-glow-serum",
+        "answer": "8 hours",
+        "kind": "direct"
+    },
+    {
+        "question": "How long does delivery take ?",
+        "source": "faq",
+        "answer": "2 or 3 business days",
+        "kind": "direct"
+    },
+    {
+        "question": "How long does the Calm Barrier Cream keep skin hydrated ?",
+        "source": "hydra-glow-serum",
+        "answer": "8 hours",
+        "kind": "near-miss"
+    },
+    {
+        "question": "Does the Hydra Glow Serum reduce redness ?",
+        "source": "calm-barrier-cream",
+        "answer": "reduce redness",
+        "kind": "near-miss"
+    },
+    {
+        "question": "Does the Calm Barrier soothe sensitive skin overnight ?",
+        "source": "calm-barrier-cream-2025",
+        "answer": "overnight",
+        "kind": "outdated"
+    },
+    {
+        "question": "What is the price of the Hydra Glow Serum ?",
+        "source": null,
+        "answer": null,
+        "kind": "unsupported"
+    },
+    {
+        "question": "How many products do you have on your catalog ?",
+        "source": null,
+        "answer": null,
+        "kind": "unsupported"
+    },
+    {
+        "question": "What are the products prices ?",
+        "source": null,
+        "answer": null,
+        "kind": "unsupported"
+    }
+]

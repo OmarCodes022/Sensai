@@ -18,7 +18,7 @@ be pickleable/importable and return a client in a fresh spawned process. Calls
 without a token preserve the direct synchronous API. A POSIX process group owns
 the worker and its descendants. The parent polls a socketpair at most every
 20 ms; newline-delimited JSON carries chunks, usage and typed errors.
-Closing, cancelling or expiring the stream sends SIGTERM, waits at most 200 ms,
+Closing, cancelling or expiring the stream sends SIGTERM, waits at most 500 ms,
 then sends SIGKILL and reaps the worker. Channels are fresh for every operation.
 The isolation supports interruption; it is not a security sandbox.
 

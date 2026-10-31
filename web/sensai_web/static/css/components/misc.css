@@ -1,0 +1,42 @@
+@layer components {
+  kbd { display: inline-block; min-width: 1.6em; padding: 1px 6px; border: var(--bw) solid var(--line-strong); border-bottom-width: 2px; border-radius: 5px; background: var(--surface-2); font-size: var(--fs-12); text-align: center; color: var(--ink-2); }
+  .meter { display: flex; flex-direction: column; gap: var(--s-1); }
+  .meter__bar { height: 8px; border-radius: var(--r-pill); background: var(--surface-3); overflow: hidden; position: relative; }
+  .meter__fill { display: block; height: 100%; width: var(--v, 0%); background: var(--sage); border-radius: inherit; transition: width var(--dur-panel) var(--ease); }
+  .meter[data-level="warn"] .meter__fill { background: var(--amber); }
+  .meter[data-level="high"] .meter__fill { background: var(--rose); }
+  .meter__mark { position: absolute; top: 0; bottom: 0; left: 80%; width: 2px; background: var(--ink); }
+  .meter__text { font-size: var(--fs-12); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .progress { height: 6px; background: var(--surface-3); border-radius: var(--r-pill); overflow: hidden; }
+  .progress > i { display: block; height: 100%; width: var(--v, 0%); background: var(--accent); }
+  .ring { --v: 0; width: 28px; height: 28px; border-radius: 50%; background: conic-gradient(var(--accent) calc(var(--v) * 1%), var(--surface-3) 0); display: inline-grid; place-items: center; }
+  .ring::after { content: ""; width: 20px; height: 20px; border-radius: 50%; background: var(--surface); }
+  .spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line-strong); border-top-color: var(--accent); animation: spin .8s linear infinite; display: inline-block; flex: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } }
+  :root[data-motion="reduce"] .spinner { animation-duration: 3s; }
+  .skeleton { display: block; height: 14px; border-radius: 4px; background: linear-gradient(90deg, var(--surface-2), var(--surface-3), var(--surface-2)); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+  @media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }
+  :root[data-motion="reduce"] .skeleton { animation: none; }
+  .dots i { display: inline-block; width: 5px; height: 5px; margin-right: 3px; border-radius: 50%; background: var(--ink-3); animation: pulse 1.2s infinite; }
+  .dots i:nth-child(2) { animation-delay: .2s; } .dots i:nth-child(3) { animation-delay: .4s; }
+  .code { font-family: var(--font-mono); background: var(--surface-2); border: var(--bw) solid var(--line); border-radius: var(--r-1); padding: var(--s-3); overflow: auto; white-space: pre; font-size: var(--fs-13); }
+  .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--s-4); }
+}
+
+@layer components {
+  .codeblock { margin: var(--s-3) 0; }
+  .codeblock__head { flex-wrap: nowrap; padding: 4px 8px; border: var(--bw) solid var(--line); border-bottom: 0; border-radius: var(--r-1) var(--r-1) 0 0; background: var(--surface-3); }
+  .codeblock pre { margin: 0; max-height: 480px; border-top-left-radius: 0; border-top-right-radius: 0; }
+}
+@layer views {
+  .gallery { max-width: 1200px; margin: 0 auto; padding: var(--s-6) var(--s-4) var(--s-14); display: flex; flex-direction: column; gap: var(--s-8); }
+  .gallery section { display: flex; flex-direction: column; gap: var(--s-3); }
+  .gallery-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: var(--s-4); }
+  .gallery-pane { background: var(--paper); color: var(--ink); border: var(--bw) solid var(--line); border-radius: var(--r-2); padding: var(--s-4); display: flex; flex-direction: column; gap: var(--s-3); align-items: flex-start; min-width: 0; }
+  .gallery-pane > :not(.chip) { width: 100%; }
+  .md > * + * { margin-top: var(--s-3); }
+  .md ul { list-style: disc; padding-left: var(--s-5); } .md ol { list-style: decimal; padding-left: var(--s-5); }
+  .md blockquote { border-left: 3px solid var(--line-strong); padding-left: var(--s-3); color: var(--ink-2); }
+}

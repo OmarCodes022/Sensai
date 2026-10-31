@@ -1,0 +1,56 @@
+/* Tool cards, approval card and error cards. */
+@layer components {
+  .toolgroup { display: flex; flex-direction: column; gap: var(--s-2); }
+  .toolgroup > summary { cursor: pointer; color: var(--ink-3); font-size: var(--fs-13); }
+  .toolgroup:is([data-n="0"], [data-n="1"]) > summary { display: none; }
+  .chat[data-tools="false"] .toolgroup { display: none; }
+  .toolcard { border: var(--bw) solid var(--line-strong); border-radius: var(--r-2); background: var(--surface); overflow: hidden; max-width: 700px; }
+  .toolcard__head { display: flex; align-items: center; gap: var(--s-2); width: 100%; padding: var(--s-2) var(--s-3); border: 0; background: var(--teal-tint); color: var(--teal); text-align: left; font-size: var(--fs-13); min-height: var(--target); }
+  .toolcard__sum { color: var(--ink); flex: 0 1 auto; }
+  .toolcard__status { display: inline-flex; align-items: center; gap: var(--s-2); flex: none; }
+  .toolcard__attempt { flex: none; }
+  .toolcard__attempt:empty { display: none; }
+  .toolcard__dur { font-size: var(--fs-12); }
+  .toolcard__body { padding: var(--s-4); display: flex; flex-direction: column; gap: var(--s-3); }
+  .toolcard__note { color: var(--amber); font-size: var(--fs-13); }
+  .toolcard__note--err { color: var(--rose); }
+  .toolcard__meta { font-size: var(--fs-12); }
+  .calc { display: flex; align-items: baseline; gap: var(--s-3); flex-wrap: wrap; }
+  .calc__expr { color: var(--ink-3); }
+  .calc__res { font-family: var(--font-display); font-size: var(--fs-36); font-weight: 600; }
+  .codelines { padding-left: 0; }
+  .cl { display: block; padding-right: var(--s-3); }
+  .cl[aria-current="true"] { background: var(--amber-tint); box-shadow: inset 3px 0 0 var(--amber); }
+  .ln { display: inline-block; min-width: 3ch; margin-right: var(--s-3); text-align: right; color: var(--ink-3); user-select: none; }
+
+  .approval { border: 2px solid var(--accent); border-radius: var(--r-2); background: var(--surface); padding: var(--s-4); display: flex; flex-direction: column; gap: var(--s-3); max-width: 700px; }
+  .approval:focus { outline: none; }
+  .approval h3 { font-size: var(--fs-18); }
+  .approval__preview { gap: var(--s-2); }
+  .approval__arg { gap: var(--s-1); }
+  .approval__arghead { font-size: var(--fs-12); color: var(--ink-3); }
+  .approval__more { color: var(--amber); font-size: var(--fs-13); }
+  .approval__note { display: flex; gap: var(--s-2); align-items: center; color: var(--amber); font-size: var(--fs-13); }
+  .approval__honesty { font-size: var(--fs-12); color: var(--ink-3); }
+  .approval__foot { display: flex; gap: var(--s-2); flex-wrap: wrap; }
+  .approval__refuse { border-color: var(--ink-2); font-weight: 600; }
+  .approval__run { position: relative; overflow: hidden; }
+  .approval__run[aria-disabled="true"] { opacity: .65; cursor: progress; }
+  .approval__unlock { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--ink-inverse); transform-origin: left; animation: unlock 400ms linear forwards; }
+  @keyframes unlock { from { transform: scaleX(0); } }
+  .approval .btn kbd { margin-left: var(--s-1); }
+  .approval--done { border-width: var(--bw); border-color: var(--line-strong); padding: var(--s-2) var(--s-3); }
+  .approval--done > .row { gap: var(--s-2); }
+  .approval--sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; max-width: none; max-height: 80dvh; overflow: auto; border-radius: var(--r-3) var(--r-3) 0 0; box-shadow: var(--shadow-pop); }
+  .approval--sheet.approval--done { position: static; box-shadow: none; border-radius: var(--r-2); }
+
+  .errcard { display: flex; gap: var(--s-3); border: var(--bw) solid var(--rose); border-left-width: 4px; border-radius: var(--r-2); background: var(--surface); padding: var(--s-4); max-width: 700px; }
+  .errcard:focus { outline: none; }
+  .errcard__icon { flex: none; width: 36px; height: 36px; border-radius: 50%; background: var(--rose-tint); color: var(--rose); display: grid; place-items: center; }
+  .errcard__main { min-width: 0; flex: 1; }
+  .errcard h3 { font-family: var(--font-ui); font-size: var(--fs-16); }
+  .errcard p.mono { background: var(--surface-2); padding: var(--s-2) var(--s-3); border-radius: var(--r-1); overflow-wrap: anywhere; }
+  .errcard__details summary { cursor: pointer; color: var(--ink-3); font-size: var(--fs-13); }
+  .errcard__details .kv { margin-top: var(--s-2); font-size: var(--fs-13); }
+  @media (forced-colors: active) { .approval, .errcard, .toolcard { border-color: CanvasText; } }
+}

@@ -11,9 +11,13 @@ from sensai.chat.personas import PersonaRegistry
 from sensai.chat.prompts import load_system_prompt
 from sensai.chat.session import ChatSession
 from sensai.settings import Settings
+from sensai.sandbox import RUN_PYTHON
+from sensai.tools import CALCULATE, tool_instructions
 from sensai.core import cancellation
 from sensai.core.cancellation import CancellationToken, OperationCancelled
 from sensai.core.errors import LLMError
+
+TOOLS = "\n\n" + tool_instructions([CALCULATE, RUN_PYTHON])
 
 pytestmark = pytest.mark.usefixtures("isolated_settings")
 
@@ -51,7 +55,7 @@ def test_settings_cli_priority(monkeypatch):
 def test_listing_needs_no_model_or_client(monkeypatch, capsys):
     monkeypatch.setattr(cli, "Settings", lambda: Settings(_env_file=None, SENSAI_MODEL=None,
                                                          SENSAI_PERSONA="unknown"))
-    monkeypatch.setattr(cli, "create_client", lambda _, usage_sink=None: pytest.fail("client created"))
+    monkeypatch.setattr(cli, "create_client", lambda _: pytest.fail("client created"))
     monkeypatch.setattr(cli, "load_system_prompt", lambda _: pytest.fail("prompt read"))
     cli.main(["--list-personas"])
     assert capsys.readouterr().out.splitlines() == [
@@ -64,7 +68,7 @@ def test_listing_needs_no_model_or_client(monkeypatch, capsys):
 ])
 def test_invalid_startup_fails_before_client(monkeypatch, args):
     monkeypatch.setattr(cli, "Settings", lambda: Settings(_env_file=None))
-    monkeypatch.setattr(cli, "create_client", lambda _, usage_sink=None: pytest.fail("client created"))
+    monkeypatch.setattr(cli, "create_client", lambda _: pytest.fail("client created"))
     with pytest.raises(SystemExit, match="error:"):
         cli.main(["model", *args])
 
@@ -76,7 +80,7 @@ def test_actual_model_prompt_stream_and_rollback(monkeypatch, tmp_path, persona_
     client = FakeClient(["first", " reply"], ["partial"], ["next"])
     settings = Settings(_env_file=None, SENSAI_PERSONA=None, SENSAI_PERSONAS_FILE=None)
     monkeypatch.setattr(cli, "Settings", lambda: settings)
-    monkeypatch.setattr(cli, "create_client", lambda _, usage_sink=None: client)
+    monkeypatch.setattr(cli, "create_client", lambda _: client)
 
     def exercise(session: ChatSession, **kwargs):
         assert list(session.send("first message")) == ["first", " reply"]
@@ -101,10 +105,10 @@ def test_actual_model_prompt_stream_and_rollback(monkeypatch, tmp_path, persona_
     if persona_id:
         assert transmitted == (
             "Shared facts, privacy and approval rules\n\n"
-            + PersonaRegistry.from_file().get(persona_id).system_prompt
+            + PersonaRegistry.from_file().get(persona_id).system_prompt + TOOLS
         )
     else:
-        assert transmitted == "Shared facts, privacy and approval rules"
+        assert transmitted == "Shared facts, privacy and approval rules" + TOOLS
 
 
 def test_main_cli_overrides_environment_catalogue_and_selection(monkeypatch, tmp_path):
@@ -115,7 +119,7 @@ def test_main_cli_overrides_environment_catalogue_and_selection(monkeypatch, tmp
     monkeypatch.setenv("SENSAI_PERSONAS_FILE", str(tmp_path / "missing-env.json"))
     monkeypatch.setenv("SENSAI_PERSONA", "missing-env-persona")
     client = FakeClient(["draft"], ["revision"])
-    monkeypatch.setattr(cli, "create_client", lambda settings, usage_sink=None: client)
+    monkeypatch.setattr(cli, "create_client", lambda settings: client)
 
     monkeypatch.setattr(cli, "TerminalInput",
                         scripted_terminal(["Write a draft", "Revise it", "exit"]))
@@ -134,7 +138,7 @@ def test_actual_repl_cancellation_keeps_persona_and_discards_partial_turn(
     prompt = tmp_path / "prompt.txt"
     prompt.write_text("Shared rules", encoding="utf-8")
     client = FakeClient(["shown partial", "never shown"], ["complete"])
-    monkeypatch.setattr(cli, "create_client", lambda settings, usage_sink=None: client)
+    monkeypatch.setattr(cli, "create_client", lambda settings: client)
     partial_emitted = False
 
     class Terminal:
@@ -149,6 +153,9 @@ def test_actual_repl_cancellation_keeps_persona_and_discards_partial_turn(
             nonlocal partial_emitted
             partial_emitted = False
             return next(self.inputs)
+
+        def read_key(self, prompt, choices, default):
+            return default
 
         def cancel_requested(self):
             return partial_emitted and len(client.calls) == 1
@@ -185,7 +192,7 @@ def test_bad_catalogue_is_explicit_startup_error_before_model_or_prompt(
 ):
     path = tmp_path / "bad.json"
     path.write_bytes(contents)
-    monkeypatch.setattr(cli, "create_client", lambda settings, usage_sink=None: pytest.fail("model client created"))
+    monkeypatch.setattr(cli, "create_client", lambda settings: pytest.fail("model client created"))
     monkeypatch.setattr(cli, "load_system_prompt", lambda path: pytest.fail("prompt loaded"))
     with pytest.raises(SystemExit, match="error: cannot load personas:"):
         cli.main(["fake-model", "--personas-file", str(path)])
@@ -198,7 +205,7 @@ def test_listing_custom_environment_catalogue_from_another_cwd(monkeypatch, tmp_
     monkeypatch.setenv("SENSAI_PERSONAS_FILE", str(catalogue))
     monkeypatch.setenv("SENSAI_PERSONA", "unknown-selection")
     monkeypatch.setenv("SENSAI_PROMPT", "missing-prompt.txt")
-    monkeypatch.setattr(cli, "create_client", lambda settings, usage_sink=None: pytest.fail("model client created"))
+    monkeypatch.setattr(cli, "create_client", lambda settings: pytest.fail("model client created"))
     monkeypatch.setattr(cli, "load_system_prompt", lambda path: pytest.fail("prompt loaded"))
     cli.main(["--list-personas"])
     assert capsys.readouterr().out.splitlines() == ["editor: Édition locale"]
@@ -208,7 +215,7 @@ def test_listing_custom_environment_catalogue_from_another_cwd(monkeypatch, tmp_
 def test_real_shared_prompt_precedes_builtin_persona_block(monkeypatch, persona_id):
     shared = load_system_prompt()
     client = FakeClient(["ok"])
-    monkeypatch.setattr(cli, "create_client", lambda settings, usage_sink=None: client)
+    monkeypatch.setattr(cli, "create_client", lambda settings: client)
     monkeypatch.setattr(cli, "TerminalInput", scripted_terminal(["Hello", "exit"]))
     cli.main(["fake-model", "--persona", persona_id])
     system = client.requests[0][1][0].content
@@ -216,13 +223,13 @@ def test_real_shared_prompt_precedes_builtin_persona_block(monkeypatch, persona_
     assert system.startswith(shared)
     for rules in ("Facts and claims:", "Privacy:", "Instructions and actions:"):
         assert system.index(rules) < len(shared)
-    assert system[len(shared):] == "\n\n" + persona_block
+    assert system[len(shared):] == "\n\n" + persona_block + TOOLS
     assert system.count(persona_block) == 1
 
 
 def test_unknown_environment_persona_fails_before_client(monkeypatch):
     monkeypatch.setenv("SENSAI_PERSONA", "ghost")
-    monkeypatch.setattr(cli, "create_client", lambda settings, usage_sink=None: pytest.fail("client created"))
+    monkeypatch.setattr(cli, "create_client", lambda settings: pytest.fail("client created"))
     with pytest.raises(SystemExit, match="^error: unknown persona: ghost$"):
         cli.main(["model"])
 
@@ -230,7 +237,7 @@ def test_unknown_environment_persona_fails_before_client(monkeypatch):
 def test_json_object_catalogue_fails_before_client(monkeypatch, tmp_path):
     path = tmp_path / "object.json"
     path.write_text(json.dumps({"personas": [PROFILE]}), encoding="utf-8")
-    monkeypatch.setattr(cli, "create_client", lambda settings, usage_sink=None: pytest.fail("client created"))
+    monkeypatch.setattr(cli, "create_client", lambda settings: pytest.fail("client created"))
     with pytest.raises(SystemExit, match="^error: cannot load personas: .*JSON array"):
         cli.main(["model", "--personas-file", str(path)])
 
@@ -257,7 +264,7 @@ def test_main_switches_cached_custom_profiles_without_losing_history(
     client = FakeClient(["first", " reply"], ["revision"], ["last"])
     monkeypatch.setattr(cli, "Settings", lambda: Settings(_env_file=None, SENSAI_PERSONA=None,
                                                          SENSAI_PERSONAS_FILE=None))
-    monkeypatch.setattr(cli, "create_client", lambda _, usage_sink=None: client)
+    monkeypatch.setattr(cli, "create_client", lambda _: client)
 
     class Terminal:
         def __enter__(self):
@@ -278,6 +285,9 @@ def test_main_switches_cached_custom_profiles_without_losing_history(
                 prompt_file.write_text("Changed after startup", encoding="utf-8")
             return text
 
+        def read_key(self, prompt, choices, default):
+            return default
+
         def cancel_requested(self):
             return False
 
@@ -288,9 +298,9 @@ def test_main_switches_cached_custom_profiles_without_losing_history(
     cli.main(args)
 
     base = "Shared custom instructions."
-    initial = base if initial_persona is None else base + "\n\n" + registry.get("editor").system_prompt
-    reviewer = base + "\n\n" + registry.get("Review Team").system_prompt
-    editor = base + "\n\n" + registry.get("editor").system_prompt
+    initial = (base if initial_persona is None else base + "\n\n" + registry.get("editor").system_prompt) + TOOLS
+    reviewer = base + "\n\n" + registry.get("Review Team").system_prompt + TOOLS
+    editor = base + "\n\n" + registry.get("editor").system_prompt + TOOLS
     assert client.calls == [
         [initial, "Draft"],
         [reviewer, "Draft", "first reply", reviewer, "Revise"],
@@ -315,7 +325,8 @@ def test_invalid_and_listing_commands_leave_existing_history_untouched(capsys):
     inputs = iter(["/persona", "/persona absent", "/persona redaction extra", "exit"])
     cli.repl(session, read=lambda _: next(inputs), persona_registry=PersonaRegistry.from_file(),
              base_prompt="Shared")
-    assert session.messages == before
+    assert session.messages[1:] == before[1:]
+    assert session.messages[0].content == before[0].content + TOOLS
     assert len(client.calls) == 1
     assert "error: unknown persona: redaction extra" in capsys.readouterr().out
 
@@ -332,8 +343,8 @@ def test_switched_persona_survives_interrupted_stream_and_next_switch(failure, n
         "/persona analyse", "Interrupted", "/persona communaute", "Next", "exit",
     ])
     cli.repl(session, read=lambda _: next(inputs), persona_registry=registry, base_prompt="Shared")
-    analyse = "Shared\n\n" + registry.get("analyse").system_prompt
-    communaute = "Shared\n\n" + registry.get("communaute").system_prompt
+    analyse = "Shared\n\n" + registry.get("analyse").system_prompt + TOOLS
+    communaute = "Shared\n\n" + registry.get("communaute").system_prompt + TOOLS
     assert client.calls == [
         [analyse, analyse, "Interrupted"],
         [communaute, communaute, "Next"],
@@ -348,7 +359,7 @@ def test_legacy_repl_rejects_persona_command_without_model_call(capsys):
     session = ChatSession(client, "model", "Shared")
     inputs = iter(["/persona analyse", "/personality", "exit"])
     cli.repl(session, read=lambda _: next(inputs))
-    assert client.calls == [["Shared", "/personality"]]
+    assert client.calls == [["Shared" + TOOLS, "/personality"]]
     assert "error: persona selection is unavailable" in capsys.readouterr().out
 
 
@@ -387,10 +398,10 @@ def test_interrupted_switch_preserves_earlier_turn_and_streaming(monkeypatch, in
     cli.repl(session, read=read, write=write, cancel_requested=lambda: cancelled,
              persona_registry=registry, base_prompt="Shared")
 
-    analyse = "Shared\n\n" + registry.get("analyse").system_prompt
-    communaute = "Shared\n\n" + registry.get("communaute").system_prompt
+    analyse = "Shared\n\n" + registry.get("analyse").system_prompt + TOOLS
+    communaute = "Shared\n\n" + registry.get("communaute").system_prompt + TOOLS
     assert client.calls == [
-        ["Shared", "Earlier"],
+        ["Shared" + TOOLS, "Earlier"],
         [analyse, "Earlier", "old reply", analyse, "Interrupted"],
         [communaute, "Earlier", "old reply", communaute, "Continue"],
     ]
@@ -414,8 +425,8 @@ def test_cli_recovers_from_empty_reply_and_honors_two_persona_switches():
              write=lambda text="", **kwargs: output.append(text),
              persona_registry=registry, base_prompt="Shared")
 
-    analyse_prompt = "Shared\n\n" + registry.get("analyse").system_prompt
-    communaute_prompt = "Shared\n\n" + registry.get("communaute").system_prompt
+    analyse_prompt = "Shared\n\n" + registry.get("analyse").system_prompt + TOOLS
+    communaute_prompt = "Shared\n\n" + registry.get("communaute").system_prompt + TOOLS
     assert client.calls[1] == [
         analyse_prompt, "Earlier", "Je suis Rédaction.", analyse_prompt, "Failed",
     ]
@@ -448,14 +459,14 @@ def test_builtin_switches_through_main_keep_identical_completed_turns(
         return sessions[-1]
 
     monkeypatch.setattr(cli, "ChatSession", make_session)
-    monkeypatch.setattr(cli, "create_client", lambda settings, usage_sink=None: client)
+    monkeypatch.setattr(cli, "create_client", lambda settings: client)
     monkeypatch.setattr(cli, "TerminalInput", scripted_terminal([
         "Turn one", "/persona analyse", "Turn two", "/persona communaute", "Turn three", "exit",
     ], on_read=lambda: snapshots.append(list(sessions[0].messages))))
     cli.main(["fake-model", "--prompt", str(prompt), "--persona", "redaction"])
 
     registry = PersonaRegistry.from_file()
-    red, ana, com = ("Shared rules\n\n" + registry.get(pid).system_prompt
+    red, ana, com = ("Shared rules\n\n" + registry.get(pid).system_prompt + TOOLS
                      for pid in ("redaction", "analyse", "communaute"))
     shape = [[(m.role, m.content) for m in request] for _, request in client.requests]
     assert shape == [
@@ -527,9 +538,9 @@ def test_no_persona_multi_turn_session_never_gets_a_reminder():
     cli.repl(session, read=lambda _: next(inputs), write=lambda *args, **kwargs: None,
              persona_registry=PersonaRegistry.from_file(), base_prompt="Shared")
     assert client.calls == [
-        ["Shared", "Q1"],
-        ["Shared", "Q1", "A1", "Q2"],
-        ["Shared", "Q1", "A1", "Q2", "A2", "Q3"],
+        ["Shared" + TOOLS, "Q1"],
+        ["Shared" + TOOLS, "Q1", "A1", "Q2"],
+        ["Shared" + TOOLS, "Q1", "A1", "Q2", "A2", "Q3"],
     ]
     for _, request in client.requests:
         roles = [m.role for m in request]

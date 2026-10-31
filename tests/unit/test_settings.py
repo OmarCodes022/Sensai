@@ -34,3 +34,15 @@ def test_invalid_context_length_is_rejected(monkeypatch, value):
     monkeypatch.setenv("SENSAI_CONTEXT_LENGTH", value)
     with pytest.raises(ValidationError):
         Settings(_env_file=None)
+
+
+def test_data_dir_defaults_to_unset(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)  # No ./data folder here.
+    monkeypatch.delenv("SENSAI_DATA_DIR", raising=False)
+    assert Settings(_env_file=None).data_dir is None
+
+
+@pytest.mark.parametrize("value", ["tests/fixtures", ""])
+def test_data_dir_reads_environment(monkeypatch, value):
+    monkeypatch.setenv("SENSAI_DATA_DIR", value)
+    assert Settings(_env_file=None).data_dir == value
