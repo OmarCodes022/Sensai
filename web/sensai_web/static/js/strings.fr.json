@@ -605,7 +605,7 @@
  "campaign.status.approved": "approuvée",
  "campaign.approve": "Approuver la section",
  "campaign.approveTitle": "Approuver cette section ?",
- "campaign.approveBody": "Une section approuvée est verrouillée. La modifier ensuite demande votre approbation explicite. (Aperçu simulé : rien n'est enregistré.)",
+ "campaign.approveBody": "Une section approuvée est verrouillée. La modifier ensuite demande votre approbation explicite.",
  "campaign.locked": "Approuvée {at}. Cette section est verrouillée.",
  "campaign.valid": "Valide",
  "campaign.invalid": "Invalide",
