@@ -125,6 +125,8 @@ LENIENT_BLOCKS = {
     "fenced and indented": f"  ```json\n  {TOOL_BLOCK}\n  ```",
     "fenced with CRLF": f"```json\r\n{TOOL_BLOCK}\r\n```\r\n",
     "fence never closed": f"```json\n{TOOL_BLOCK}",
+    "fenced tool_code": f"```tool_code\n{TOOL_BLOCK}\n```",  # Gemma writes this.
+    "fenced json5": f"```json5\n{TOOL_BLOCK}\n```",
 }
 
 

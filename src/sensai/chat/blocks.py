@@ -17,10 +17,10 @@ def _invalid_constant(value):
 
 
 _DECODER = json.JSONDecoder(parse_constant=_invalid_constant, parse_float=_finite_float)
-# An object at the start of a line, maybe indented, maybe after an opening code fence.
-_START = re.compile(r"(?m)^[ \t]*(```[A-Za-z]*[ \t]*\r?\n[ \t]*)?\{")
+# An object at the start of a line, maybe indented, maybe after a code fence such as ```json or ```tool_code.
+_START = re.compile(r"(?m)^[ \t]*(```[\w.+-]*[ \t]*\r?\n[ \t]*)?\{")
 # The end of the reply, while it may still grow into such a start.
-_OPENING = re.compile(r"(?m)^[ \t]*(?:`{1,2}|```[A-Za-z]*[ \t]*\r?\n?[ \t]*)?\Z")
+_OPENING = re.compile(r"(?m)^[ \t]*(?:`{1,2}|```[\w.+-]*[ \t]*\r?\n?[ \t]*)?\Z")
 
 
 # Where a decode error points when only the end of the buffer is missing (besides
