@@ -44,6 +44,7 @@ export function mount(root, ctx) {
     run: () => router.go('#/tools'),
     think: (args) => (args ? turn.send(`/think ${args}`) : toast(t('slash.thinkUsage'))),
     edit: (args) => (/^\d+\s+\S/.test(args || '') ? turn.send(`/edit ${args}`) : toast(t('slash.editUsage'))),
+    facts: () => router.go('#/brand'),
     new: () => actions.newChat(),
     help: () => openShortcuts(),
     docs: (args) => docCommands.docs(args),

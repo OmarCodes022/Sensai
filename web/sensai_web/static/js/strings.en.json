@@ -851,5 +851,20 @@
  "chat.branched": "New conversation {id}, branched from {from}. The original is kept unchanged.",
  "msg.edit": "Edit message",
  "msg.editHint": "Sending continues from this message in a new conversation. The original stays unchanged.",
- "msg.editSend": "Send"
+ "msg.editSend": "Send",
+ "brand.memory": "Memory: {change}",
+ "brand.noFacts": "No saved facts yet",
+ "brand.addTitle": "Add or correct a fact",
+ "brand.textPlaceholder": "Costs 32 €",
+ "brand.idHelp": "The id names the product and the topic, in lowercase with dashes, for example hydra-glow-serum.price. Reuse an id to correct its fact.",
+ "brand.saveFact": "Save fact",
+ "brand.edit": "Edit {id}",
+ "brand.delete": "Delete {id}",
+ "brand.deleteTitle": "Delete this fact?",
+ "brand.deleteBody": "{id} is removed from the fact sheet, and Sensai stops using it.",
+ "brand.deleteConfirm": "Delete",
+ "brand.deleted": "Deleted {id}",
+ "brand.saved": "Saved {id}",
+ "brand.noClaims": "No claims register",
+ "brand.noClaimsBody": "Put brand.json in the data folder to see the approved claims here."
 }

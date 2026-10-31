@@ -88,6 +88,7 @@ export function createTurn({ ctx, transcript, composer, model, reconnect, onReus
       case 'sources': st.block?.setSources(ev.items); break;
       case 'step': ensureBlock().addStep(ev.step, ev.text); break;
       case 'branch': st.branch = ev; break;
+      case 'memory': ensureBlock().addNote(h('div', { class: 'row' }, (ev.changes || []).map((c) => chip(t('brand.memory', { change: c }), { tone: 'plum', icon: 'database' })))); break;
       case 'done': st.status = ev.status; break;
       case 'error': st.failed = true; fail(ev); break;
       default: break;

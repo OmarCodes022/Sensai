@@ -851,5 +851,20 @@
  "chat.branched": "Nouvelle conversation {id}, issue de {from}. L'originale est conservée telle quelle.",
  "msg.edit": "Modifier le message",
  "msg.editHint": "L'envoi reprend à partir de ce message dans une nouvelle conversation. L'originale reste inchangée.",
- "msg.editSend": "Envoyer"
+ "msg.editSend": "Envoyer",
+ "brand.memory": "Mémoire : {change}",
+ "brand.noFacts": "Aucun fait enregistré",
+ "brand.addTitle": "Ajouter ou corriger un fait",
+ "brand.textPlaceholder": "Coûte 32 €",
+ "brand.idHelp": "L'identifiant nomme le produit et le sujet, en minuscules avec des tirets, par exemple hydra-glow-serum.price. Réutilisez un identifiant pour corriger son fait.",
+ "brand.saveFact": "Enregistrer le fait",
+ "brand.edit": "Modifier {id}",
+ "brand.delete": "Supprimer {id}",
+ "brand.deleteTitle": "Supprimer ce fait ?",
+ "brand.deleteBody": "{id} est retiré de la fiche, et Sensai ne l'utilise plus.",
+ "brand.deleteConfirm": "Supprimer",
+ "brand.deleted": "{id} supprimé",
+ "brand.saved": "{id} enregistré",
+ "brand.noClaims": "Aucun registre des allégations",
+ "brand.noClaimsBody": "Placez brand.json dans le dossier de données pour voir ici les allégations approuvées."
 }
