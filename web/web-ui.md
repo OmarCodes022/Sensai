@@ -93,8 +93,9 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 4. Add strings to BOTH `strings.en.json` and `strings.fr.json` with identical keys, and a nav key `nav.<name>`.
 5. Keep files under 300 lines; build DOM with `h()` (never `innerHTML`).
 
-## String keys (868 per language, identical in en and fr)
+## String keys (881 per language, identical in en and fr)
 
+- `files` (8): `title`, `on`, `off`, `read`, `created`, `replaced`, `usageRead`, `usageSave`
 - `common` (25): `na`, `planned`, `mockData`, `cancel`, `confirm`, `close`, `copy`, `copied`, `copyFailed`, `copyCommand`, `retry`, `clear`, `loading`, `remove`, `copyDetails`, `stop`, `send`, `run`, `refuse`, `viewAll`, `saved`, `nothingSent`, `dismiss`, `loadError`, `save`
 - `nav` (14): `chat`, `sessions`, `personas`, `profile`, `tools`, `settings`, `campaign`, `brand`, `documents`, `insights`, `safety`, `schedule`, `keynote`, `views`
 - `theme` (3): `system`, `light`, `dark`
@@ -138,7 +139,7 @@ A route in `js/router.js` with `cap` renders its real view when that flag is tru
 - `reconnect` (2): `done`, `text`
 - `slash` (31): `label`, `none`, `plannedMsg`, `foot.move`, `foot.complete`, `foot.pick`, `foot.close`, `persona`, `history`, `tools`, `run`, `new`, `help`, `read`, `save`, `docs`, `reindex`, `search`, `facts`, `context`, `campaign`, `export`, `share`, `unshare`, `think`, `team`, `edit`, `add`, `remove`, `thinkUsage`, `editUsage`
 - `starter` (9): `redaction.1`, `redaction.2`, `redaction.3`, `communaute.1`, `communaute.2`, `communaute.3`, `analyse.1`, `analyse.2`, `analyse.3`
-- `tool` (21): `arguments`, `finished`, `label`, `round`, `roundN`, `started`, `timedOut`, `using`, `status.running`, `status.waiting`, `status.ok`, `status.error`, `status.refused`, `status.timeout`, `status.cancelled`, `status.stopped`, `attempt`, `attemptLast`, `stopped`, `desc.calculate`, `desc.run_python`
+- `tool` (26): `arguments`, `finished`, `label`, `round`, `roundN`, `started`, `timedOut`, `using`, `status.running`, `status.waiting`, `status.ok`, `status.error`, `status.refused`, `status.timeout`, `status.cancelled`, `status.stopped`, `attempt`, `attemptLast`, `stopped`, `desc.calculate`, `desc.run_python`, `desc.read_file`, `desc.write_file`, `desc.create_file`, `desc.save_fact`, `desc.delete_fact`
 - `personas` (24): `builtin`, `custom`, `none`, `active`, `use`, `inUse`, `role`, `scope`, `guard`, `editHelp`, `new`, `edit`, `remove`, `saved`, `removed`, `newTitle`, `editTitle`, `fieldName`, `fieldId`, `idHelp`, `idFixed`, `scopeHelp`, `needId`, `idTaken`
 - `profile` (27): `plaintext`, `creatorKey`, `injected`, `empty`, `emptyBody`, `create`, `edit`, `editor`, `line`, `err.empty`, `err.syntax`, `err.notObject`, `err.notString`, `valid`, `replace`, `confirmTitle`, `confirmBody`, `saved`, `noAuto`, `key`, `text`, `addRow`, `removeRow`, `asJson`, `formHelp`, `err.rowBlank`, `err.rowDup`
 - `settings` (55): `effective`, `prefs`, `backend`, `k.ollama_host`, `k.model`, `k.request_timeout`, `k.turn_budget`, `k.context_length`, `k.database_path`, `k.creator`, `k.profile_file`, `k.data_dir`, `k.prompt_file`, `k.personas_file`, `packaged`, `builtin`, `none`, `hidden`, `source`, `sourceNa`, `dataNote`, `noSources`, `prefsNote`, `theme`, `density`, `comfortable`, `compact`, `fontSize`, `small`, `default`, `large`, `motion`, `reduce`, `lang`, `showTokens`, `showTools`, `showNumbers`, `draftLabel`, `reset`, `resetBody`, `resetDone`, `version`, `uptime`, `mode`, `live`, `capCount`, `caps`, `capOn`, `capOff`, `src.cli`, `src.env`, `src.dotenv`, `src.default`, `k.docs_dir`, `k.embed_model`
