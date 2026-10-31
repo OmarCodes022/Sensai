@@ -107,6 +107,11 @@ class BlockReader:
         self._printed = safe
         return visible
 
+    @property
+    def reply(self) -> str:
+        """Everything received so far, block included."""
+        return self._reply
+
     def finish(self) -> tuple[str, dict | None]:
         """Return full visible text; callers print its not-yet-emitted suffix."""
         return split_block(self._reply)

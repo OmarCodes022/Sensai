@@ -344,8 +344,9 @@ def run_with_tools(session: "ChatSession", registry: ToolRegistry, text: str,
     With ``new_question=False`` the per-tool call counts carry on from the previous
     call: one question made of several steps (``/think``) shares one count.
 
-    Returns (via ``yield from``) the last reply's full visible text and its
-    non-tool block unchanged, or ``None``. A ``timeout=None`` tool and
+    A final JSON object without a ``"tool"`` key (models sometimes answer in
+    JSON) is shown as written. Returns (via ``yield from``) the last reply's
+    full visible text and ``None``. A ``timeout=None`` tool and
     approval waits extend the question deadline by the time they took.
 
     Whenever the question does not complete (any exception, including
@@ -380,13 +381,15 @@ def run_with_tools(session: "ChatSession", registry: ToolRegistry, text: str,
                 cancellation.raise_if_cancelled()
             visible, block = reader.finish()
             block = normalize_tool_block(block, {d.name for d in registry.definitions()})
+            if block is not None and "tool" not in block:
+                visible, block = reader.reply, None  # Plain JSON is an answer: show it as written.
             if len(visible) > printed:
                 yield visible[printed:]
             if block is None or "tool" not in block or round_number == max_rounds:
                 if cancellation is not None:
                     cancellation.raise_if_cancelled()
                 completed = True
-                return visible, block if block is not None and "tool" not in block else None
+                return visible, None
             attempt = last = ""
             try:
                 call = parse_tool_call(block)
