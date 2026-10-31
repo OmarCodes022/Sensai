@@ -94,3 +94,12 @@ def test_a_new_session_restarts_the_counters(web):
     page.call("POST", "/api/sessions", {})
     body = page.call("GET", "/api/context")[1]
     assert (body["last_tokens"], body["summaries"], body["saved"]) == (None, 0, 0)
+
+
+def test_the_page_follows_ollamas_choice_doubled(web, monkeypatch):
+    from sensai_web import app as web_app
+    monkeypatch.setattr(web_app, "ollama_window", lambda host, model: 4096)
+    page = start(web, [], )
+    body = page.call("GET", "/api/context")[1]
+    assert (body["budget"], body["source"]) == (8192, "doubled")
+    assert page.call("GET", "/api/config")[1]["context_length"] == 8192
