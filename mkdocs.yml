@@ -29,6 +29,7 @@ nav:
       - Brand facts: user-guide/brand-facts.md
       - Guardrails: user-guide/guardrails.md
       - File access: user-guide/files.md
+      - Campaign document: user-guide/campaign.md
   - Developer guide:
       - Architecture: developer-guide/architecture.md
       - File structure: developer-guide/file-structure.md
