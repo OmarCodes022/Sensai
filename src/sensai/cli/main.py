@@ -26,6 +26,7 @@ from sensai.chat.prompts import load_system_prompt
 from sensai.chat.personas import PersonaRegistry
 from sensai.chat.session import ChatSession
 from sensai.settings import Settings
+from sensai.mcp_client import Catalogue
 from sensai.memory.sqlite_store import StorageError, StorageRepository
 from sensai.core.messages import Message
 from sensai.sandbox import (PYTHON_ATTEMPTS, RUN_PYTHON, SandboxError, SandboxLimits, data_file_names,
@@ -255,7 +256,7 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
          persona_registry: PersonaRegistry | None = None,
          base_prompt: str | None = None, recorder: SessionRecorder | None = None,
          tool_registry: ToolRegistry | None = None, data_dir: str | None = None,
-         docs: DocLibrary | None = None, checker=None) -> None:
+         docs: DocLibrary | None = None, checker=None, mcp: Catalogue | None = None) -> None:
     if base_prompt is None:
         base_prompt = session.messages[0].content
     if tool_registry is None:
@@ -291,9 +292,24 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
         if text.strip().lower() in ("exit", "quit"):
             return
         command = text.strip().split(maxsplit=1)
+        if command and command[0] == "/reload":
+            if mcp is None:
+                write("MCP reload is unavailable.")
+                continue
+            old_names = [d.name for d in mcp.definitions()]
+            core = session.messages[0].content.removesuffix(tool_instructions(tool_registry.definitions())).rstrip()
+            if mcp.reload():
+                for name in old_names:
+                    tool_registry.unregister(name)
+                mcp.register(tool_registry)
+                session.set_system_prompt(_tool_prompt(core, tool_registry))
+            for notice in mcp.notices():
+                write(sanitize(notice).replace("reload MCP", "use /reload"))
+            write("MCP configuration reloaded." if not mcp.error else "MCP reload failed.")
+            continue
         if command and command[0] == "/tools":
             for definition in tool_registry.definitions():
-                write(f"{definition.name}: {definition.description}")
+                write(sanitize(f"{definition.name}: {definition.description}"))
             continue
         if command and command[0] == "/persona":
             if persona_registry is None:
@@ -534,6 +550,13 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
             tool_registry = _tools(terminal.read, approval=TerminalApproval(terminal.read_key, print),
                                    data_dir=args.data_dir)
             docs = _setup_docs(args, settings, tool_registry)
+            mcp = Catalogue(settings.mcp_config)
+            mcp.reload()
+            mcp.register(tool_registry)
+            for notice in mcp.notices():
+                print(sanitize(notice).replace("reload MCP", "use /reload"))
+            if mcp.servers or mcp.error:
+                print("MCP configuration changes: use /reload to refresh tools.")
             def titler(first_user: str, first_answer: str) -> str | None:
                 token = CancellationToken(
                     monotonic() + min(saved_sessions.TITLE_TIMEOUT, args.operation_timeout),
@@ -553,7 +576,7 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
                  cancel_requested=terminal.cancel_requested,
                  persona_registry=registry, base_prompt=base_prompt, recorder=recorder,
                  tool_registry=tool_registry, data_dir=args.data_dir,
-                 docs=docs, checker=checker)
+                 docs=docs, checker=checker, mcp=mcp)
     finally:
         try:
             remove_stale_folders()
