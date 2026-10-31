@@ -296,3 +296,38 @@ def test_servers_are_discovered_in_parallel(tmp_path, monkeypatch):
     catalogue.reload()
     assert monotonic() - started < 1.5  # One wait, not four.
     assert [s["name"] for s in catalogue.servers] == ["s0", "s1", "s2", "s3"]  # Config order is kept.
+
+
+def test_unreadable_answers_file_is_kept_not_wiped(setup):
+    path, marker = setup
+    store = Path(os.environ["XDG_CONFIG_HOME"]) / "sensai" / "trusted-mcp.json"
+    store.parent.mkdir(parents=True)
+    store.write_text("[not json", encoding="utf-8")
+    catalogue = Catalogue(path)
+    catalogue.reload()
+    catalogue.trust(catalogue.untrusted["digest"])
+    assert store.read_text(encoding="utf-8") == "[not json"  # Other folders' answers may be in there.
+    assert "Could not save" in catalogue.notices()[0]
+
+
+def test_save_error_clears_once_saving_works_again(setup):
+    path, marker = setup
+    store = Path(os.environ["XDG_CONFIG_HOME"]) / "sensai" / "trusted-mcp.json"
+    store.parent.mkdir(parents=True)
+    store.write_text("[not json", encoding="utf-8")
+    catalogue = Catalogue(path)
+    catalogue.reload()
+    catalogue.trust(catalogue.untrusted["digest"])
+    store.unlink()  # The user fixed the file.
+    catalogue.reload()
+    assert not any("Could not save" in line for line in catalogue.notices())
+    assert Catalogue(path).reload() and json.loads(store.read_text(encoding="utf-8"))
+
+
+def test_answers_saved_at_the_same_time_are_all_kept(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+    store = Path(os.environ["XDG_CONFIG_HOME"]) / "sensai" / "trusted-mcp.json"
+    catalogue = Catalogue(tmp_path / "mcp.json")
+    with ThreadPoolExecutor(8) as pool:
+        list(pool.map(lambda n: catalogue._save(f"folder{n}", "digest"), range(16)))
+    assert len(json.loads(store.read_text(encoding="utf-8"))) == 16

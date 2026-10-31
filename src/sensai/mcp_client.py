@@ -2,6 +2,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from functools import partial
+import fcntl
 import hashlib
 import json
 import os
@@ -267,18 +268,27 @@ class Catalogue:
         """Remember the file content the user was shown; the next reload then runs it."""
         if not self.untrusted or digest != self.untrusted["digest"]:
             return False
-        key, self.trust_error = self._trust_key(), None
+        key = self._trust_key()
         self._accepted.add((key, digest))
-        target = _trust_file()
+        self._save(key, digest)
+        return True
+
+    def _save(self, key, digest):
+        """Add one answer, locked against other Sensai processes; a file that cannot be read is never replaced."""
+        target, self.trust_error = _trust_file(), None
         try:
             target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-            partial_file = target.with_suffix(".tmp")
-            partial_file.touch(mode=0o600)
-            partial_file.write_text(json.dumps({**_read_trusted(), key: digest}), encoding="utf-8")
-            partial_file.replace(target)
-        except OSError:
+            with open(target.with_suffix(".lock"), "a", encoding="utf-8") as lock:
+                fcntl.flock(lock, fcntl.LOCK_EX)
+                trusted = json.loads(target.read_text(encoding="utf-8")) if target.exists() else {}
+                if not isinstance(trusted, dict):
+                    raise ValueError()
+                partial_file = target.with_suffix(".tmp")
+                partial_file.touch(mode=0o600)
+                partial_file.write_text(json.dumps({**trusted, key: digest}), encoding="utf-8")
+                partial_file.replace(target)
+        except (OSError, ValueError, RecursionError):
             self.trust_error = "Could not save MCP trust; Sensai will ask again next time"
-        return True
 
     def config_path(self):
         return str(Path(self.path).resolve())
@@ -307,6 +317,8 @@ class Catalogue:
             self.error = "Invalid MCP configuration; fix it and reload MCP"
             return False
         digest = hashlib.sha256(raw).hexdigest()
+        if self.trust_error and (self._trust_key(), digest) in self._accepted:
+            self._save(self._trust_key(), digest)  # Try again: a fixed folder clears the message.
         if config["mcpServers"] and not self._trusted(digest):
             self.tools, self.servers, self.error = [], [], None
             self.untrusted = {"digest": digest, "folder": os.getcwd(), "commands": [
