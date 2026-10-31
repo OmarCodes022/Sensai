@@ -22,6 +22,7 @@ Docs: <https://omarcodes022.github.io/Sensai/> (sources in [docs/](docs/README.m
 | File access within permissions | `.sensai/settings.json` allow/deny rules; the model's `read_file`, `write_file`, `create_file`; `/read`, `/save` | [File access](docs/user-guide/files.md) |
 | Content and privacy guardrails | emails, phones and @handles redacted; injections and health details refused before the model; unapproved claims stopped | [Guardrails](docs/user-guide/guardrails.md) |
 | Brand facts memory | the model saves, corrects and deletes facts with `save_fact` / `delete_fact`; `/facts`; web Brand facts page | [Brand facts](docs/user-guide/brand-facts.md) |
+| Advanced document search | filters by product and newest sheet, the model scores each passage, weak ones are dropped; sources show the score (`SENSAI_RAG=basic` to turn off) | [Document search](docs/user-guide/documents.md#advanced-search) |
 | Brand document search | `/add <file>`, `/docs`; files in `data/docs/` are indexed by themselves | [Document search](docs/user-guide/documents.md) |
 | Web interface | `sensai-web <model>` | [below](#web-interface) |
 
