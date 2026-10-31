@@ -57,6 +57,14 @@ def health(app: WebApp, request):
             **app.health.check()}
 
 
+def _effective(app: WebApp) -> dict:
+    """The configuration as resolved, with the personas file the catalogue really uses (data/personas.json is found by itself)."""
+    effective = dict(app.cfg.effective)
+    if app.catalogue.file and effective.get("personas_file", {}).get("value") is None:
+        effective["personas_file"] = {"value": app.catalogue.file, "source": "default"}
+    return effective
+
+
 @route("GET", r"/api/config")
 def config(app: WebApp, request):
     cfg, limits = app.cfg, SandboxLimits()
@@ -67,7 +75,7 @@ def config(app: WebApp, request):
                                                   *(("schedule",) if app.scheduler is not None else ()))},
         "draft_personas": app.catalogue.drafts(),
         "context_length": cfg.context_length, "creator": cfg.creator, "model": app.model,
-        "effective": cfg.effective,
+        "effective": _effective(app),
         "limits": {"turn_seconds": cfg.operation_timeout, "tool_rounds": MAX_TOOL_CALLS,
                    "sandbox": {"wall_seconds": limits.wall_seconds, "cpu_seconds": limits.cpu_seconds,
                                "memory_mb": limits.memory_bytes // 2**20, "file_mb": limits.file_bytes // 2**20,

@@ -208,3 +208,12 @@ def test_personas_cannot_change_during_a_reply(web):
     page.app.turn = threading.Event()
     assert page.call("PUT", "/api/personas/support", MINE)[0] == 429
     assert page.call("DELETE", "/api/personas/analyse")[0] == 429
+
+
+def test_settings_name_the_personas_file_found_in_the_data_folder(web, tmp_path):
+    import json
+    (tmp_path / "data").mkdir()
+    (tmp_path / "data" / "personas.json").write_text(json.dumps([{"id": "redaction", "name": "Rédaction", "tone": "t",
+                                                                   "role": "r", "response_scope": "s"}]), encoding="utf-8")
+    page = web(effective={"personas_file": {"value": None, "source": "default"}})
+    assert page.call("GET", "/api/config")[1]["effective"]["personas_file"] == {"value": "data/personas.json", "source": "default"}
