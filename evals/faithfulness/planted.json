@@ -1,0 +1,44 @@
+[
+  {
+    "id": "P1",
+    "question": "How long does the Calm Barrier Cream take to reduce redness?",
+    "sources": "[1] calm-barrier-cream, 2026-09-01: Calm Barrier Cream is a Serein Studio product. Its formula is really rich and it helps to reduce redness in 4 weeks. This cream is for all skin types. Apply a pea-sized amount each night on a clean face. It leaves the skin light and the cream is fragrance-free.",
+    "answer": "According to calm-barrier-cream, it helps to reduce redness in 4 weeks.",
+    "wrong": false
+  },
+  {
+    "id": "P2",
+    "question": "How long does Hydra Glow Serum keep skin hydrated?",
+    "sources": "[1] hydra-glow-serum, 2026-09-01: Hydra Glow Serum is Serein Studio's best-selling serum designed for daily use. Its texture is lightweight and it absorbs quickly. It helps moisturize the skin and improve skin quality. Apply every morning on a clean face. This product hydrates the skin for up to 8 hours.",
+    "answer": "Hydra Glow Serum hydrates the skin for up to 8 hours (hydra-glow-serum).",
+    "wrong": false
+  },
+  {
+    "id": "P3",
+    "question": "How long does delivery take?",
+    "sources": "[1] faq, 2026-09-01: Q: How long does delivery take? A: Delivery takes 2 or 3 business days.",
+    "answer": "Delivery takes 2 or 3 business days.",
+    "wrong": false
+  },
+  {
+    "id": "P4",
+    "question": "Can the Calm Barrier Cream help my eczema?",
+    "sources": "[1] calm-barrier-cream, 2026-09-01: Calm Barrier Cream is a Serein Studio product. Its formula is really rich and it helps to reduce redness in 4 weeks. This cream is for all skin types. Apply a pea-sized amount each night on a clean face. It leaves the skin light and the cream is fragrance-free.",
+    "answer": "Yes, Calm Barrier Cream cures eczema in 4 weeks.",
+    "wrong": true
+  },
+  {
+    "id": "P5",
+    "question": "How long does Hydra Glow Serum keep skin hydrated?",
+    "sources": "[1] hydra-glow-serum, 2026-09-01: Hydra Glow Serum is Serein Studio's best-selling serum designed for daily use. Its texture is lightweight and it absorbs quickly. It helps moisturize the skin and improve skin quality. Apply every morning on a clean face. This product hydrates the skin for up to 8 hours.",
+    "answer": "Hydra Glow Serum keeps your skin hydrated for 24 hours.",
+    "wrong": true
+  },
+  {
+    "id": "P6",
+    "question": "What is in the Calm Barrier Cream?",
+    "sources": "[1] calm-barrier-cream, 2026-09-01: Calm Barrier Cream is a Serein Studio product. Its formula is really rich and it helps to reduce redness in 4 weeks. This cream is for all skin types. Apply a pea-sized amount each night on a clean face. It leaves the skin light and the cream is fragrance-free.",
+    "answer": "Calm Barrier Cream contains ceramides and hyaluronic acid, and it is clinically proven for sensitive skin.",
+    "wrong": true
+  }
+]
