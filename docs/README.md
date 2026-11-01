@@ -46,3 +46,4 @@ Details: [Install and configure](user-guide/install.md).
 - [Overview](overview/features.md): what Sensai does and how it works, without code.
 - [User guide](user-guide/install.md): how to install Sensai and use each feature.
 - [Developer guide](developer-guide/architecture.md): how Sensai is built, tested and extended.
+- [Keynote checklist](keynote-checklist.md): the demo order, one row per feature, and the honest assessment.
