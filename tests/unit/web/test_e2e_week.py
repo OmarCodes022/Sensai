@@ -128,8 +128,13 @@ def test_privacy_and_unsafe_output_are_surfaced_not_saved(page):
     assert "It cures eczema." not in texts and "Does it help eczema?" not in texts
 
 
-def test_there_is_no_public_share_send_or_publish_route(page, outgoing):
-    for path in ("/api/share", "/api/publish", "/api/send"):
+def test_nothing_is_sent_and_a_public_link_needs_an_explicit_yes(page, tmp_path, outgoing):
+    for path in ("/api/publish", "/api/send"):
         assert page.call("POST", path, {"text": "x"})[0] == 404
-    assert "share" not in page.call("GET", "/api/config")[1]["capabilities"]
+    week(page)
+    proposed = page.call("POST", "/api/share", {"section": "calendar"})[1]
+    assert page.call("GET", "/api/shares")[1]["items"] == []  # Shown, not published.
+    assert page.call("POST", "/api/share/confirm", {"token": proposed["token"], "approved": False})[1]["status"] == "discarded"
+    assert page.call("GET", "/api/shares")[1]["items"] == [] and not (tmp_path / "shares").exists()
+    assert page.call("POST", "/api/share", {"section": "replies"})[0] == 400  # DM replies never go public.
     assert outgoing == []
