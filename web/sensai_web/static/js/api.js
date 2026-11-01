@@ -86,6 +86,12 @@ const real = {
   brandClaims: () => req('GET', '/api/brand/claims'),
   evaluation: () => req('GET', '/api/evaluation'),
   stats: () => req('GET', '/api/stats'),
+  promptVersions: () => req('GET', '/api/prompts'),
+  usePrompt: (name) => req('POST', '/api/prompts/use', { name }),
+  async comparePrompts(a, b, { onEvent, signal } = {}) {
+    try { await streamNdjson('/api/prompts/compare', { body: { a, b }, signal, onEvent, headers: tabHeader }); }
+    catch (e) { if (e.status === 409) lockedHandler(); throw e; }
+  },
   evaluationCheck: (question, answer) => req('POST', '/api/evaluation/check', { question, answer }),
   profile: () => req('GET', '/api/profile'),
   putProfile: (preferences) => req('PUT', '/api/profile', { preferences }),

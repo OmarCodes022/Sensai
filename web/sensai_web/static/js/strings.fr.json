@@ -1007,5 +1007,19 @@
  "insights.time": "Heure",
  "insights.kindCol": "Type",
  "insights.question": "Question",
- "insights.error": "Erreur"
+ "insights.error": "Erreur",
+ "prompts.title": "Versions des instructions",
+ "prompts.help": "Copies datées des instructions de Sensai. Utilisez-en une pour revenir en arrière jusqu'au redémarrage (lancez avec --prompt <fichier> pour la garder), ou comparez-en deux sur les mêmes questions. Dossier :",
+ "prompts.lines": "{n} lignes · {sha}",
+ "prompts.inUse": "Utilisée",
+ "prompts.use": "Utiliser cette version",
+ "prompts.running": "Version {name} en cours",
+ "prompts.original": "Revenir à l'originale",
+ "prompts.used": "Les prochaines réponses suivent {name}",
+ "prompts.backToOriginal": "Retour aux instructions du démarrage",
+ "prompts.compareTitle": "Comparer deux versions",
+ "prompts.compare": "Comparer",
+ "prompts.comparing": "Chaque question est posée à {a}, puis à {b}…",
+ "prompts.report": "Rapport enregistré dans {file}",
+ "prompts.stopped": "Arrêté : aucun rapport écrit."
 }
