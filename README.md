@@ -27,6 +27,7 @@ Docs: <https://omarcodes022.github.io/Sensai/> (sources in [docs/](docs/README.m
 | Content and privacy guardrails | emails, phones and @handles redacted; injections and health details refused before the model; unapproved claims stopped | [Guardrails](docs/user-guide/guardrails.md) |
 | Brand facts memory | the model saves, corrects and deletes facts with `save_fact` / `delete_fact`; `/facts`; web Brand facts page | [Brand facts](docs/user-guide/brand-facts.md) |
 | Advanced document search | filters by product and newest sheet, the model scores each passage, weak ones are dropped; sources show the score (`SENSAI_RAG=basic` to turn off) | [Document search](docs/user-guide/documents.md#advanced-search) |
+| Answer scoring (EV1) | a judge model scores answers for relevance, coherence and faithfulness and flags statements the documents do not back: `evals/faithfulness/run.py` per version, or **Check an answer** on the web Safety page | [Results](evals/faithfulness/README.md) |
 | Brand document search | `/add <file>`, `/docs`; files in `data/docs/` are indexed by themselves | [Document search](docs/user-guide/documents.md) |
 | Long conversations | older messages are summarized at 80% of the window; `/context` shows the count, `/compact` summarizes now (terminal and web) | [Long conversations](docs/user-guide/context.md) |
 | Web interface | `sensai-web <model>` | [below](#web-interface) |

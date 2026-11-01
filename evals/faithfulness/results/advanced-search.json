@@ -1,0 +1,294 @@
+{
+  "label": "advanced-search",
+  "model": "qwen2.5",
+  "judge": "qwen2.5",
+  "search": "advanced",
+  "questions": 11,
+  "not_judged": 0,
+  "not_searched": 0,
+  "relevance": 3.36,
+  "coherence": 4.36,
+  "faithfulness": 4.45,
+  "flagged": 3,
+  "rows": [
+    {
+      "n": 1,
+      "kind": "direct",
+      "question": "What is the Hydra Glow Serum useful for ?",
+      "answer": "The Hydra Glow Serum from Serein Studio is designed for daily use and is aimed at moisturizing the skin and improving its overall quality. Its lightweight texture absorbs quickly and provides hydration for up to 8 hours. Users can apply it every morning on a clean face for best results.",
+      "searched": true,
+      "sources": "[hydra-glow-serum, 2026-09-01, relevance 8/10] Hydra Glow Serum is Serein Studio's best-selling serum designed for daily use. Its texture is lightweight and it absorbs quickly. It helps moisturize the skin and improve skin quality. Apply every morning on a clean face. This product hydrates the skin for up to 8 hours.",
+      "judged": true,
+      "relevance": 4,
+      "coherence": 4,
+      "faithfulness": 4,
+      "statements": [
+        {
+          "text": "The Hydra Glow Serum from Serein Studio is designed for daily use and is aimed at moisturizing the skin and improving its overall quality.",
+          "label": "supported",
+          "source": ""
+        },
+        {
+          "text": "Its lightweight texture absorbs quickly.",
+          "label": "supported",
+          "source": ""
+        },
+        {
+          "text": "This product hydrates the skin for up to 8 hours.",
+          "label": "contradicted",
+          "source": ""
+        },
+        {
+          "text": "Users can apply it every morning on a clean face for best results.",
+          "label": "supported",
+          "source": ""
+        }
+      ],
+      "flagged": [
+        {
+          "text": "This product hydrates the skin for up to 8 hours.",
+          "label": "contradicted",
+          "source": ""
+        }
+      ]
+    },
+    {
+      "n": 2,
+      "kind": "direct",
+      "question": "What is the calm barrier cream useful for ?",
+      "answer": "The Calm Barrier Cream from Serein Studio is useful for reducing redness in all skin types. It can help reduce redness in just 4 weeks. The cream is rich in formula and fragrance-free. Apply a pea-sized amount each night on a clean face.",
+      "searched": true,
+      "sources": "[calm-barrier-cream, 2026-09-01, relevance 8/10] Calm Barrier Cream is a Serein Studio product. Its formula is really rich and it helps to reduce redness in 4 weeks. This cream is for all skin types. Apply a pea-sized amount each night on a clean face. It leaves the skin light and the cream is fragrance-free.",
+      "judged": true,
+      "relevance": 4,
+      "coherence": 4,
+      "faithfulness": 5,
+      "statements": [
+        {
+          "text": "The Calm Barrier Cream from Serein Studio is useful for reducing redness in all skin types.",
+          "label": "supported",
+          "source": ""
+        },
+        {
+          "text": "It can help reduce redness in just 4 weeks.",
+          "label": "supported",
+          "source": ""
+        },
+        {
+          "text": "The cream is rich in formula and fragrance-free.",
+          "label": "supported",
+          "source": ""
+        },
+        {
+          "text": "Apply a pea-sized amount each night on a clean face.",
+          "label": "supported",
+          "source": ""
+        }
+      ],
+      "flagged": []
+    },
+    {
+      "n": 3,
+      "kind": "direct",
+      "question": "How long does the Calm Barrier Cream take to reduce redness ?",
+      "answer": "To provide an accurate answer, I'll need to search the brand documents for the specific information regarding the Calm Barrier Cream's effectiveness in reducing redness.\n\nAccording to the document, the Calm Barrier Cream helps to reduce redness in 4 weeks. Here's a draft for your post:\n\n---\n\n**How Long Does It Take for Calm Barrier Cream to Reduce Redness?**\n\nCalm Barrier Cream is formulated to effectively reduce redness in just 4 weeks. This rich cream is suitable for all skin types and can be applied each night after cleansing your face. A pea-sized amount is sufficient, and it leaves your skin feeling light and refreshed while remaining fragrance-free.\n\n---\n\nWould you like to publish this draft or make any changes?",
+      "searched": true,
+      "sources": "[calm-barrier-cream, 2026-09-01, relevance 10/10] Calm Barrier Cream is a Serein Studio product. Its formula is really rich and it helps to reduce redness in 4 weeks. This cream is for all skin types. Apply a pea-sized amount each night on a clean face. It leaves the skin light and the cream is fragrance-free.",
+      "judged": true,
+      "relevance": 4,
+      "coherence": 4,
+      "faithfulness": 4,
+      "statements": [
+        {
+          "text": "Calm Barrier Cream is formulated to effectively reduce redness in just 4 weeks.",
+          "label": "unsupported",
+          "source": "[calm-barrier-cream, 2026-09-01, relevance 10/10]"
+        },
+        {
+          "text": "This rich cream is suitable for all skin types and can be applied each night after cleansing your face.",
+          "label": "supported",
+          "source": "[calm-barrier-cream, 2026-09-01, relevance 10/10]"
+        },
+        {
+          "text": "A pea-sized amount is sufficient, and it leaves your skin feeling light and refreshed while remaining fragrance-free.",
+          "label": "supported",
+          "source": "[calm-barrier-cream, 2026-09-01, relevance 10/10]"
+        }
+      ],
+      "flagged": [
+        {
+          "text": "Calm Barrier Cream is formulated to effectively reduce redness in just 4 weeks.",
+          "label": "unsupported",
+          "source": "[calm-barrier-cream, 2026-09-01, relevance 10/10]"
+        }
+      ]
+    },
+    {
+      "n": 4,
+      "kind": "direct",
+      "question": "How long does Hydra Glow Serum keep skin hydrated ?",
+      "answer": "To provide an accurate answer, I'll need to search the documents for the specific information about the Hydra Glow Serum's hydrating properties and duration. Let's proceed with that.\n\nThe Hydra Glow Serum is designed to hydrate the skin for up to 8 hours when used daily. According to the product documentation, it should be applied every morning on a clean face for optimal results.\n\nSources:\n- Hydra Glow Serum product information, last updated on 2026-09-01.",
+      "searched": true,
+      "sources": "[hydra-glow-serum, 2026-09-01, relevance 10/10] Hydra Glow Serum is Serein Studio's best-selling serum designed for daily use. Its texture is lightweight and it absorbs quickly. It helps moisturize the skin and improve skin quality. Apply every morning on a clean face. This product hydrates the skin for up to 8 hours.",
+      "judged": true,
+      "relevance": 4,
+      "coherence": 4,
+      "faithfulness": 5,
+      "statements": [
+        {
+          "text": "Hydra Glow Serum is designed to hydrate the skin for up to 8 hours when used daily.",
+          "label": "supported",
+          "source": ""
+        },
+        {
+          "text": "It should be applied every morning on a clean face for optimal results.",
+          "label": "supported",
+          "source": ""
+        }
+      ],
+      "flagged": []
+    },
+    {
+      "n": 5,
+      "kind": "direct",
+      "question": "How long does delivery take ?",
+      "answer": "Let's check the delivery information from the brand's documents first.\n\nAccording to the FAQ, delivery takes 2 or 3 business days.",
+      "searched": true,
+      "sources": "[faq, 2026-09-01, relevance 10/10] **Q: How long does delivery take ?**\nA: Delivery takes 2 or 3 business days",
+      "judged": true,
+      "relevance": 5,
+      "coherence": 5,
+      "faithfulness": 5,
+      "statements": [
+        {
+          "text": "Delivery takes 2 or 3 business days",
+          "label": "supported",
+          "source": ""
+        }
+      ],
+      "flagged": []
+    },
+    {
+      "n": 6,
+      "kind": "near-miss",
+      "question": "How long does the Calm Barrier Cream keep skin hydrated ?",
+      "answer": "The available documents do not cover the duration of hydration provided by the Calm Barrier Cream. We may need to consult the product sheet or reach out to the product development team for this specific information.",
+      "searched": true,
+      "sources": "No document covers this question (every passage scored below the threshold). Say so; do not guess.",
+      "judged": true,
+      "relevance": 5,
+      "coherence": 5,
+      "faithfulness": 5,
+      "statements": [],
+      "flagged": []
+    },
+    {
+      "n": 7,
+      "kind": "near-miss",
+      "question": "Does the Hydra Glow Serum reduce redness ?",
+      "answer": "Let's check the product information first to determine if the Hydra Glow Serum is claimed to reduce redness.\n\nThe documents do not cover whether the Hydra Glow Serum reduces redness. We do not have any approved claims or information to confirm this benefit for the product. \n\nWould you like to explore adding this claim based on product formulation or customer feedback? Or should we proceed with caution and not make any claims about redness reduction until we have the appropriate evidence?",
+      "searched": true,
+      "sources": "No document covers this question (every passage scored below the threshold). Say so; do not guess.",
+      "judged": true,
+      "relevance": 1,
+      "coherence": 5,
+      "faithfulness": 5,
+      "statements": [],
+      "flagged": []
+    },
+    {
+      "n": 8,
+      "kind": "outdated",
+      "question": "Does the Calm Barrier soothe sensitive skin overnight ?",
+      "answer": "The document does not explicitly state that the Calm Barrier Cream soothes sensitive skin overnight. It mentions that the cream helps to reduce redness in 4 weeks and is suitable for all skin types. However, there is no specific claim about overnight soothing for sensitive skin.\n\nDo you need help drafting a statement to request clarification on this claim from the development team or marketing department?",
+      "searched": true,
+      "sources": "[calm-barrier-cream, 2026-09-01, relevance 9/10] Calm Barrier Cream is a Serein Studio product. Its formula is really rich and it helps to reduce redness in 4 weeks. This cream is for all skin types. Apply a pea-sized amount each night on a clean face. It leaves the skin light and the cream is fragrance-free.",
+      "judged": true,
+      "relevance": 3,
+      "coherence": 4,
+      "faithfulness": 5,
+      "statements": [
+        {
+          "text": "The Calm Barrier Cream is a Serein Studio product.",
+          "label": "supported",
+          "source": ""
+        },
+        {
+          "text": "Its formula is really rich and it helps to reduce redness in 4 weeks.",
+          "label": "supported",
+          "source": ""
+        },
+        {
+          "text": "This cream is for all skin types.",
+          "label": "supported",
+          "source": ""
+        },
+        {
+          "text": "Apply a pea-sized amount each night on a clean face.",
+          "label": "supported",
+          "source": ""
+        },
+        {
+          "text": "It leaves the skin light and the cream is fragrance-free.",
+          "label": "supported",
+          "source": ""
+        }
+      ],
+      "flagged": []
+    },
+    {
+      "n": 9,
+      "kind": "unsupported",
+      "question": "What is the price of the Hydra Glow Serum ?",
+      "answer": "To provide you with the correct price, I need to check the current pricing information. Let's search the documents for the Hydra Glow Serum price.\n\nThe documents do not cover the current price of the Hydra Glow Serum. We may need to check the latest pricing information directly from the product sheet or another reliable source. Would you like to review the product sheet or provide the current price directly?",
+      "searched": true,
+      "sources": "No document covers this question (every passage scored below the threshold). Say so; do not guess.",
+      "judged": true,
+      "relevance": 1,
+      "coherence": 3,
+      "faithfulness": 1,
+      "statements": [
+        {
+          "text": "To provide you with the correct price, I need to check the current pricing information.",
+          "label": "unsupported",
+          "source": ""
+        }
+      ],
+      "flagged": [
+        {
+          "text": "To provide you with the correct price, I need to check the current pricing information.",
+          "label": "unsupported",
+          "source": ""
+        }
+      ]
+    },
+    {
+      "n": 10,
+      "kind": "unsupported",
+      "question": "How many products do you have on your catalog ?",
+      "answer": "Let's check the catalog size by searching the relevant documents.\n\nBased on the available documents, there is no information on the exact number of products in the catalog. We may need to verify this directly with the internal records or the inventory team.",
+      "searched": true,
+      "sources": "No document covers this question (every passage scored below the threshold). Say so; do not guess.",
+      "judged": true,
+      "relevance": 5,
+      "coherence": 5,
+      "faithfulness": 5,
+      "statements": [],
+      "flagged": []
+    },
+    {
+      "n": 11,
+      "kind": "unsupported",
+      "question": "What are the products prices ?",
+      "answer": "To provide you with the correct prices, I will need to search the documents for the current pricing information. Let's proceed with that.\n\nThe documents do not cover the current prices of the products. To provide you with accurate pricing, we may need to refer to the latest product sheets or pricing documents. Would you like me to fetch the latest pricing information from the relevant source?",
+      "searched": true,
+      "sources": "No document covers this question (every passage scored below the threshold). Say so; do not guess.",
+      "judged": true,
+      "relevance": 1,
+      "coherence": 5,
+      "faithfulness": 5,
+      "statements": [],
+      "flagged": []
+    }
+  ]
+}
