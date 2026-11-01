@@ -7,6 +7,7 @@ from time import monotonic
 from urllib.parse import unquote
 
 from sensai.core.cancellation import CancellationToken
+from sensai import usage_log
 from sensai.core.errors import LLMError
 from sensai.core.messages import Message
 from sensai.mcp_client import EXAMPLE_CONFIG, GUIDE_URL
@@ -25,6 +26,7 @@ from sensai_web.turn import run_turn
 MAX_TEXT_CHARS = 200_000
 CAPABILITIES = ("chat", "personas", "sessions", "profile", "usage", "tools", "approval", "sandbox",
                 "run_script", "history", "think", "branching", "facts", "guardrails", "campaign", "ask_user", "export", "weekly_run", "evaluation", "team",
+                "stats",
                 "context_budget")
 # "schedule" is added when a tasks file is loaded.
 STARTED = monotonic()
@@ -382,6 +384,14 @@ def campaign_edit(app: WebApp, request):
 def campaign_confirm(app: WebApp, request):
     body = request.json()
     return campaign.confirm(app, body.get("token"), body.get("approved"))
+
+
+@route("GET", r"/api/stats")
+def stats(app: WebApp, request):
+    lines = usage_log.read(app.log_path) if app.log_path else []
+    return {"file": app.log_path or None, **usage_log.stats(lines),
+            "recent": [{k: line.get(k) for k in ("time", "kind", "model", "question", "latency_ms", "error")}
+                       for line in lines[-10:][::-1]]}
 
 
 @route("GET", r"/api/evaluation")

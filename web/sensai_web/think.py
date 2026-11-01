@@ -17,7 +17,7 @@ from sensai.rag_advanced import make_ranker
 from sensai_web.questions import WebForm
 from sensai_web import websearch
 from sensai_web.tools import ObservedRegistry
-from sensai_web.turn import Emit, _add, _persist
+from sensai_web.turn import Emit, _add, _log, _persist
 
 SKIPPED = ("Act", "Observe")  # Tool rounds already reach the page as tool cards.
 
@@ -110,4 +110,5 @@ def run_think(app: WebApp, active: ActiveSession, stop, request: str, emit: Emit
         active.updated_at = now()
         if active.recorder.saved:
             app.times.record(active.recorder.session_id, number, started_at, active.updated_at, usage)
+    _log(app, active, f"/think {request}", status, None if status == "completed" else status, registry.used)
     emit({"type": "done", "status": status, "turn_id": turn_id})

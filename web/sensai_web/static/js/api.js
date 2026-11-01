@@ -85,6 +85,7 @@ const real = {
   deleteFact: (id) => req('DELETE', `/api/facts/${encodeURIComponent(id)}`),
   brandClaims: () => req('GET', '/api/brand/claims'),
   evaluation: () => req('GET', '/api/evaluation'),
+  stats: () => req('GET', '/api/stats'),
   evaluationCheck: (question, answer) => req('POST', '/api/evaluation/check', { question, answer }),
   profile: () => req('GET', '/api/profile'),
   putProfile: (preferences) => req('PUT', '/api/profile', { preferences }),

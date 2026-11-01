@@ -42,6 +42,14 @@ def no_shared_sample_files(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def no_usage_log(monkeypatch):
+    """The EV3 log would otherwise be written in the working directory; a test opts in with usage_log._path."""
+    from sensai import usage_log
+    monkeypatch.setattr(usage_log, "_path", None)
+    monkeypatch.setattr(usage_log, "configure", lambda path: None)
+
+
+@pytest.fixture(autouse=True)
 def no_web(monkeypatch):
     """Unit tests never reach the internet: a web search sees a network error unless a test fakes it."""
     import requests

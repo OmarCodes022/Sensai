@@ -997,5 +997,15 @@
  "safety.claimsHelp": "Replies are also stopped as they stream when they use a claim that is not approved or out of date.",
  "safety.openClaims": "Open the claims register",
  "cache.hit": "From the cache · {pct}% similar to \"{q}\" · {s} s",
- "examples.used": "Examples used: {ids}"
+ "examples.used": "Examples used: {ids}",
+ "insights.empty": "No calls logged yet",
+ "insights.emptyBody": "Chat with Sensai: every model call is added to {file}.",
+ "insights.off": "Logging is off (SENSAI_LOG is empty).",
+ "insights.cancelled": "{n} cancelled",
+ "insights.noTools": "No tool used yet.",
+ "insights.recent": "Last calls",
+ "insights.time": "Time",
+ "insights.kindCol": "Kind",
+ "insights.question": "Question",
+ "insights.error": "Error"
 }

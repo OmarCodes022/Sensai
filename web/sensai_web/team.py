@@ -13,7 +13,7 @@ from sensai_web.app import ActiveSession, WebApp, now
 from sensai_web.errors import llm_failure
 from sensai_web.guard import screen
 from sensai_web.think import _writer
-from sensai_web.turn import Emit, _add, _persist
+from sensai_web.turn import Emit, _add, _log, _persist
 
 
 def run_team(app: WebApp, active: ActiveSession, stop, brief: str, emit: Emit):
@@ -68,5 +68,6 @@ def run_team(app: WebApp, active: ActiveSession, stop, brief: str, emit: Emit):
         active.updated_at = now()
         if active.recorder.saved:
             app.times.record(active.recorder.session_id, number, started_at, active.updated_at, usage)
+    _log(app, active, f"/team {brief}", status, None if status == "completed" else status, [])
     emit({"type": "done", "status": status, "turn_id": turn_id})
     return status
