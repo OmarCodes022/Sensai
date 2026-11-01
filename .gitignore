@@ -29,3 +29,6 @@ mcp.json
 
 # Semantic cache (A6): questions and answers in plain text
 sensai-cache.sqlite3
+
+# Usage log (EV3): every exchange in plain text
+sensai-log.jsonl
