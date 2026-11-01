@@ -15,9 +15,14 @@ There is no version database and no new `sensai` option: a version is a file.
 ## Add a version
 
 Copy the latest version, edit it, and save it as `versions/YYYY-MM-DD-<short-name>.txt`.
-Never edit an existing version file; add a new one instead.
-`versions/2026-10-20-original.txt` is a copy of the packaged prompt
-(`src/sensai/chat/system_prompt.txt`).
+Never edit an existing version file; add a new one instead. A test checks that the packaged prompt
+(`src/sensai/chat/system_prompt.txt`) is one of the versions, so a change to it needs a dated copy.
+
+| Version | What it is |
+| --- | --- |
+| `2026-10-20-original.txt` | The first packaged prompt |
+| `2026-11-01-current.txt` | The packaged prompt today (tools, facts, web search rules added) |
+| `2026-11-01-short-answers.txt` | The current one plus: answers under 60 words, one draft unless asked |
 
 ## Run a comparison
 
@@ -62,6 +67,25 @@ sensai --prompt evals/prompt_compare/versions/2026-10-20-original.txt
 ```
 
 or set `SENSAI_PROMPT` to that path in `.env`.
+
+## Result (2026-11-01, qwen2.5)
+
+`2026-11-01-current.txt` (A) against `2026-11-01-short-answers.txt` (B), the 6 default questions:
+
+| Prompt | Answered | Avg latency | Prompt tokens | Output tokens |
+| --- | --- | --- | --- | --- |
+| A | 6 | 10.6 s | 3,267 | 833 |
+| B | 6 | 15.1 s | 3,447 | 276 |
+
+B writes a third of the text. Its latency is not comparable in this run: the web page was using the
+same Ollama at the time. Repeat the run on an idle machine before deciding on speed.
+
+## In the web page
+
+**Settings → Prompt versions** lists the versions. **Use this version** applies one to the next replies
+until Sensai restarts (**Back to the original** undoes it); **Compare** asks the same questions to two
+versions and shows the answers side by side as they come, then saves the same report.
+`SENSAI_PROMPT_VERSIONS` changes the folder the page reads.
 
 ## Limitations
 
