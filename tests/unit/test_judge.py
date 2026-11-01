@@ -77,3 +77,12 @@ def test_refusals_questions_and_offers_are_never_flagged(text):
     client = FakeJudge(lambda t: Judgement(relevance=5, coherence=5, faithfulness=1, statements=[
         Statement(text=text, label="unsupported"), Statement(text="It cures eczema", label="contradicted")]))
     assert [s.text for s in judge(client, "m", "q", "", "a").flagged()] == ["It cures eczema"]
+
+
+def test_faithfulness_comes_from_the_labels_and_a_refusal_is_faithful():
+    labels = lambda *ls: FakeJudge(lambda t: Judgement(relevance=3, coherence=3, faithfulness=1, statements=[
+        Statement(text=f"claim {i}", label=l) for i, l in enumerate(ls)]))
+    assert judge(labels(), "m", "q", "", "The documents do not cover it.").faithfulness == 5
+    assert judge(labels("supported", "supported"), "m", "q", "", "a").faithfulness == 5
+    assert judge(labels("supported", "contradicted"), "m", "q", "", "a").faithfulness == 3
+    assert judge(labels("unsupported"), "m", "q", "", "a").faithfulness == 1

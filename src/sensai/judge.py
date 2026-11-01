@@ -18,7 +18,8 @@ Label each one:
 - contradicted: a source says something different (for example "up to 8 hours" against "24 hours").
 These are NOT statements, leave them out: greetings, questions, offers to help, advice to see a dermatologist,
 and saying the documents do not cover something (that is the right answer when they do not). Then score from 1 to 5: relevance (does it answer the question), coherence (is it clear and
-consistent), faithfulness (5 = every statement supported, 1 = mostly unsupported or contradicted)."""
+consistent), faithfulness (5 = every statement supported, 1 = mostly unsupported or contradicted).
+A short correct refusal ("the documents do not cover this") is relevant and faithful."""
 
 
 # What a small judge still lists against the instructions: a refusal, a question back or an offer is never a claim.
@@ -50,4 +51,8 @@ def judge(client, model: str, question: str, sources: str, answer: str) -> Judge
     verdict = client.complete(model, [Message(role="system", content=PROMPT), Message(role="user", content=request)],
                               Judgement)
     verdict.statements = [s for s in verdict.statements if not NOT_A_CLAIM.search(s.text)]
+    # From the labels, not the judge's own number (small judges give a refusal 1, or "3" with all supported):
+    # no claim at all is fully faithful, otherwise 1 + 4 x the supported share.
+    supported = sum(s.label == "supported" for s in verdict.statements)
+    verdict.faithfulness = round(1 + 4 * supported / len(verdict.statements)) if verdict.statements else 5
     return verdict
