@@ -25,6 +25,7 @@ Docs: <https://omarcodes022.github.io/Sensai/> (sources in [docs/](docs/README.m
 | Team of agents (A2) | `/team <brief>`: a researcher, a writer and a reviewer work on one post, each step and handoff shown, at most 2 revisions; terminal and web | [Team](docs/user-guide/team.md) |
 | Semantic cache (A6) | `SENSAI_CACHE=1`: a new session's first question, close to an earlier one with the same model, persona and profile, is answered at once from `sensai-cache.sqlite3` (plain text, git-ignored); `--clear-cache` | [Cache](docs/user-guide/cache.md) |
 | Picked examples (A7) | `SENSAI_EXAMPLES=1`: the two closest example requests and answers are shown to the model for each message, never saved; "Examples used" is printed | [Examples](docs/user-guide/examples.md) |
+| Usage log and statistics (EV3) | every model call is a line in `sensai-log.jsonl` (plain text, git-ignored); `sensai --stats` or the web Insights page show calls, errors, latency, tokens, tools and days | [Insights](docs/user-guide/insights.md) |
 | Weekly run | `--weekly-run <folder>` or **Run the week** on the Campaign page: posts, DM replies, report and calendar prepared in one go from brand, DMs and engagement files, each checked and failing on its own | [Campaign](docs/user-guide/campaign.md#the-weekly-run) |
 | File access within permissions | `.sensai/settings.json` allow/deny rules; the model's `read_file`, `write_file`, `create_file`; `/read`, `/save` | [File access](docs/user-guide/files.md) |
 | Content and privacy guardrails | emails, phones and @handles redacted; injections and health details refused before the model; unapproved claims stopped | [Guardrails](docs/user-guide/guardrails.md) |
@@ -64,6 +65,7 @@ commands (like `sensai-web`) are registered. Full install guide:
 .venv/bin/sensai gemma3:1b --session k7f2qa       # resume
 .venv/bin/sensai qwen2.5 --weekly-run data         # prepare the week's 4 outputs, then exit
 .venv/bin/sensai --clear-cache                     # empty the semantic cache (SENSAI_CACHE=1)
+.venv/bin/sensai --stats                           # usage statistics from sensai-log.jsonl
 .venv/bin/sensai-remote                           # same, through an SSH tunnel
 ```
 
