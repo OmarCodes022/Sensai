@@ -80,7 +80,7 @@ def test_brand_block_lists_products_with_only_their_valid_claims(tmp_path):
             {"id": "C02", "text": "Cures eczema", "approved": False}]},
         {"name": "Calm Barrier Cream", "claims": []}]}), encoding="utf-8")
     block = brand_block(str(brand))
-    assert '- Hydra Glow Serum: "Hydrates skin for up to 8 hours"' in block
+    assert '- Hydra Glow Serum: C01 "Hydrates skin for up to 8 hours"' in block
     assert "- Calm Barrier Cream: no approved claim yet" in block
     assert "Cures eczema" not in block and "Never invent products" in block
     assert brand_block(None) == ""

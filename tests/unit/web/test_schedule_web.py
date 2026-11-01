@@ -52,5 +52,5 @@ def test_a_scheduled_run_knows_the_products_claims_and_saved_facts(scheduled, tm
     assert page.call("PUT", "/api/facts/launch.date", {"text": "Launch on 3 December"})[0] == 200
     assert page.call("POST", "/api/schedule/post-ideas/run")[1]["ok"]
     prompt = client.requests[-1][1][0].content
-    assert '- Calm Barrier Cream: "Reduces redness in 4 weeks"' in prompt
+    assert '- Calm Barrier Cream: C03 "Reduces redness in 4 weeks"' in prompt
     assert "launch.date: Launch on 3 December" in prompt and "Never invent products" in prompt
