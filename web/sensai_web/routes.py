@@ -14,7 +14,7 @@ from sensai.memory.vector_index import VectorIndexError
 from sensai.rag import MAX_FILE_BYTES, MAX_TOTAL_BYTES, TYPES, DocError
 from sensai.sandbox import SandboxLimits
 from sensai.tools import MAX_TOOL_CALLS
-from sensai_web import branching, campaign, compaction, weekly, exports, scheduling, questions, websearch, facts, files, manage, models, sandbox, session_view
+from sensai_web import branching, campaign, compaction, evaluation, weekly, exports, scheduling, questions, websearch, facts, files, manage, models, sandbox, session_view
 from sensai_web.app import WebApp
 from sensai_web.errors import ApiError, llm_failure
 from sensai_web.tools import tool_list
@@ -23,7 +23,7 @@ from sensai_web.turn import run_turn
 
 MAX_TEXT_CHARS = 200_000
 CAPABILITIES = ("chat", "personas", "sessions", "profile", "usage", "tools", "approval", "sandbox",
-                "run_script", "history", "think", "branching", "facts", "guardrails", "campaign", "ask_user", "export", "weekly_run",
+                "run_script", "history", "think", "branching", "facts", "guardrails", "campaign", "ask_user", "export", "weekly_run", "evaluation",
                 "context_budget")
 # "schedule" is added when a tasks file is loaded.
 STARTED = monotonic()
@@ -361,6 +361,17 @@ def campaign_edit(app: WebApp, request):
 def campaign_confirm(app: WebApp, request):
     body = request.json()
     return campaign.confirm(app, body.get("token"), body.get("approved"))
+
+
+@route("GET", r"/api/evaluation")
+def evaluation_runs(app: WebApp, request):
+    return {"runs": evaluation.runs()}
+
+
+@route("POST", r"/api/evaluation/check")
+def evaluation_check(app: WebApp, request):
+    body = request.json()
+    return evaluation.check(app, body.get("question"), body.get("answer"))
 
 
 @route("POST", r"/api/campaign/weekly-run")
