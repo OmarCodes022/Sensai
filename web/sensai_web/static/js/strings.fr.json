@@ -997,5 +997,15 @@
  "safety.claimsHelp": "Les réponses sont aussi arrêtées pendant leur affichage si elles utilisent une allégation non approuvée ou périmée.",
  "safety.openClaims": "Ouvrir le registre des allégations",
  "cache.hit": "Depuis le cache · {pct} % proche de « {q} » · {s} s",
- "examples.used": "Exemples utilisés : {ids}"
+ "examples.used": "Exemples utilisés : {ids}",
+ "insights.empty": "Aucun appel enregistré",
+ "insights.emptyBody": "Discutez avec Sensai : chaque appel au modèle est ajouté à {file}.",
+ "insights.off": "Le journal est désactivé (SENSAI_LOG est vide).",
+ "insights.cancelled": "{n} annulé(s)",
+ "insights.noTools": "Aucun outil utilisé pour l'instant.",
+ "insights.recent": "Derniers appels",
+ "insights.time": "Heure",
+ "insights.kindCol": "Type",
+ "insights.question": "Question",
+ "insights.error": "Erreur"
 }
