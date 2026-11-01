@@ -36,10 +36,11 @@ class CampaignStore:
         return os.path.isdir(self.folder) and any(n.endswith(".json") for n in os.listdir(self.folder))
 
     def latest(self) -> Campaign:
-        """The newest week's document, or a new empty one for the coming week (saved)."""
-        weeks = sorted(n[:-5] for n in os.listdir(self.folder) if n.endswith(".json")) if os.path.isdir(self.folder) else []
-        if weeks:
-            return self.load(weeks[-1])
+        """The document changed last (a weekly run may prepare an earlier week), or a new one for the coming week."""
+        names = [n for n in os.listdir(self.folder) if n.endswith(".json")] if os.path.isdir(self.folder) else []
+        if names:
+            newest = max(names, key=lambda n: (os.path.getmtime(os.path.join(self.folder, n)), n))
+            return self.load(newest[:-5])
         week, start, end = coming_week(self.today())
         doc = Campaign(week=week, start=start.isoformat(), end=end.isoformat(), created_at=now(), updated_at=now())
         self.save(doc)
