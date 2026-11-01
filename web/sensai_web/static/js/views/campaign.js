@@ -19,7 +19,7 @@ const none = (key) => emptyState({ icon: 'calendar', title: t(key), h: 'h3' });
 
 function posts(s) {
   if (!s.items.length) return none('campaign.noItems');
-  return h('div', { class: 'cards-3' }, s.items.map((p) => h('article', { class: 'card ribbon stack', 'aria-label': p.id },
+  return h('div', { class: 'cards-3' }, s.items.map((p) => h('article', { class: 'card stack', 'aria-label': p.id },
     h('div', { class: 'row' }, h('b', { class: 'mono' }, p.id), h('span', { class: 'grow' }), h('span', { class: 'muted' }, p.channel)),
     h('p', { class: 'post__text', dir: 'auto' }, p.caption),
     h('div', { class: 'row' }, p.claim_ids.length ? p.claim_ids.map((c) => chip(c, { tone: 'sage', icon: 'check' })) : chip(t('campaign.claimsNone'), { outline: true })),
@@ -28,7 +28,7 @@ function posts(s) {
 
 function replies(s) {
   if (!s.items.length) return none('campaign.runOnly');
-  return h('div', { class: 'cards-3' }, s.items.map((d) => h('article', { class: 'card ribbon stack', 'aria-label': d.case_key },
+  return h('div', { class: 'cards-3' }, s.items.map((d) => h('article', { class: 'card stack', 'aria-label': d.case_key },
     h('div', { class: 'row' }, h('b', { class: 'mono' }, d.case_key), h('span', { class: 'grow' }), chip(t('campaign.unsent'), { tone: 'amber' })),
     h('p', { class: 'muted' }, t('campaign.question')), h('p', { dir: 'auto' }, d.question),
     h('p', { class: 'muted' }, t('campaign.suggestion')), h('p', { dir: 'auto' }, d.suggestion))));
@@ -48,7 +48,7 @@ function report(s) {
 function calendar(s) {
   if (!s.items.length) return none('campaign.noItems');
   const sorted = [...s.items].sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
-  return h('div', { class: 'stack' }, h('ul', { class: 'stack' }, sorted.map((e) => h('li', { class: 'card ribbon row' },
+  return h('div', { class: 'stack' }, h('ul', { class: 'stack' }, sorted.map((e) => h('li', { class: 'card row' },
     h('b', { class: 'num' }, `${e.date} ${e.time}`), h('b', { class: 'mono' }, e.id), h('span', { class: 'mono' }, e.post_id),
     h('span', { class: 'muted' }, `${e.channel} · ${e.theme}`), chip(t('campaign.proposal'), { tone: 'amber' })))),
     h('p', { class: 'muted' }, t('campaign.notScheduled')));
