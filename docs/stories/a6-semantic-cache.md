@@ -4,8 +4,8 @@
 - Drafting lead: Omar
 - Status: done
 
-Code: [`memory/semantic_cache.py`](../../src/sensai/memory/semantic_cache.py),
-[`cli/cache.py`](../../src/sensai/cli/cache.py) (terminal) and [`cache.py`](../../web/sensai_web/cache.py) (web).
+Code: [`memory/semantic_cache.py`](https://github.com/OmarCodes022/Sensai/blob/main/src/sensai/memory/semantic_cache.py),
+[`cli/cache.py`](https://github.com/OmarCodes022/Sensai/blob/main/src/sensai/cli/cache.py) (terminal) and [`cache.py`](https://github.com/OmarCodes022/Sensai/blob/main/web/sensai_web/cache.py) (web).
 Guide: [Semantic cache](../user-guide/cache.md).
 
 ## Story 1: Common questions answered instantly

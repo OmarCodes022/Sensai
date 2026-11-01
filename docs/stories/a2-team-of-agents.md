@@ -4,8 +4,8 @@
 - Drafting lead: Omar
 - Status: done
 
-Code: [`chat/agents.py`](../../src/sensai/chat/agents.py) (the three agents and the loop),
-[`cli/team.py`](../../src/sensai/cli/team.py) (terminal) and [`team.py`](../../web/sensai_web/team.py) (web).
+Code: [`chat/agents.py`](https://github.com/OmarCodes022/Sensai/blob/main/src/sensai/chat/agents.py) (the three agents and the loop),
+[`cli/team.py`](https://github.com/OmarCodes022/Sensai/blob/main/src/sensai/cli/team.py) (terminal) and [`team.py`](https://github.com/OmarCodes022/Sensai/blob/main/web/sensai_web/team.py) (web).
 Guide: [Team of agents](../user-guide/team.md).
 
 ## Story 1: A reviewer checks every draft against my approved claims

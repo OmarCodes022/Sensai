@@ -5,10 +5,10 @@
 - Reviewer: _to assign_
 - Status: draft
 
-Code: [`chat/compression.py`](../../src/sensai/chat/compression.py) (when and how to
-summarize), [`chat/context.py`](../../src/sensai/chat/context.py) (`ContextState`, the
-window), [`cli/context_commands.py`](../../src/sensai/cli/context_commands.py)
-(terminal) and [`compaction.py`](../../web/sensai_web/compaction.py) (web).
+Code: [`chat/compression.py`](https://github.com/OmarCodes022/Sensai/blob/main/src/sensai/chat/compression.py) (when and how to
+summarize), [`chat/context.py`](https://github.com/OmarCodes022/Sensai/blob/main/src/sensai/chat/context.py) (`ContextState`, the
+window), [`cli/context_commands.py`](https://github.com/OmarCodes022/Sensai/blob/main/src/sensai/cli/context_commands.py)
+(terminal) and [`compaction.py`](https://github.com/OmarCodes022/Sensai/blob/main/web/sensai_web/compaction.py) (web).
 Guide: [Long conversations](../user-guide/context.md).
 
 ## How it works
