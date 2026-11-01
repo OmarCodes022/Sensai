@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     # Brand documents searched by the model. Default ./data/docs (created by /add); empty switches it off.
     docs_dir: str | None = Field("data/docs", validation_alias="SENSAI_DOCS")
     embed_model: str = Field("nomic-embed-text", validation_alias="SENSAI_EMBED_MODEL")
+    # Semantic cache (A6): off unless SENSAI_CACHE=1; a session's first question may be answered from it.
+    cache: bool = Field(False, validation_alias="SENSAI_CACHE")
+    cache_threshold: float = Field(0.92, gt=0, le=1, validation_alias="SENSAI_CACHE_THRESHOLD")
+    cache_path: str = Field("sensai-cache.sqlite3", validation_alias="SENSAI_CACHE_FILE")
     # Document search mode: advanced (filter, model rerank, drop weak matches; R2) or basic (closest chunks; R1).
     rag_mode: str = Field("advanced", pattern="^(advanced|basic)$", validation_alias="SENSAI_RAG")
     # Guardrails (EV2): extra rules, and the brand file whose approved claims replies may use.

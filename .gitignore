@@ -26,3 +26,6 @@ exports/
 drafts/
 # Local MCP commands and environment overrides
 mcp.json
+
+# Semantic cache (A6): questions and answers in plain text
+sensai-cache.sqlite3
