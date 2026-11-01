@@ -82,6 +82,7 @@ def evaluate(args) -> int:
         for n, q in enumerate(questions, 1):
             text, sources = answer(args.model, library, args.search, q["question"])
             row = {"n": n, "kind": q["kind"], "question": q["question"], "answer": text, "searched": sources is not None,
+                   "sources": sources,
                    **judged(client, args.judge, q["question"], sources, text)}
             rows.append(row)
             print(f"Q{n} [{q['kind']}] {'judged' if row['judged'] else 'not judged'}" +
