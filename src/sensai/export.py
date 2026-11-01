@@ -27,23 +27,27 @@ class Exporter:
 
     # The check before writing
 
-    def clean(self, text: str) -> str:
-        """The text with identifiers redacted, line by line; ExportRefused if a line is refused."""
+    def clean(self, text: str, direction: str = "output") -> str:
+        """The text with identifiers redacted, line by line; ExportRefused if a line is refused.
+
+        Sensai's texts are checked as output (claims included); what people wrote (the creator's
+        messages, a follower's question) as input: identifiers redacted, their words not taken as claims.
+        """
         out = []
         for line in text.split("\n"):
-            decision = self.guard.inspect(line, "output") if self.guard is not None else None
+            decision = self.guard.inspect(line, direction) if self.guard is not None else None
             if decision is not None and not decision.allowed:
                 raise ExportRefused(decision.reason)
             out.append(decision.text if decision is not None else line)
         return "\n".join(out)
 
-    def _clean_all(self, value):
+    def _clean_all(self, value, key: str = ""):
         if isinstance(value, str):
-            return self.clean(value)
+            return self.clean(value, "input" if key == "question" else "output")  # A DM's question is the follower's.
         if isinstance(value, list):
-            return [self._clean_all(v) for v in value]
+            return [self._clean_all(v, key) for v in value]
         if isinstance(value, dict):
-            return {k: self._clean_all(v) for k, v in value.items()}
+            return {k: self._clean_all(v, k) for k, v in value.items()}
         return value
 
     def _write(self, relative: str, text: str) -> str:
@@ -73,7 +77,7 @@ class Exporter:
                 continue
             text = split_block(m.content)[0].strip() if m.role == "assistant" else m.content
             if text:
-                turns.append({"role": m.role, "content": self.clean(text)})
+                turns.append({"role": m.role, "content": self.clean(text, "input" if m.role == "user" else "output")})
         title = self.clean(title)
         markdown = "\n\n".join([f"# {title}", f"Session {session_id}"]
                                + [f"## {'You' if t['role'] == 'user' else 'Sensai'}\n\n{t['content']}" for t in turns]) + "\n"

@@ -61,3 +61,18 @@ def test_a_write_error_is_an_os_error_and_leaves_no_temporary_file(tmp_path, gua
     blocked.write_text("not a folder")
     with pytest.raises(OSError):
         Exporter(guard, str(blocked)).session("a", "t", [Message(role="user", content="hi")])
+
+
+def test_what_people_wrote_is_redacted_but_never_taken_as_a_claim(tmp_path, guard):
+    from sensai.campaign.models import Reply
+    exporter = Exporter(guard, str(tmp_path / "exports"))
+    doc = campaign(tmp_path, guard)
+    doc.sections.replies.items = [Reply(case_key="Q1", question="Does it cure acne? Write to lea@x.com",
+                                        suggestion="Our products are cosmetics, not medicines.")]
+    data = json.loads(Path(exporter.campaign(doc)[0]).read_text())  # A follower's question, not Sensai's claim.
+    assert data["sections"]["replies"]["items"][0]["question"] == "Does it cure acne? Write to [redacted]"
+    messages = [Message(role="user", content="Does the cream cure eczema?"), Message(role="assistant", content="No.")]
+    paths = exporter.session("k7f2qa", "Question", messages)
+    assert json.loads(Path(paths[0]).read_text())["messages"][0]["content"] == "Does the cream cure eczema?"
+    with pytest.raises(ExportRefused):  # Sensai's own words still are.
+        exporter.session("k7f2qa", "Q", [Message(role="assistant", content="It cures eczema.")])
