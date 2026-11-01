@@ -4,6 +4,7 @@ import { chip } from '../components/chip.js';
 import { viewShell, section } from '../components/view.js';
 import { configList } from '../settings/config-rows.js';
 import { prefsForm } from '../settings/prefs-form.js';
+import { createPromptVersions } from '../settings/prompt-versions.js';
 import { formatDuration } from '../format.js';
 import { t } from '../i18n.js';
 
@@ -20,9 +21,10 @@ function backendCard(store) {
     h('ul', { class: 'row caps', 'aria-label': t('settings.caps') }, CAPABILITIES.map((c) => h('li', null, chip(`${caps[c] ? t('settings.capOn') : t('settings.capOff')}: ${c}`, { tone: caps[c] ? 'sage' : undefined, icon: caps[c] ? 'check' : null, mono: true })))));
 }
 
-export function mount(root, { store, actions }) {
+export function mount(root, { store, actions, api }) {
   const cfg = h('div'), back = h('div');
-  root.append(viewShell('settings', section(t('settings.effective'), cfg), section(t('settings.prefs'), prefsForm({ store, actions })), section(t('settings.backend'), back)));
+  const versions = store.get().capabilities?.prompt_versions ? section(t('prompts.title'), createPromptVersions({ api })) : null;
+  root.append(viewShell('settings', section(t('settings.effective'), cfg), versions, section(t('settings.prefs'), prefsForm({ store, actions })), section(t('settings.backend'), back)));
   const paint = () => { cfg.replaceChildren(configList(store.get().config)); back.replaceChildren(backendCard(store)); };
   paint();
   return store.subscribe(paint, ['config', 'capabilities', 'status']);

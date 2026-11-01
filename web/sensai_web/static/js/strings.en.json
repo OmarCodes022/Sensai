@@ -1007,5 +1007,19 @@
  "insights.time": "Time",
  "insights.kindCol": "Kind",
  "insights.question": "Question",
- "insights.error": "Error"
+ "insights.error": "Error",
+ "prompts.title": "Prompt versions",
+ "prompts.help": "Dated copies of Sensai's instructions. Use one to roll back until Sensai restarts (start with --prompt <file> to keep it), or compare two on the same questions. Folder:",
+ "prompts.lines": "{n} lines · {sha}",
+ "prompts.inUse": "In use",
+ "prompts.use": "Use this version",
+ "prompts.running": "Running {name}",
+ "prompts.original": "Back to the original",
+ "prompts.used": "Next replies follow {name}",
+ "prompts.backToOriginal": "Back to the prompt Sensai started with",
+ "prompts.compareTitle": "Compare two versions",
+ "prompts.compare": "Compare",
+ "prompts.comparing": "Asking every question to {a}, then {b}…",
+ "prompts.report": "Report saved to {file}",
+ "prompts.stopped": "Stopped: no report written."
 }

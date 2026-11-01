@@ -153,6 +153,7 @@ class WebApp:
         try:
             self.catalogue = Catalogue(cfg.personas_file)
             self.base_prompt = load_system_prompt(cfg.prompt_path)
+            self.prompt_version: str | None = None  # A4: a dated version chosen in the page, until restart
         except (OSError, ValueError) as exc:
             raise StartupError(f"cannot load personas or prompt: {exc}") from None
         if cfg.data_dir and not os.path.isdir(cfg.data_dir):

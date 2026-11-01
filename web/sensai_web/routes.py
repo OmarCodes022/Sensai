@@ -15,7 +15,7 @@ from sensai.memory.vector_index import VectorIndexError
 from sensai.rag import MAX_FILE_BYTES, MAX_TOTAL_BYTES, TYPES, DocError
 from sensai.sandbox import SandboxLimits
 from sensai.tools import MAX_TOOL_CALLS
-from sensai_web import branching, campaign, compaction, evaluation, weekly, exports, scheduling, questions, websearch, facts, files, manage, models, sandbox, session_view
+from sensai_web import branching, campaign, compaction, evaluation, prompts, weekly, exports, scheduling, questions, websearch, facts, files, manage, models, sandbox, session_view
 from sensai_web.app import WebApp
 from sensai_web.errors import ApiError, llm_failure
 from sensai_web.tools import tool_list
@@ -26,7 +26,7 @@ from sensai_web.turn import run_turn
 MAX_TEXT_CHARS = 200_000
 CAPABILITIES = ("chat", "personas", "sessions", "profile", "usage", "tools", "approval", "sandbox",
                 "run_script", "history", "think", "branching", "facts", "guardrails", "campaign", "ask_user", "export", "weekly_run", "evaluation", "team",
-                "stats",
+                "stats", "prompt_versions",
                 "context_budget")
 # "schedule" is added when a tasks file is loaded.
 STARTED = monotonic()
@@ -384,6 +384,31 @@ def campaign_edit(app: WebApp, request):
 def campaign_confirm(app: WebApp, request):
     body = request.json()
     return campaign.confirm(app, body.get("token"), body.get("approved"))
+
+
+@route("GET", r"/api/prompts")
+def prompt_versions(app: WebApp, request):
+    return prompts.listing(app)
+
+
+@route("POST", r"/api/prompts/use")
+def use_prompt(app: WebApp, request):
+    return prompts.use(app, request.json().get("name"))
+
+
+@route("POST", r"/api/prompts/compare")
+def compare_prompts(app: WebApp, request):
+    body = request.json()
+    prompts.named(body.get("a")), prompts.named(body.get("b"))  # 404 before anything runs
+    stop, _ = app.begin_turn()
+
+    def play(emit):
+        try:
+            prompts.compare(app, stop, emit, body.get("a"), body.get("b"))
+        finally:
+            app.end_turn()
+
+    return Stream(play, stop.set)
 
 
 @route("GET", r"/api/stats")
