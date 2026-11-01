@@ -18,6 +18,7 @@ nav:
       - Features: overview/features.md
       - How it works: overview/how-it-works.md
       - User stories: overview/user-stories.md
+      - Keynote checklist: keynote-checklist.md
   - User guide:
       - Install and configure: user-guide/install.md
       - Chatting: user-guide/chatting.md
