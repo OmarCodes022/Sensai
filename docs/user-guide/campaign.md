@@ -50,6 +50,38 @@ Only `y` applies it (the section stays approved). `n`, Enter, Ctrl+C or the end 
 change nothing. Draft sections never ask, and invalid edits are refused before any question.
 The same approval object asks before a `run_python` call.
 
+## The weekly run
+
+One command prepares the whole week from a folder with `brand.json`, `dms.json`,
+`engagement.csv` and `posts.json` (the sample files in `data/` and `tests/fixtures/`):
+
+```text
+$ sensai qwen2.5 --weekly-run data
+Report ....... OK     reached 4,200 · engaged 630 · rate 15.0% (instagram_insights_weekly_unique)
+DM replies ... OK     2 suggestions · 2 DMs left out (contains name and personal contact details, contains medical informations)
+Posts ........ OK     4 drafts (claims C01, C03)
+Calendar ..... OK     4 entries, 2026-09-28 to 2026-10-01
+Report week 2026-09-21 to 2026-09-27 · calendar for 2026-09-28 to 2026-10-04
+Saved campaigns/2026-W40.json: nothing was sent or published.
+```
+
+- **Report:** the figures come from the weekly row of `engagement.csv` (a date like
+  `2026-09-21/2026-09-27`), computed in code; the model only writes the interpretation. Zero
+  reach gives `n/a (zero reach)`; more engaged than reached fails the report.
+- **DM replies:** DMs marked not eligible or not privacy safe are left out with their reason and
+  never read further. The others go through the guardrails' input check, then get one reply
+  suggestion each, under a case key (`Q1`, `Q2`…), never the DM's id.
+- **Posts:** at least 3 captions, each quoting an approved claim word for word or promising
+  nothing; checked by the guardrails and the same rules as an edit.
+- **Calendar:** at least 3 entries in the following week, each linked to one of those posts.
+- A refused text gets one rewrite, told why, then is left out. A missing or broken file, a model
+  failure or too few usable items fails only that output. Approved sections stay as they are.
+- The document is written once, at the end: Ctrl+C (or **Stop**) saves nothing. There is no
+  send, publish or share step. The exit code is 0 when every output is OK.
+
+In the page, **Run the week** on the Campaign page runs the same thing on the data folder and
+shows one line per output as it finishes.
+
 ## In the web interface
 
 The **Campaign** page (or `/campaign` in the chat) shows the week, its file and the four

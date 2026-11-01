@@ -312,6 +312,8 @@ def parse_args(settings: Settings, argv: Sequence[str] | None = None) -> argpars
     p.add_argument("--context-budget", type=_positive_int, default=settings.context_length,
                    help="context window in tokens, sent to Ollama as num_ctx; older messages are summarized at 80%% "
                         "(default: SENSAI_CONTEXT_LENGTH, else the window Ollama loads)")
+    p.add_argument("--weekly-run", metavar="FOLDER",
+                   help="prepare the week's posts, DM replies, report and calendar from FOLDER and exit")
     p.add_argument("--operation-timeout", type=positive_timeout,
                    default=settings.operation_timeout,
                    help="maximum seconds per complete turn, and per step of a /think")
@@ -970,6 +972,9 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
 def main(argv: Sequence[str] | None = None) -> None:
     settings = Settings()
     args = parse_args(settings, argv)
+    if args.weekly_run:
+        from sensai.cli.weekly import weekly_main
+        sys.exit(weekly_main(settings, args))
     prepared = prepare_chat(args)
     if prepared is not None:
         run_chat(settings, args, prepared)

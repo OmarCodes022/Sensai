@@ -131,6 +131,7 @@ class WebApp:
         self.mcp.reload()
         try:
             self.guard = load_guardrail(settings.guardrails_file, settings.brand_file)
+            self.guardrails_file = settings.guardrails_file  # The weekly run checks with the same rules.
         except GuardrailConfigError as exc:
             raise StartupError(str(exc)) from None
         # Every reply is checked line by line before the page sees it (EV2).

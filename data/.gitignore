@@ -5,6 +5,9 @@
 !personas.json
 !profile.json
 !brand.json
+!dms.json
+!posts.json
+!engagement.csv
 !docs/
 docs/*
 !docs/README.md

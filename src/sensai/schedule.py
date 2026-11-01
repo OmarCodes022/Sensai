@@ -139,7 +139,7 @@ def brand_block(brand_file: str | None) -> str:
     usable = {claim.claim_id for claim in load_claims(brand_file).approved}
     lines = ["Products (write only about these):"]
     for product in products:
-        claims = [f'"{c["text"]}"' for c in product.get("claims", []) if c.get("id") in usable]
+        claims = [f'{c["id"]} "{c["text"]}"' for c in product.get("claims", []) if c.get("id") in usable]
         lines.append(f"- {product['name']}: " + ("; ".join(claims) if claims else "no approved claim yet"))
     lines.append("Use these claims word for word and no others. Never invent products, ingredients, results "
                  "or testimonials; if something is missing, say what is missing.")
