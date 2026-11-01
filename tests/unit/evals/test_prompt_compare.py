@@ -67,11 +67,14 @@ def test_read_questions_skips_blank_and_comment_lines(tmp_path):
     assert compare.read_questions(path) == ["first?", "second?"]
 
 
-def test_default_questions_and_original_version_exist():
+def test_default_questions_exist_and_the_packaged_prompt_is_a_version():
+    from sensai.prompt_versions import versions
     assert len(compare.read_questions(compare.DEFAULT_QUESTIONS)) == 6
-    original = SCRIPT.parent / "versions" / "2026-10-20-original.txt"
-    packaged = ROOT / "src" / "sensai" / "chat" / "system_prompt.txt"
-    assert original.read_bytes() == packaged.read_bytes()
+    packaged = (ROOT / "src" / "sensai" / "chat" / "system_prompt.txt").read_bytes()
+    found = versions(str(SCRIPT.parent / "versions"))
+    # A change to the packaged prompt needs a new dated copy: that is what makes rolling back possible.
+    assert any(Path(v.path).read_bytes() == packaged for v in found)
+    assert [Path(v.path).name for v in found] == sorted(Path(v.path).name for v in found) and len(found) >= 3
 
 
 def test_same_questions_in_order_to_both_prompts_with_fresh_messages():
