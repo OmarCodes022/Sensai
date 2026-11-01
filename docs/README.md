@@ -27,8 +27,9 @@ resumes the same session where she left off.
 | MCP tools (T1) | Connects the servers listed in `mcp.json`, with your approval for each call | [MCP tools](user-guide/mcp.md) |
 | Reasoning loops (A1) | `/think` plans, uses tools, drafts, checks and revises, showing every step | [Reasoning step by step](user-guide/thinking.md) |
 
-These are the base features. The repository README lists every feature (campaign, weekly run,
-guardrails, document search, team of agents and more), each with its guide and user stories.
+These are the base features. [Features](overview/features.md#more-features) lists every other one
+(campaign, weekly run, guardrails, document search, team of agents and more), and the
+[web interface](user-guide/web.md) shows them all in one page.
 
 ## Quick start
 
