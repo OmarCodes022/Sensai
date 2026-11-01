@@ -5,7 +5,9 @@ import secrets
 import sqlite3
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
+from time import monotonic
 
+from sensai import usage_log
 from sensai.core.cancellation import CancellationToken
 from sensai.core.ports import PortError, Profile, SessionSnapshot
 from sensai.core.errors import SensaiError
@@ -71,7 +73,7 @@ def generate_title(client: LLMClient, model: str, first_user: str, first_answer:
         Message(role="system", content=TITLE_PROMPT),
         Message(role="user", content=f"Message : {first_user[:2000]}\n\nRéponse : {first_answer[:2000]}"),
     ]
-    stream = None
+    stream, started = None, monotonic()
     try:
         stream = client.stream(model, messages, cancellation=cancellation)
         chunks = []
@@ -81,7 +83,9 @@ def generate_title(client: LLMClient, model: str, first_user: str, first_answer:
             chunks.append(chunk)
         if cancellation is not None:
             cancellation.raise_if_cancelled()
-    except (SensaiError, KeyboardInterrupt):
+    except (SensaiError, KeyboardInterrupt) as exc:
+        usage_log.record("title", model, first_user[:200], latency_ms=(monotonic() - started) * 1000,
+                         error="cancelled" if isinstance(exc, KeyboardInterrupt) else str(exc))
         return None
     finally:
         try:
@@ -89,6 +93,7 @@ def generate_title(client: LLMClient, model: str, first_user: str, first_answer:
         except SensaiError:
             pass
     title = "".join(chunks).strip().strip(QUOTES).strip()
+    usage_log.record("title", model, first_user[:200], title, latency_ms=(monotonic() - started) * 1000)
     if len(title.splitlines()) != 1:
         return None
     title = " ".join(title.split())  # NBSP / narrow NBSP of French typography → spaces

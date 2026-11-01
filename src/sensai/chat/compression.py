@@ -1,6 +1,8 @@
 """Summarize the oldest messages when the context nears its token budget (M2)."""
 import json
+from time import monotonic
 
+from sensai import usage_log
 from sensai.core.cancellation import CancellationToken
 from sensai.core.errors import SensaiError
 from sensai.core.messages import Message
@@ -72,7 +74,7 @@ def compress(session, cut: int, cancellation: CancellationToken | None = None, *
     # Instruction after the delimited transcript: small models otherwise continue the chat.
     request = [Message(role="user",
                        content=f"Conversation:\n<<<\n{transcript}\n>>>\n\n{SUMMARY_REQUEST}")]
-    stream = None
+    stream, started = None, monotonic()
     try:
         stream = (client or session.client).stream(session.model, request, cancellation=cancellation)
         chunks = []
@@ -83,6 +85,8 @@ def compress(session, cut: int, cancellation: CancellationToken | None = None, *
         if cancellation is not None:
             cancellation.raise_if_cancelled()
     except (SensaiError, KeyboardInterrupt) as exc:  # failed, timed out or cancelled
+        usage_log.record("summary", session.model, f"{cut - 1} older messages", latency_ms=(monotonic() - started) * 1000,
+                         error="cancelled" if isinstance(exc, KeyboardInterrupt) else str(exc))
         if on_failure is not None:
             on_failure(exc)
         return False
@@ -92,6 +96,8 @@ def compress(session, cut: int, cancellation: CancellationToken | None = None, *
         except SensaiError:
             pass
     summary = "".join(chunks).strip()
+    usage_log.record("summary", session.model, f"{cut - 1} older messages", summary,
+                     latency_ms=(monotonic() - started) * 1000, error=None if summary else "empty summary")
     if not summary:
         return False
     # Single assignment at the very end: nothing is lost if anything above failed.
