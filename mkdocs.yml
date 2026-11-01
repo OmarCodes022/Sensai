@@ -28,6 +28,7 @@ nav:
       - Reasoning step by step: user-guide/thinking.md
       - Team of agents: user-guide/team.md
       - Semantic cache: user-guide/cache.md
+      - Picked examples: user-guide/examples.md
       - Document search: user-guide/documents.md
       - Brand facts: user-guide/brand-facts.md
       - Guardrails: user-guide/guardrails.md
