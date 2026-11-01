@@ -19,6 +19,8 @@ from sensai.chat import compression, saved_sessions
 from sensai.chat.context import ContextState, choose_window, loaded_window, ollama_window, summary_cap
 from sensai.cli.context_commands import compact, summarize
 from sensai.cli.team import team_command
+from sensai.cli.cache import answer_from_cache, remember
+from sensai.memory.semantic_cache import SemanticCache, scope as cache_scope_of
 from sensai.chat.agents import brand_facts
 from sensai.llm.ollama import OllamaClient
 from sensai.chat.saved_sessions import SessionRecorder, display_title, profile_block
@@ -294,6 +296,7 @@ def parse_args(settings: Settings, argv: Sequence[str] | None = None) -> argpars
     p.add_argument("--list-personas", action="store_true", help="list personas and exit")
     p.add_argument("--session", help="resume a saved session by ID")
     p.add_argument("--list-sessions", action="store_true", help="list saved sessions and exit")
+    p.add_argument("--clear-cache", action="store_true", help="empty the semantic cache (SENSAI_CACHE) and exit")
     p.add_argument("--db", default=settings.db_path,
                    help=f"SQLite session database (default: {DEFAULT_DB_PATH})")
     p.add_argument("--creator", default=settings.creator,
@@ -324,7 +327,7 @@ def parse_args(settings: Settings, argv: Sequence[str] | None = None) -> argpars
     args.data_dir = settings.data_dir or None
     if args.persona is None:
         args.persona = settings.persona
-    if not args.model and not args.list_personas and not args.list_sessions:
+    if not args.model and not args.list_personas and not args.list_sessions and not args.clear_cache:
         p.error("no model given: pass one or set SENSAI_MODEL in .env")
     return args
 
@@ -369,7 +372,7 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
          campaign: CampaignStore | None = None, approval=None, web: WebSearch | None = None,
          doc_search: DocSearch | None = None, exporter: Exporter | None = None,
          mcp: Catalogue | None = None, context: ContextState | None = None, summary_client=None, probe=None,
-         team_facts=lambda: "") -> None:
+         team_facts=lambda: "", cache=None, cache_scope=lambda: "") -> None:
     if base_prompt is None:
         base_prompt = session.messages[0].content
     if tool_registry is None:
@@ -688,6 +691,10 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
         refresh_docs()  # A document added a moment ago counts for this very question.
         if web is not None:
             web.results.clear()  # Sources are listed per answer.
+        # A6: only a session's first question; later ones depend on earlier turns.
+        first = cache is not None and original is None and not saved_sessions.user_messages(session.messages)
+        if first and answer_from_cache(cache, cache_scope(), text, session, write, recorder):
+            continue
         if doc_search is not None:
             doc_search.report = None
 
@@ -744,6 +751,8 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
                 write(context.line(tokens))
         if completed and recorder is not None:
             recorder.after_turn(session)
+        if completed and first:
+            remember(cache, cache_scope(), text, session)
         settle_facts(completed)
         if completed and doc_search is not None and doc_search.report is not None and doc_search.report.hits:
             write("Document sources:")
@@ -966,6 +975,8 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
                                              context_length=settings.context_length)
             session = ChatSession(client, args.model, _tool_prompt(prompt, tool_registry))
             session.messages.extend(recorder.messages)
+            cache = SemanticCache(settings.cache_path, OllamaEmbeddingAdapter(settings.embed_model, host=args.host).embed,
+                                  settings.cache_threshold) if settings.cache else None
             repl(session, read=terminal.read,
                  operation_timeout=args.operation_timeout,
                  cancel_requested=terminal.cancel_requested,
@@ -976,6 +987,7 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
                  doc_search=found[0] if found else None, exporter=Exporter(guard, settings.exports_dir),
                  mcp=mcp, context=context, summary_client=summary_client,
                  team_facts=lambda: "\n".join(part for part in (brand_facts(settings.brand_file), memory.block()) if part),
+                 cache=cache, cache_scope=lambda: cache_scope_of(args.creator, session.model, session.messages[0].content),
                  probe=lambda: loaded_window(args.host, args.model) if isinstance(raw_client, OllamaClient) else None)
     finally:
         try:
@@ -987,6 +999,10 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
 def main(argv: Sequence[str] | None = None) -> None:
     settings = Settings()
     args = parse_args(settings, argv)
+    if args.clear_cache:
+        removed = SemanticCache(settings.cache_path, embed=None).clear()
+        print(f"Cache cleared: {removed} answer{'s' * (removed != 1)} removed ({settings.cache_path}).")
+        return
     if args.weekly_run:
         from sensai.cli.weekly import weekly_main
         sys.exit(weekly_main(settings, args))
