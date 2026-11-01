@@ -74,6 +74,8 @@ def run_turn(app: WebApp, active: ActiveSession, stop, text: str, emit: Emit) ->
             app.times.record(active.recorder.session_id, number, started_at, active.updated_at)
         emit({"type": "done", "status": "completed", "turn_id": turn_id})
         return "completed"
+    if app.examples is not None:
+        session.extra = cache.examples_for(app, text, emit)
     approval = WebApproval(app.approvals, emit, stop, turn_id)
     app.memory.drop()
     if app.web is not None:
@@ -105,6 +107,7 @@ def run_turn(app: WebApp, active: ActiveSession, stop, text: str, emit: Emit) ->
         emit({"type": "error", "code": "error", "message": str(exc), "hint": None})
     finally:
         stream.close()
+        session.extra = ()  # Examples are for this question only, never kept.
         registry.close()
         remove_stale_folders()  # A killed tool worker may not have removed its folder.
     settle(app, active, status == "completed", emit)  # Fact changes count only for a completed reply.

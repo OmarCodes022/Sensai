@@ -1,6 +1,7 @@
-"""The semantic cache (A6) in the page: a session's first question may be answered from it at once."""
+"""The semantic cache (A6) and the picked examples (A7) in the page."""
 from time import monotonic
 
+from sensai.chat.examples import ExamplePicker, turns
 from sensai.chat.saved_sessions import user_messages
 from sensai.core.messages import Message
 from sensai.llm.embeddings import OllamaEmbeddingAdapter
@@ -12,6 +13,20 @@ def make_cache(settings) -> SemanticCache | None:
         return None
     return SemanticCache(settings.cache_path, OllamaEmbeddingAdapter(settings.embed_model, host=settings.host).embed,
                          settings.cache_threshold)
+
+
+def make_examples(settings) -> ExamplePicker | None:
+    return ExamplePicker(OllamaEmbeddingAdapter(settings.embed_model, host=settings.host).embed) if settings.examples else None
+
+
+def examples_for(app, text: str, emit) -> tuple:
+    """The example turns for this question (an `examples` event names them); a failing picker warns once."""
+    was_off, picked = app.examples.off, app.examples.pick(text)
+    if app.examples.off and not was_off:
+        emit({"type": "warning", "code": "examples", "message": app.examples.off})
+    if picked:
+        emit({"type": "examples", "ids": [e["id"] for e in picked]})
+    return turns(picked)
 
 
 def first_question(app, active) -> bool:

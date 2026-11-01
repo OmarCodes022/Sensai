@@ -996,5 +996,6 @@
  "safety.claimsTitle": "Approved claims",
  "safety.claimsHelp": "Replies are also stopped as they stream when they use a claim that is not approved or out of date.",
  "safety.openClaims": "Open the claims register",
- "cache.hit": "From the cache · {pct}% similar to \"{q}\" · {s} s"
+ "cache.hit": "From the cache · {pct}% similar to \"{q}\" · {s} s",
+ "examples.used": "Examples used: {ids}"
 }
