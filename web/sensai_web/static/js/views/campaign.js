@@ -13,6 +13,7 @@ import { announce } from '../a11y.js';
 import { exportLine } from '../chat/export-command.js';
 import { t } from '../i18n.js';
 import { createWeeklyRun } from '../campaign/weekly-run.js';
+import { createShare } from '../campaign/share.js';
 
 const TABS = [['posts', 'posts'], ['replies', 'dm'], ['report', 'report'], ['calendar', 'calendar']];
 const none = (key) => emptyState({ icon: 'calendar', title: t(key), h: 'h3' });
@@ -65,10 +66,11 @@ export function mount(root, { api }) {
   const request = h('input', { class: 'input', placeholder: t('campaign.requestPlaceholder'), autocomplete: 'off' });
   const ask = button(t('campaign.ask'), { variant: 'primary', icon: 'send' });
   const weekly = createWeeklyRun({ api, onDoc: (d) => { doc = d; paint(); } });
+  const sharing = createShare({ api, out });
   root.classList.add('campaign');
   root.append(viewShell('campaign', head, weekly.panel, body, h('div', { class: 'card stack' }, h('h2', null, t('campaign.cmd')),
     h('div', { class: 'row' }, field(t('campaign.section'), which), field(t('campaign.requestLabel'), request)), h('div', null, ask),
-    h('p', { class: 'muted' }, t('campaign.cmdHelpLive')), out)));
+    h('p', { class: 'muted' }, t('campaign.cmdHelpLive')), out), sharing.list));
 
   function paint() {
     if (!doc) return;
@@ -83,7 +85,7 @@ export function mount(root, { api }) {
       const s = doc.sections[id];
       const approve = s.status === 'approved' ? h('p', { class: 'muted' }, t('campaign.locked', { at: (s.approved_at || '').slice(0, 16).replace('T', ' ') }))
         : button(t('campaign.approve'), { onClick: () => approveSection(id) });
-      return h('div', { class: 'stack' }, RENDER[id](s), approve);
+      return h('div', { class: 'stack' }, RENDER[id](s), h('div', { class: 'row' }, approve, sharing.button(id)));
     } }));
     body.replaceChildren(tabs({ label: t('campaign.sections'), items, selected, onChange: (id) => { selected = id; } }));
   }

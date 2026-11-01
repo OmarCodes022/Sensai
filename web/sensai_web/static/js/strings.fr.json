@@ -1021,5 +1021,17 @@
  "prompts.compare": "Comparer",
  "prompts.comparing": "Chaque question est posée à {a}, puis à {b}…",
  "prompts.report": "Rapport enregistré dans {file}",
- "prompts.stopped": "Arrêté : aucun rapport écrit."
+ "prompts.stopped": "Arrêté : aucun rapport écrit.",
+ "share.button": "Partager",
+ "share.question": "Publier cette page ?",
+ "share.public": "Publique, sans connexion",
+ "share.where": "Lien",
+ "share.content": "Exactement ce que la page affiche",
+ "share.confirm": "Partager",
+ "share.done": "Partagé : {url}",
+ "share.nothing": "Rien n'a été partagé.",
+ "share.links": "Liens partagés",
+ "share.remove": "Retirer",
+ "share.removed": "Le lien renvoie désormais 404.",
+ "share.serve": "Les liens fonctionnent tant que python -m sensai.share tourne (port {port}), pour les appareils du même réseau."
 }
