@@ -68,3 +68,12 @@ def test_compare_prints_two_versions_side_by_side(tmp_path, monkeypatch, capsys)
     lines = capsys.readouterr().out.splitlines()
     assert lines[1].split() == ["v1", "4.2", "4.5", "3.6", "5"] and lines[2].split() == ["v2", "4.2", "4.5", "4.4", "2"]
     assert run.compare(["v1", "missing"]) == 1
+
+
+@pytest.mark.parametrize("text", ["The documents do not cover the price.", "Would you like me to check?",
+                                  "We may need to consult the product team.", "The price is not listed in the documents.",
+                                  "I'm unable to provide the current prices."])
+def test_refusals_questions_and_offers_are_never_flagged(text):
+    client = FakeJudge(lambda t: Judgement(relevance=5, coherence=5, faithfulness=1, statements=[
+        Statement(text=text, label="unsupported"), Statement(text="It cures eczema", label="contradicted")]))
+    assert [s.text for s in judge(client, "m", "q", "", "a").flagged()] == ["It cures eczema"]
