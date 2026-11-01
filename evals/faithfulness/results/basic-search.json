@@ -1,0 +1,369 @@
+{
+  "label": "basic-search",
+  "model": "qwen2.5",
+  "judge": "qwen2.5",
+  "search": "basic",
+  "questions": 11,
+  "not_judged": 0,
+  "not_searched": 1,
+  "relevance": 3.27,
+  "coherence": 4.09,
+  "faithfulness": 4.09,
+  "flagged": 8,
+  "rows": [
+    {
+      "n": 1,
+      "kind": "direct",
+      "question": "What is the Hydra Glow Serum useful for ?",
+      "answer": "The Hydra Glow Serum by Serein Studio is designed for daily use and is best known for its ability to moisturize the skin and improve overall skin quality. Its lightweight texture absorbs quickly into the skin, providing hydration that can last up to 8 hours. \n\nFor more specific guidance, you might want to mention it as suitable for various skin types and recommend application in the morning on a clean face.\n\nHere's a draft for your post:\n\n---\n\n**Hydra Glow Serum: Daily Hydration for Radiant Skin**\n\nOur best-selling Hydra Glow Serum is perfect for anyone looking to moisturize their skin and enhance its quality. Its lightweight, quick-absorbing formula provides lasting hydration that can last up to 8 hours. Use it every morning on a clean face for a daily dose of skin care. \n\n---\n\nWould you like to proceed with this draft or make any changes?",
+      "searched": true,
+      "sources": "[hydra-glow-serum, 2026-09-01] Hydra Glow Serum is Serein Studio's best-selling serum designed for daily use. Its texture is lightweight and it absorbs quickly. It helps moisturize the skin and improve skin quality. Apply every morning on a clean face. This product hydrates the skin for up to 8 hours.\n[calm-barrier-cream, 2026-09-01] Calm Barrier Cream is a Serein Studio product. Its formula is really rich and it helps to reduce redness in 4 weeks. This cream is for all skin types. Apply a pea-sized amount each night on a clean face. It leaves the skin light and the cream is fragrance-free.\n[calm-barrier-cream-2025, 2025-06-01, OUTDATED: superseded by calm-barrier-cream 2026-09-01] Calm Barrier Cream is a Serein Studio product. Its original formula was thicker and more intensive. It helps soothe sensitive skin overnight. This cream is for all skin types. Apply a pea-sized amount each night on a clean face.",
+      "judged": true,
+      "relevance": 4,
+      "coherence": 4,
+      "faithfulness": 4,
+      "statements": [
+        {
+          "text": "The Hydra Glow Serum by Serein Studio is designed for daily use and is best known for its ability to moisturize the skin and improve overall skin quality.",
+          "label": "supported",
+          "source": ""
+        },
+        {
+          "text": "Its lightweight texture absorbs quickly into the skin",
+          "label": "supported",
+          "source": ""
+        },
+        {
+          "text": "providing hydration that can last up to 8 hours",
+          "label": "contradicted",
+          "source": ""
+        },
+        {
+          "text": "Use it every morning on a clean face for a daily dose of skin care.",
+          "label": "supported",
+          "source": ""
+        }
+      ],
+      "flagged": [
+        {
+          "text": "providing hydration that can last up to 8 hours",
+          "label": "contradicted",
+          "source": ""
+        }
+      ]
+    },
+    {
+      "n": 2,
+      "kind": "direct",
+      "question": "What is the calm barrier cream useful for ?",
+      "answer": "Let's check the documents to find the information about the calm barrier cream's uses.\n\nBased on the documents, the current version of the Calm Barrier Cream is described as follows:\n\n**Useful for:**\n- Reducing redness in 4 weeks.\n- Soothing sensitive skin overnight.\n\n**Suitable for:**\n- All skin types.\n\n**Application:**\n- Apply a pea-sized amount each night on a clean face.\n\nIt is recommended to use this product nightly to see the best results. If you need any more details or further information, feel free to ask!",
+      "searched": true,
+      "sources": "[calm-barrier-cream-2025, 2025-06-01, OUTDATED: superseded by calm-barrier-cream 2026-09-01] Calm Barrier Cream is a Serein Studio product. Its original formula was thicker and more intensive. It helps soothe sensitive skin overnight. This cream is for all skin types. Apply a pea-sized amount each night on a clean face.\n[calm-barrier-cream, 2026-09-01] Calm Barrier Cream is a Serein Studio product. Its formula is really rich and it helps to reduce redness in 4 weeks. This cream is for all skin types. Apply a pea-sized amount each night on a clean face. It leaves the skin light and the cream is fragrance-free.\n[hydra-glow-serum, 2026-09-01] Hydra Glow Serum is Serein Studio's best-selling serum designed for daily use. Its texture is lightweight and it absorbs quickly. It helps moisturize the skin and improve skin quality. Apply every morning on a clean face. This product hydrates the skin for up to 8 hours.",
+      "judged": true,
+      "relevance": 4,
+      "coherence": 4,
+      "faithfulness": 5,
+      "statements": [
+        {
+          "text": "Soothes sensitive skin overnight.",
+          "label": "supported",
+          "source": ""
+        },
+        {
+          "text": "Reduces redness in 4 weeks.",
+          "label": "supported",
+          "source": ""
+        },
+        {
+          "text": "Suitable for all skin types.",
+          "label": "supported",
+          "source": ""
+        },
+        {
+          "text": "Apply a pea-sized amount each night on a clean face.",
+          "label": "supported",
+          "source": ""
+        }
+      ],
+      "flagged": []
+    },
+    {
+      "n": 3,
+      "kind": "direct",
+      "question": "How long does the Calm Barrier Cream take to reduce redness ?",
+      "answer": "To accurately answer your question, I'll need to check the product facts for the Calm Barrier Cream. Let's start by searching the documents for this information.\n\nBased on the most recent document, the Calm Barrier Cream helps to reduce redness in 4 weeks. Here is a draft for your post:\n\n---\n\n**How Long Does Calm Barrier Cream Take to Reduce Redness?**\n\nOur Calm Barrier Cream, formulated to soothe and reduce redness, takes 4 weeks to show its full effect. This rich cream is suitable for all skin types and can be applied each night after cleansing. Its fragrance-free formula ensures a light finish, making it perfect for nighttime use.\n\n---\n\nWould you like to proceed with this draft, or do you have any additional details or changes you would like to add?",
+      "searched": true,
+      "sources": "[calm-barrier-cream, 2026-09-01] Calm Barrier Cream is a Serein Studio product. Its formula is really rich and it helps to reduce redness in 4 weeks. This cream is for all skin types. Apply a pea-sized amount each night on a clean face. It leaves the skin light and the cream is fragrance-free.\n[calm-barrier-cream-2025, 2025-06-01, OUTDATED: superseded by calm-barrier-cream 2026-09-01] Calm Barrier Cream is a Serein Studio product. Its original formula was thicker and more intensive. It helps soothe sensitive skin overnight. This cream is for all skin types. Apply a pea-sized amount each night on a clean face.\n[faq, 2026-09-01] **Q: Should I do a patch test before using a new product ?**\nA: Yes, we recommend applying a small amount on your inner arm and waiting 24 hours before full use",
+      "judged": true,
+      "relevance": 3,
+      "coherence": 4,
+      "faithfulness": 5,
+      "statements": [
+        {
+          "text": "Our Calm Barrier Cream, formulated to soothe and reduce redness, takes 4 weeks to show its full effect.",
+          "label": "supported",
+          "source": "[calm-barrier-cream, 2026-09-01]"
+        },
+        {
+          "text": "This rich cream is suitable for all skin types and can be applied each night after cleansing.",
+          "label": "supported",
+          "source": "[calm-barrier-cream, 2026-09-01]"
+        },
+        {
+          "text": "Its fragrance-free formula ensures a light finish, making it perfect for nighttime use.",
+          "label": "supported",
+          "source": "[calm-barrier-cream, 2026-09-01]"
+        }
+      ],
+      "flagged": []
+    },
+    {
+      "n": 4,
+      "kind": "direct",
+      "question": "How long does Hydra Glow Serum keep skin hydrated ?",
+      "answer": "Let's search the documentation to find the relevant information about the Hydra Glow Serum's hydration properties.\nBased on the information from the Hydra Glow Serum document, the serum is designed to keep the skin hydrated for up to 8 hours when applied every morning on a clean face.\n\nWould you like to include this in a post draft or have any other questions related to the product's properties?",
+      "searched": true,
+      "sources": "[hydra-glow-serum, 2026-09-01] Hydra Glow Serum is Serein Studio's best-selling serum designed for daily use. Its texture is lightweight and it absorbs quickly. It helps moisturize the skin and improve skin quality. Apply every morning on a clean face. This product hydrates the skin for up to 8 hours.\n[calm-barrier-cream, 2026-09-01] Calm Barrier Cream is a Serein Studio product. Its formula is really rich and it helps to reduce redness in 4 weeks. This cream is for all skin types. Apply a pea-sized amount each night on a clean face. It leaves the skin light and the cream is fragrance-free.\n[calm-barrier-cream-2025, 2025-06-01, OUTDATED: superseded by calm-barrier-cream 2026-09-01] Calm Barrier Cream is a Serein Studio product. Its original formula was thicker and more intensive. It helps soothe sensitive skin overnight. This cream is for all skin types. Apply a pea-sized amount each night on a clean face.",
+      "judged": true,
+      "relevance": 4,
+      "coherence": 5,
+      "faithfulness": 5,
+      "statements": [
+        {
+          "text": "The serum is designed to keep the skin hydrated for up to 8 hours when applied every morning on a clean face.",
+          "label": "supported",
+          "source": ""
+        }
+      ],
+      "flagged": []
+    },
+    {
+      "n": 5,
+      "kind": "direct",
+      "question": "How long does delivery take ?",
+      "answer": "To accurately provide the delivery time, I will need to check the current shipping policies and any relevant information from our brand documents.\n\nLet's search the documents for this information.\n\nBased on the information from our FAQ, delivery takes 2 or 3 business days. \n\nHere is a draft response:\n\n---\n\n**Delivery Time:**\nDelivery takes 2 or 3 business days.\n\n---\n\nWould you like to include this information in a post or a DM response? If so, where would you like to send it?",
+      "searched": true,
+      "sources": "[faq, 2026-09-01] **Q: How long does delivery take ?**\nA: Delivery takes 2 or 3 business days\n[faq, 2026-09-01] **Q: How do I return an order ?**\nA: Just use the return slip in the box we sent you\n[faq, 2026-09-01] **Q: Is it possible to test your products before buying them ?**\nA: Yes ! We can send you samples",
+      "judged": true,
+      "relevance": 5,
+      "coherence": 5,
+      "faithfulness": 5,
+      "statements": [
+        {
+          "text": "Delivery takes 2 or 3 business days.",
+          "label": "supported",
+          "source": ""
+        }
+      ],
+      "flagged": []
+    },
+    {
+      "n": 6,
+      "kind": "near-miss",
+      "question": "How long does the Calm Barrier Cream keep skin hydrated ?",
+      "answer": "To provide an accurate answer, I'll first search the documents to see if there's any information about the Calm Barrier Cream's hydration properties.\n\nBased on the available information, the 2026 version of the Calm Barrier Cream does not provide a specific duration for how long it keeps skin hydrated. The previous version, which was thicker and more intensive, was designed to soothe sensitive skin overnight, but this information does not directly translate to hydration duration.\n\nGiven the lack of specific hydration duration in the documents, we should inform the user that the exact duration is not specified. Here’s a draft for the response:\n\n---\nThe Calm Barrier Cream is formulated to help reduce redness and soothe sensitive skin overnight. However, the exact duration for how long it keeps skin hydrated is not specified in our current documents. For more detailed information, we recommend consulting the product sheet or contacting our customer service team.\n\nIf you have any other questions or need further assistance, feel free to ask!\n---\n\nWould you like to proceed with this draft, or do you need additional details or a different approach?",
+      "searched": true,
+      "sources": "[calm-barrier-cream, 2026-09-01] Calm Barrier Cream is a Serein Studio product. Its formula is really rich and it helps to reduce redness in 4 weeks. This cream is for all skin types. Apply a pea-sized amount each night on a clean face. It leaves the skin light and the cream is fragrance-free.\n[calm-barrier-cream-2025, 2025-06-01, OUTDATED: superseded by calm-barrier-cream 2026-09-01] Calm Barrier Cream is a Serein Studio product. Its original formula was thicker and more intensive. It helps soothe sensitive skin overnight. This cream is for all skin types. Apply a pea-sized amount each night on a clean face.\n[hydra-glow-serum, 2026-09-01] Hydra Glow Serum is Serein Studio's best-selling serum designed for daily use. Its texture is lightweight and it absorbs quickly. It helps moisturize the skin and improve skin quality. Apply every morning on a clean face. This product hydrates the skin for up to 8 hours.",
+      "judged": true,
+      "relevance": 3,
+      "coherence": 4,
+      "faithfulness": 3,
+      "statements": [
+        {
+          "text": "The Calm Barrier Cream is formulated to help reduce redness and soothe sensitive skin overnight.",
+          "label": "supported",
+          "source": ""
+        },
+        {
+          "text": "For more detailed information, we recommend consulting the product sheet or contacting our customer service team.",
+          "label": "unsupported",
+          "source": ""
+        }
+      ],
+      "flagged": [
+        {
+          "text": "For more detailed information, we recommend consulting the product sheet or contacting our customer service team.",
+          "label": "unsupported",
+          "source": ""
+        }
+      ]
+    },
+    {
+      "n": 7,
+      "kind": "near-miss",
+      "question": "Does the Hydra Glow Serum reduce redness ?",
+      "answer": "{\"tool\":\"search_docs\",\"arguments\":{}()}",
+      "searched": false,
+      "sources": null,
+      "judged": true,
+      "relevance": 1,
+      "coherence": 1,
+      "faithfulness": 5,
+      "statements": [],
+      "flagged": []
+    },
+    {
+      "n": 8,
+      "kind": "outdated",
+      "question": "Does the Calm Barrier soothe sensitive skin overnight ?",
+      "answer": "The current version of Calm Barrier Cream is designed to help soothe sensitive skin overnight. According to the updated product sheet, it is a rich formula that helps reduce redness in 4 weeks. It is suitable for all skin types and should be applied each night after cleansing.\n\nFor the previous version, it is noted that it was more intensive and helped soothe sensitive skin overnight. However, since the current version is the one approved and available, we will focus on that information.\n\nHere is a draft for your post:\n\n---\n\n**Calm Barrier Cream: Soothe Sensitive Skin Overnight**\n\nOur Calm Barrier Cream is specifically designed to provide intense relief and soothing benefits to sensitive skin overnight. This rich formula helps reduce redness and is perfect for anyone looking for a gentle yet effective solution to soothe their skin. Apply a pea-sized amount each night after cleansing to experience the full benefits of our Calm Barrier Cream.\n\n---\n\nLet me know if you would like any changes or additions to this draft.",
+      "searched": true,
+      "sources": "[calm-barrier-cream-2025, 2025-06-01, OUTDATED: superseded by calm-barrier-cream 2026-09-01] Calm Barrier Cream is a Serein Studio product. Its original formula was thicker and more intensive. It helps soothe sensitive skin overnight. This cream is for all skin types. Apply a pea-sized amount each night on a clean face.\n[calm-barrier-cream, 2026-09-01] Calm Barrier Cream is a Serein Studio product. Its formula is really rich and it helps to reduce redness in 4 weeks. This cream is for all skin types. Apply a pea-sized amount each night on a clean face. It leaves the skin light and the cream is fragrance-free.\n[hydra-glow-serum, 2026-09-01] Hydra Glow Serum is Serein Studio's best-selling serum designed for daily use. Its texture is lightweight and it absorbs quickly. It helps moisturize the skin and improve skin quality. Apply every morning on a clean face. This product hydrates the skin for up to 8 hours.",
+      "judged": true,
+      "relevance": 4,
+      "coherence": 4,
+      "faithfulness": 5,
+      "statements": [
+        {
+          "text": "Our Calm Barrier Cream is specifically designed to provide intense relief and soothing benefits to sensitive skin overnight.",
+          "label": "supported",
+          "source": "[calm-barrier-cream, 2026-09-01]"
+        },
+        {
+          "text": "This rich formula helps reduce redness and is perfect for anyone looking for a gentle yet effective solution to soothe their skin.",
+          "label": "supported",
+          "source": "[calm-barrier-cream, 2026-09-01]"
+        },
+        {
+          "text": "Apply a pea-sized amount each night after cleansing to experience the full benefits of our Calm Barrier Cream.",
+          "label": "supported",
+          "source": "[calm-barrier-cream, 2026-09-01]"
+        }
+      ],
+      "flagged": []
+    },
+    {
+      "n": 9,
+      "kind": "unsupported",
+      "question": "What is the price of the Hydra Glow Serum ?",
+      "answer": "Let's check the current price of the Hydra Glow Serum by searching the relevant documents.\nBased on the document search, the Hydra Glow Serum's price is not directly provided. The document only describes its benefits and usage instructions. We would need to consult the pricing information document for the exact price. Would you like me to search for that now?\n\nTo provide you with the correct information, could you please check the pricing document or let me know where I can find the current price for the Hydra Glow Serum?",
+      "searched": true,
+      "sources": "[hydra-glow-serum, 2026-09-01] Hydra Glow Serum is Serein Studio's best-selling serum designed for daily use. Its texture is lightweight and it absorbs quickly. It helps moisturize the skin and improve skin quality. Apply every morning on a clean face. This product hydrates the skin for up to 8 hours.\n[calm-barrier-cream, 2026-09-01] Calm Barrier Cream is a Serein Studio product. Its formula is really rich and it helps to reduce redness in 4 weeks. This cream is for all skin types. Apply a pea-sized amount each night on a clean face. It leaves the skin light and the cream is fragrance-free.\n[calm-barrier-cream-2025, 2025-06-01, OUTDATED: superseded by calm-barrier-cream 2026-09-01] Calm Barrier Cream is a Serein Studio product. Its original formula was thicker and more intensive. It helps soothe sensitive skin overnight. This cream is for all skin types. Apply a pea-sized amount each night on a clean face.",
+      "judged": true,
+      "relevance": 1,
+      "coherence": 5,
+      "faithfulness": 3,
+      "statements": [
+        {
+          "text": "The price of the Hydra Glow Serum is not directly provided in the documents.",
+          "label": "supported",
+          "source": "[hydra-glow-serum, 2026-09-01]"
+        },
+        {
+          "text": "You would need to consult the pricing information document for the exact price.",
+          "label": "unsupported",
+          "source": "none"
+        }
+      ],
+      "flagged": [
+        {
+          "text": "You would need to consult the pricing information document for the exact price.",
+          "label": "unsupported",
+          "source": "none"
+        }
+      ]
+    },
+    {
+      "n": 10,
+      "kind": "unsupported",
+      "question": "How many products do you have on your catalog ?",
+      "answer": "To provide an accurate count of the products in our catalog, I'll need to check the current inventory. Let's use the `search_docs` tool to find this information.\n\nBased on the information retrieved from the FAQ, it appears that the documents do not directly state the number of products in the catalog. To get an accurate count, I will need to check the current product inventory directly. However, since we don't have direct access to that data through the provided tools, I would recommend logging into the internal system or reviewing the latest product documentation to get the exact number of products.\n\nWould you like me to proceed with a web search to find more recent information on the number of products, or do you have access to the internal system where you can provide this information?",
+      "searched": true,
+      "sources": "[faq, 2026-09-01] **Q: Are the products vegan ?**\nA: Most of our products are vegan. Check the label for details\n[faq, 2026-09-01] **Q: Are the products fragrance-free ?**\nA: Yes, all our products are fragrance-free\n[faq, 2026-09-01] **Q: Are your products cruelty-free ?**\nA: Yes, Serein Studio stands against animal testing",
+      "judged": true,
+      "relevance": 4,
+      "coherence": 5,
+      "faithfulness": 2,
+      "statements": [
+        {
+          "text": "To provide an accurate count of the products in our catalog, I'll need to check the current inventory.",
+          "label": "unsupported",
+          "source": ""
+        },
+        {
+          "text": "Based on the information retrieved from the FAQ, it appears that the documents do not directly state the number of products in the catalog.",
+          "label": "supported",
+          "source": ""
+        },
+        {
+          "text": "To get an accurate count, I will need to check the current product inventory directly.",
+          "label": "unsupported",
+          "source": ""
+        },
+        {
+          "text": "Since we don't have direct access to that data through the provided tools, I would recommend logging into the internal system or reviewing the latest product documentation to get the exact number of products.",
+          "label": "unsupported",
+          "source": ""
+        }
+      ],
+      "flagged": [
+        {
+          "text": "To provide an accurate count of the products in our catalog, I'll need to check the current inventory.",
+          "label": "unsupported",
+          "source": ""
+        },
+        {
+          "text": "To get an accurate count, I will need to check the current product inventory directly.",
+          "label": "unsupported",
+          "source": ""
+        },
+        {
+          "text": "Since we don't have direct access to that data through the provided tools, I would recommend logging into the internal system or reviewing the latest product documentation to get the exact number of products.",
+          "label": "unsupported",
+          "source": ""
+        }
+      ]
+    },
+    {
+      "n": 11,
+      "kind": "unsupported",
+      "question": "What are the products prices ?",
+      "answer": "To provide the current prices of the products, I will first check the documents for the latest pricing information.\n\nIt seems that the document search did not return any direct pricing information. Could you please provide the current prices of the products or any recent updates regarding the pricing? Alternatively, I can suggest a draft content that includes the latest information we have on product details, such as being vegan and fragrance-free.\n\nHere is a suggested draft:\n\n---\n\n**Product Details and Pricing:**\n\nAt Serein Studio, we are committed to providing high-quality, all-natural skincare solutions that cater to a wide range of skin types. Our products are:\n\n- **Vegan:** Most of our products are vegan, ensuring that you can enjoy our benefits without any animal-derived ingredients.\n- **Fragrance-Free:** All our products are fragrance-free, making them suitable for sensitive skin.\n\nSpecifically, our Calm Barrier Cream:\n\n- **Rich Formula:** The Calm Barrier Cream is formulated to reduce redness in just 4 weeks.\n- **Suitable for All Skin Types:** Designed to be gentle and effective for all skin types.\n- **Application Instructions:** Apply a pea-sized amount each night on a clean face.\n\nFor detailed pricing information, please visit our website or contact our customer service team directly.\n\n---\n\nWould you like to proceed with this draft, or do you have specific pricing details to share?",
+      "searched": true,
+      "sources": "[faq, 2026-09-01] **Q: Are the products vegan ?**\nA: Most of our products are vegan. Check the label for details\n[faq, 2026-09-01] **Q: Are the products fragrance-free ?**\nA: Yes, all our products are fragrance-free\n[calm-barrier-cream, 2026-09-01] Calm Barrier Cream is a Serein Studio product. Its formula is really rich and it helps to reduce redness in 4 weeks. This cream is for all skin types. Apply a pea-sized amount each night on a clean face. It leaves the skin light and the cream is fragrance-free.",
+      "judged": true,
+      "relevance": 3,
+      "coherence": 4,
+      "faithfulness": 3,
+      "statements": [
+        {
+          "text": "Most of our products are vegan.",
+          "label": "unsupported",
+          "source": "faq, 2026-09-01"
+        },
+        {
+          "text": "All our products are fragrance-free.",
+          "label": "supported",
+          "source": "faq, 2026-09-01"
+        },
+        {
+          "text": "The Calm Barrier Cream is formulated to reduce redness in just 4 weeks.",
+          "label": "contradicted",
+          "source": "calm-barrier-cream, 2026-09-01"
+        },
+        {
+          "text": "The Calm Barrier Cream is suitable for all skin types.",
+          "label": "supported",
+          "source": "calm-barrier-cream, 2026-09-01"
+        },
+        {
+          "text": "Apply a pea-sized amount each night on a clean face.",
+          "label": "supported",
+          "source": "calm-barrier-cream, 2026-09-01"
+        }
+      ],
+      "flagged": [
+        {
+          "text": "Most of our products are vegan.",
+          "label": "unsupported",
+          "source": "faq, 2026-09-01"
+        },
+        {
+          "text": "The Calm Barrier Cream is formulated to reduce redness in just 4 weeks.",
+          "label": "contradicted",
+          "source": "calm-barrier-cream, 2026-09-01"
+        }
+      ]
+    }
+  ]
+}
