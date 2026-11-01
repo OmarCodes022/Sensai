@@ -13,6 +13,8 @@ class ChatSession:
         self.model = model
         self.messages: list[Message] = [Message(role="system", content=system_prompt)]
         self._system_prompt_changed = False
+        # A7: example turns sent right after the system prompt for the current question; never stored.
+        self.extra: tuple[Message, ...] = ()
 
     @property
     def system_prompt_changed(self) -> bool:
@@ -37,7 +39,7 @@ class ChatSession:
         completed = False
         failure = None
         try:
-            messages = list(self.messages)
+            messages = [self.messages[0], *self.extra, *self.messages[1:]]
             if self._system_prompt_changed:
                 # Older assistant introductions must not undo the active role.
                 messages.insert(-1, self.messages[0])
