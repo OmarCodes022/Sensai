@@ -21,6 +21,8 @@ from sensai.cli.context_commands import compact, summarize
 from sensai.cli.team import team_command
 from sensai.cli.cache import answer_from_cache, remember, use_examples
 from sensai.cli.usage import log_turn, tool_entry
+from sensai.cli.share_commands import share_command, unshare_command
+from sensai.share import Shares
 from sensai import usage_log
 from sensai.memory.semantic_cache import SemanticCache, scope as cache_scope_of
 from sensai.chat.examples import ExamplePicker
@@ -376,7 +378,8 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
          campaign: CampaignStore | None = None, approval=None, web: WebSearch | None = None,
          doc_search: DocSearch | None = None, exporter: Exporter | None = None,
          mcp: Catalogue | None = None, context: ContextState | None = None, summary_client=None, probe=None,
-         team_facts=lambda: "", cache=None, cache_scope=lambda: "", examples=None, meter=None) -> None:
+         team_facts=lambda: "", cache=None, cache_scope=lambda: "", examples=None, meter=None,
+         shares=None) -> None:
     if base_prompt is None:
         base_prompt = session.messages[0].content
     if tool_registry is None:
@@ -593,6 +596,15 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
                     write(f"Web search unavailable: {e}")
                 else:
                     write(numbered(found) if found else f"No web results for {query!r}.")
+            continue
+        if command and command[0] in ("/share", "/unshare"):
+            argument = command[1] if len(command) > 1 else ""
+            if shares is None or campaign is None:
+                write("Sharing is unavailable.")
+            elif command[0] == "/share":
+                share_command(shares, campaign, guard, approval, argument, write)
+            else:
+                unshare_command(shares, argument, write)
             continue
         if command and command[0] == "/export":
             export_all()
@@ -1016,6 +1028,7 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
                  mcp=mcp, context=context, summary_client=summary_client,
                  team_facts=lambda: "\n".join(part for part in (brand_facts(settings.brand_file), memory.block()) if part),
                  examples=ExamplePicker(embed) if settings.examples else None, meter=meter,
+                 shares=Shares(settings.shares_dir, settings.share_host, settings.share_port),
                  cache=cache, cache_scope=lambda: cache_scope_of(args.creator, session.model, session.messages[0].content),
                  probe=lambda: loaded_window(args.host, args.model) if isinstance(raw_client, OllamaClient) else None)
     finally:
