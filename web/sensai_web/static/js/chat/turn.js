@@ -180,10 +180,12 @@ export function createTurn({ ctx, transcript, composer, model, reconnect, onReus
     st.dropped = model.dropped;
     try {
       const asked = /^\/think\s+([\s\S]+)$/i.exec(text);  // /think <request> runs the step-by-step loop
+      const team = /^\/team\s+([\s\S]+)$/i.exec(text);  // /team <brief>: researcher, writer and reviewer
       const edit = /^\/edit\s+(\d+)\s+([\s\S]+)$/i.exec(text);  // /edit N <text> continues from message N in a new session
       // Its budget is per step and its rounds are not capped at the turn's limit: no ring, no "of 5".
-      me.think = !!asked; composer.showRing(!asked);
+      me.think = !!(asked || team); composer.showRing(!(asked || team));
       if (edit) await api.chat(edit[2], { signal: st.ac.signal, onEvent: handle, edit: Number(edit[1]) });
+      else if (team) await api.chat(team[1], { signal: st.ac.signal, onEvent: handle, team: true });
       else await api.chat(asked ? asked[1] : text, { signal: st.ac.signal, onEvent: handle, think: !!asked });
       if (st.failed) { /* error card already shown */ }
       else if (st.status === 'completed') { complete(); if (st.branch) openBranch(st.branch); }

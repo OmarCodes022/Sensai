@@ -18,6 +18,8 @@ from sensai.core.ports import ApprovalRequest, PolicyDenied, PortError, Profile,
 from sensai.chat import compression, saved_sessions
 from sensai.chat.context import ContextState, choose_window, loaded_window, ollama_window, summary_cap
 from sensai.cli.context_commands import compact, summarize
+from sensai.cli.team import team_command
+from sensai.chat.agents import brand_facts
 from sensai.llm.ollama import OllamaClient
 from sensai.chat.saved_sessions import SessionRecorder, display_title, profile_block
 from sensai.core.errors import GuardrailRefused
@@ -366,7 +368,8 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
          guard: Guardrail | None = None, files: FileTools | None = None,
          campaign: CampaignStore | None = None, approval=None, web: WebSearch | None = None,
          doc_search: DocSearch | None = None, exporter: Exporter | None = None,
-         mcp: Catalogue | None = None, context: ContextState | None = None, summary_client=None, probe=None) -> None:
+         mcp: Catalogue | None = None, context: ContextState | None = None, summary_client=None, probe=None,
+         team_facts=lambda: "") -> None:
     if base_prompt is None:
         base_prompt = session.messages[0].content
     if tool_registry is None:
@@ -620,6 +623,17 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
                     return CancellationToken(monotonic() + operation_timeout, cancel_requested)
 
                 settle_facts(_think(session, tool_registry, request, checker, step_token, write, recorder))
+            continue
+        if command and command[0] == "/team":
+            if len(command) == 1:
+                write("usage: /team <brief>")
+            elif checker is None:
+                write("error: /team is unavailable")
+            elif (brief := screen(command[1])) is not None:
+                def step_token():  # Each agent gets its own deadline; Ctrl+C stops the team.
+                    return CancellationToken(monotonic() + operation_timeout, cancel_requested)
+
+                team_command(session, brief, checker, team_facts(), guard, step_token, write, recorder)
             continue
         original = branch = None
         if command and command[0] == "/edit":
@@ -961,6 +975,7 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
                  campaign=CampaignStore(settings.campaigns_dir), approval=approval, web=web,
                  doc_search=found[0] if found else None, exporter=Exporter(guard, settings.exports_dir),
                  mcp=mcp, context=context, summary_client=summary_client,
+                 team_facts=lambda: "\n".join(part for part in (brand_facts(settings.brand_file), memory.block()) if part),
                  probe=lambda: loaded_window(args.host, args.model) if isinstance(raw_client, OllamaClient) else None)
     finally:
         try:
