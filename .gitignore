@@ -35,3 +35,6 @@ sensai-log.jsonl
 
 # Prompt comparison reports (A4)
 prompt-reports/
+
+# Public share pages (X3): served by python -m sensai.share
+shares/

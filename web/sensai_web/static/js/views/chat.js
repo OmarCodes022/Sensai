@@ -57,6 +57,8 @@ export function mount(root, ctx) {
     run: () => router.go('#/tools'),
     mcp: (args) => (args === 'reload' ? reloadMcp() : router.go('#/tools')),
     think: (args) => (args ? turn.send(`/think ${args}`) : toast(t('slash.thinkUsage'))),
+    share: () => router.go('#/campaign'),  // Sharing shows the exact page first: it lives on the Campaign page.
+    unshare: () => router.go('#/campaign'),
     team: (args) => (args ? turn.send(`/team ${args}`) : toast(t('slash.teamUsage'))),
     edit: (args) => (/^\d+\s+\S/.test(args || '') ? turn.send(`/edit ${args}`) : toast(t('slash.editUsage'))),
     facts: () => router.go('#/brand'),

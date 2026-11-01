@@ -15,7 +15,7 @@ from sensai.memory.vector_index import VectorIndexError
 from sensai.rag import MAX_FILE_BYTES, MAX_TOTAL_BYTES, TYPES, DocError
 from sensai.sandbox import SandboxLimits
 from sensai.tools import MAX_TOOL_CALLS
-from sensai_web import branching, campaign, compaction, evaluation, prompts, weekly, exports, scheduling, questions, websearch, facts, files, manage, models, sandbox, session_view
+from sensai_web import branching, campaign, compaction, evaluation, prompts, sharing, weekly, exports, scheduling, questions, websearch, facts, files, manage, models, sandbox, session_view
 from sensai_web.app import WebApp
 from sensai_web.errors import ApiError, llm_failure
 from sensai_web.tools import tool_list
@@ -26,7 +26,7 @@ from sensai_web.turn import run_turn
 MAX_TEXT_CHARS = 200_000
 CAPABILITIES = ("chat", "personas", "sessions", "profile", "usage", "tools", "approval", "sandbox",
                 "run_script", "history", "think", "branching", "facts", "guardrails", "campaign", "ask_user", "export", "weekly_run", "evaluation", "team",
-                "stats", "prompt_versions",
+                "stats", "prompt_versions", "share",
                 "context_budget")
 # "schedule" is added when a tasks file is loaded.
 STARTED = monotonic()
@@ -384,6 +384,27 @@ def campaign_edit(app: WebApp, request):
 def campaign_confirm(app: WebApp, request):
     body = request.json()
     return campaign.confirm(app, body.get("token"), body.get("approved"))
+
+
+@route("GET", r"/api/shares")
+def shares(app: WebApp, request):
+    return sharing.listing(app)
+
+
+@route("POST", r"/api/share")
+def share(app: WebApp, request):
+    return sharing.propose(app, request.json().get("section"))
+
+
+@route("POST", r"/api/share/confirm")
+def confirm_share(app: WebApp, request):
+    body = request.json()
+    return sharing.confirm(app, body.get("token"), body.get("approved"))
+
+
+@route("DELETE", r"/api/shares/(?P<token>[^/]+)")
+def unshare(app: WebApp, request, token: str):
+    return sharing.remove(app, unquote(token))
 
 
 @route("GET", r"/api/prompts")

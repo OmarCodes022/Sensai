@@ -36,7 +36,12 @@ class Settings(BaseSettings):
     cache_path: str = Field("sensai-cache.sqlite3", validation_alias="SENSAI_CACHE_FILE")
     examples: bool = Field(False, validation_alias="SENSAI_EXAMPLES")
     # EV3: one JSON line per model call (empty to turn it off); plain text, git-ignored.
-    log_path: str = Field("sensai-log.jsonl", validation_alias="SENSAI_LOG")  # A7: picked few-shot examples per request
+    log_path: str = Field("sensai-log.jsonl", validation_alias="SENSAI_LOG")
+    # X3 public links: the pages /share writes, the port `python -m sensai.share` serves them on, and the host
+    # shown in links (unset: this computer's local network address).
+    shares_dir: str = Field("shares", validation_alias="SENSAI_SHARES_DIR")
+    share_port: int = Field(8766, gt=0, lt=65536, validation_alias="SENSAI_SHARE_PORT")
+    share_host: str | None = Field(None, validation_alias="SENSAI_SHARE_HOST")  # A7: picked few-shot examples per request
     # Document search mode: advanced (filter, model rerank, drop weak matches; R2) or basic (closest chunks; R1).
     rag_mode: str = Field("advanced", pattern="^(advanced|basic)$", validation_alias="SENSAI_RAG")
     # Guardrails (EV2): extra rules, and the brand file whose approved claims replies may use.

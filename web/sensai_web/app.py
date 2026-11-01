@@ -38,6 +38,7 @@ from sensai_web.approvals import Approvals
 from sensai_web.catalogue import Catalogue
 from sensai_web.config import WebConfig
 from sensai_web.cache import make_cache, make_examples
+from sensai_web.sharing import make_shares
 from sensai_web.datafiles import DataFolder
 from sensai_web.errors import ApiError
 from sensai_web.facts import make_memory
@@ -140,6 +141,7 @@ class WebApp:
         except GuardrailConfigError as exc:
             raise StartupError(str(exc)) from None
         self.cache = make_cache(settings)  # A6: None unless SENSAI_CACHE=1.
+        self.shares, self.pending_share = make_shares(settings), None  # X3: public links, only after a yes
         self.examples = make_examples(settings)  # A7: None unless SENSAI_EXAMPLES=1.
         # Every reply is checked line by line before the page sees it (EV2).
         self.chat_client = GuardedClient(make_client(settings, self.usage.add), self.guard)
