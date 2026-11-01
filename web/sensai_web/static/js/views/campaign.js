@@ -12,6 +12,7 @@ import { formatNumber } from '../format.js';
 import { announce } from '../a11y.js';
 import { exportLine } from '../chat/export-command.js';
 import { t } from '../i18n.js';
+import { createWeeklyRun } from '../campaign/weekly-run.js';
 
 const TABS = [['posts', 'posts'], ['replies', 'dm'], ['report', 'report'], ['calendar', 'calendar']];
 const none = (key) => emptyState({ icon: 'calendar', title: t(key), h: 'h3' });
@@ -63,15 +64,16 @@ export function mount(root, { api }) {
   const which = select([['posts', t('campaign.tab.posts')], ['calendar', t('campaign.tab.calendar')]], { 'aria-label': t('campaign.section') });
   const request = h('input', { class: 'input', placeholder: t('campaign.requestPlaceholder'), autocomplete: 'off' });
   const ask = button(t('campaign.ask'), { variant: 'primary', icon: 'send' });
+  const weekly = createWeeklyRun({ api, onDoc: (d) => { doc = d; paint(); } });
   root.classList.add('campaign');
-  root.append(viewShell('campaign', head, body, h('div', { class: 'card stack' }, h('h2', null, t('campaign.cmd')),
+  root.append(viewShell('campaign', head, weekly.panel, body, h('div', { class: 'card stack' }, h('h2', null, t('campaign.cmd')),
     h('div', { class: 'row' }, field(t('campaign.section'), which), field(t('campaign.requestLabel'), request)), h('div', null, ask),
     h('p', { class: 'muted' }, t('campaign.cmdHelpLive')), out)));
 
   function paint() {
     if (!doc) return;
     head.replaceChildren(h('strong', { class: 'num' }, doc.week), h('span', { class: 'muted' }, `${doc.start} to ${doc.end} · ${doc.timezone}`),
-      h('span', { class: 'grow' }), h('code', { class: 'muted' }, doc.file),
+      h('span', { class: 'grow' }), h('code', { class: 'muted' }, doc.file), weekly.button,
       button(t('campaign.export'), { icon: 'download', onClick: async () => {
         try { const r = await api.exportAll(); out.replaceChildren(exportLine(t('export.campaign'), r.campaign), exportLine(t('export.conversation'), r.conversation)); }
         catch (e) { out.replaceChildren(h('p', { class: 'field__error', role: 'alert' }, e.message)); }

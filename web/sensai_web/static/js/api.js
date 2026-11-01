@@ -46,6 +46,10 @@ const real = {
     try { await streamNdjson(path, { body: edit ? { n: edit, text } : { text }, signal, onEvent, headers: tabHeader }); }
     catch (e) { if (e.status === 409) lockedHandler(); throw e; }
   },
+  async weeklyRun({ onEvent, signal } = {}) {
+    try { await streamNdjson('/api/campaign/weekly-run', { body: {}, signal, onEvent, headers: tabHeader }); }
+    catch (e) { if (e.status === 409) lockedHandler(); throw e; }
+  },
   stopChat: () => req('POST', '/api/chat/stop'),
   approve: (id, approved) => req('POST', `/api/approvals/${encodeURIComponent(id)}`, { approved }),
   tools: () => req('GET', '/api/tools'),

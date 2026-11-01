@@ -959,5 +959,14 @@
  "tools.mcp.reloadFailed": "Le rechargement MCP a rencontré un problème. Voir la vue Outils.",
  "tools.mcp.untrusted": "Ce fichier de configuration n'est pas encore approuvé : rien de ce qu'il contient n'a été exécuté. L'approuver exécute ces commandes sur cet ordinateur, avec votre environnement :",
  "tools.mcp.trust": "Approuver ce fichier et les exécuter",
- "tools.mcp.folder": "Elles s'exécutent dans {path} et peuvent charger du code de ce dossier."
+ "tools.mcp.folder": "Elles s'exécutent dans {path} et peuvent charger du code de ce dossier.",
+ "weekly.run": "Préparer la semaine",
+ "weekly.stop": "Arrêter",
+ "weekly.title": "Préparation de la semaine",
+ "weekly.working": "Démarrage…",
+ "weekly.reading": "Préparation de la semaine depuis {folder} avec {model}…",
+ "weekly.failed": "échec",
+ "weekly.saved": "{file} enregistré : rien n'a été envoyé ni publié.",
+ "weekly.nothing": "Rien n'a été enregistré, envoyé ni publié.",
+ "weekly.stopped": "Arrêté : rien n'a été enregistré."
 }
