@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     cache: bool = Field(False, validation_alias="SENSAI_CACHE")
     cache_threshold: float = Field(0.92, gt=0, le=1, validation_alias="SENSAI_CACHE_THRESHOLD")
     cache_path: str = Field("sensai-cache.sqlite3", validation_alias="SENSAI_CACHE_FILE")
+    examples: bool = Field(False, validation_alias="SENSAI_EXAMPLES")  # A7: picked few-shot examples per request
     # Document search mode: advanced (filter, model rerank, drop weak matches; R2) or basic (closest chunks; R1).
     rag_mode: str = Field("advanced", pattern="^(advanced|basic)$", validation_alias="SENSAI_RAG")
     # Guardrails (EV2): extra rules, and the brand file whose approved claims replies may use.

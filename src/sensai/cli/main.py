@@ -19,8 +19,9 @@ from sensai.chat import compression, saved_sessions
 from sensai.chat.context import ContextState, choose_window, loaded_window, ollama_window, summary_cap
 from sensai.cli.context_commands import compact, summarize
 from sensai.cli.team import team_command
-from sensai.cli.cache import answer_from_cache, remember
+from sensai.cli.cache import answer_from_cache, remember, use_examples
 from sensai.memory.semantic_cache import SemanticCache, scope as cache_scope_of
+from sensai.chat.examples import ExamplePicker
 from sensai.chat.agents import brand_facts
 from sensai.llm.ollama import OllamaClient
 from sensai.chat.saved_sessions import SessionRecorder, display_title, profile_block
@@ -372,7 +373,7 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
          campaign: CampaignStore | None = None, approval=None, web: WebSearch | None = None,
          doc_search: DocSearch | None = None, exporter: Exporter | None = None,
          mcp: Catalogue | None = None, context: ContextState | None = None, summary_client=None, probe=None,
-         team_facts=lambda: "", cache=None, cache_scope=lambda: "") -> None:
+         team_facts=lambda: "", cache=None, cache_scope=lambda: "", examples=None) -> None:
     if base_prompt is None:
         base_prompt = session.messages[0].content
     if tool_registry is None:
@@ -695,6 +696,8 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
         first = cache is not None and original is None and not saved_sessions.user_messages(session.messages)
         if first and answer_from_cache(cache, cache_scope(), text, session, write, recorder):
             continue
+        if examples is not None:  # A7: example turns for this question only.
+            session.extra = use_examples(examples, text, write)
         if doc_search is not None:
             doc_search.report = None
 
@@ -740,6 +743,7 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
             write(f"error: {e}")
         finally:
             stream.close()
+        session.extra = ()  # Never kept past the question.
         if original is not None and not completed:
             session.messages[:] = original  # An interrupted or failed edit leaves the conversation as it was.
         if completed and branch is not None:
@@ -975,8 +979,8 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
                                              context_length=settings.context_length)
             session = ChatSession(client, args.model, _tool_prompt(prompt, tool_registry))
             session.messages.extend(recorder.messages)
-            cache = SemanticCache(settings.cache_path, OllamaEmbeddingAdapter(settings.embed_model, host=args.host).embed,
-                                  settings.cache_threshold) if settings.cache else None
+            embed = OllamaEmbeddingAdapter(settings.embed_model, host=args.host).embed
+            cache = SemanticCache(settings.cache_path, embed, settings.cache_threshold) if settings.cache else None
             repl(session, read=terminal.read,
                  operation_timeout=args.operation_timeout,
                  cancel_requested=terminal.cancel_requested,
@@ -987,6 +991,7 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
                  doc_search=found[0] if found else None, exporter=Exporter(guard, settings.exports_dir),
                  mcp=mcp, context=context, summary_client=summary_client,
                  team_facts=lambda: "\n".join(part for part in (brand_facts(settings.brand_file), memory.block()) if part),
+                 examples=ExamplePicker(embed) if settings.examples else None,
                  cache=cache, cache_scope=lambda: cache_scope_of(args.creator, session.model, session.messages[0].content),
                  probe=lambda: loaded_window(args.host, args.model) if isinstance(raw_client, OllamaClient) else None)
     finally:

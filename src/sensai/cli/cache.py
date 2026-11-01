@@ -1,6 +1,7 @@
-"""The semantic cache (A6) in the terminal: the first question of a session may be answered from it."""
+"""The semantic cache (A6) and the picked examples (A7) in the terminal."""
 from time import monotonic
 
+from sensai.chat.examples import turns
 from sensai.core.messages import Message
 
 
@@ -24,3 +25,13 @@ def remember(cache, scope_id: str, text: str, session) -> None:
     """After a completed first turn: keep its final answer for questions like it."""
     if session.messages and session.messages[-1].role == "assistant":
         cache.store(scope_id, text, session.messages[-1].content)
+
+
+def use_examples(picker, text: str, write) -> tuple:
+    """The example turns for this question, after saying which were used; a failing picker warns once."""
+    was_off, picked = picker.off, picker.pick(text)
+    if picker.off and not was_off:
+        write(f"warning: {picker.off}")
+    if picked:
+        write(f"Examples used: {', '.join(e['id'] for e in picked)}")
+    return turns(picked)

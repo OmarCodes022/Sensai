@@ -23,7 +23,7 @@ namespaces = false
 
 [tool.setuptools.package-data]
 "sensai" = ["engagement_demo.csv"]
-"sensai.chat" = ["personas.json", "system_prompt.txt"]
+"sensai.chat" = ["personas.json", "system_prompt.txt", "examples.json"]
 "sensai_web" = ["static/**/*"]
 
 [tool.pytest.ini_options]

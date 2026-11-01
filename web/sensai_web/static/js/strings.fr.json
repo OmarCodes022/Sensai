@@ -996,5 +996,6 @@
  "safety.claimsTitle": "Allégations approuvées",
  "safety.claimsHelp": "Les réponses sont aussi arrêtées pendant leur affichage si elles utilisent une allégation non approuvée ou périmée.",
  "safety.openClaims": "Ouvrir le registre des allégations",
- "cache.hit": "Depuis le cache · {pct} % proche de « {q} » · {s} s"
+ "cache.hit": "Depuis le cache · {pct} % proche de « {q} » · {s} s",
+ "examples.used": "Exemples utilisés : {ids}"
 }
