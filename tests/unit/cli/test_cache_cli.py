@@ -61,3 +61,10 @@ def test_clear_cache_empties_it_without_a_model(tmp_path, monkeypatch, capsys):
     monkeypatch.setenv("SENSAI_CACHE_FILE", str(path))
     cli.main(["--clear-cache"])
     assert "Cache cleared: 1 answer removed" in capsys.readouterr().out
+
+
+def test_clear_cache_without_a_cache_creates_no_file(tmp_path, monkeypatch, capsys):
+    path = tmp_path / "c.db"
+    monkeypatch.setenv("SENSAI_CACHE_FILE", str(path))
+    cli.main(["--clear-cache"])
+    assert "Cache cleared: 0 answers removed" in capsys.readouterr().out and not path.exists()
