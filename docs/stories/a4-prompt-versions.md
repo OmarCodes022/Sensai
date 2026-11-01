@@ -4,9 +4,9 @@
 - Drafting lead: Omar (taken over from Diana)
 - Status: done
 
-Code: [`prompt_versions.py`](../../src/sensai/prompt_versions.py),
-[`evals/prompt_compare/`](../../evals/prompt_compare/) (versions, questions, `compare.py`) and
-[`prompts.py`](../../web/sensai_web/prompts.py) with the Settings page section.
+Code: [`prompt_versions.py`](https://github.com/OmarCodes022/Sensai/blob/main/src/sensai/prompt_versions.py),
+[`evals/prompt_compare/`](https://github.com/OmarCodes022/Sensai/tree/main/evals/prompt_compare/) (versions, questions, `compare.py`) and
+[`prompts.py`](https://github.com/OmarCodes022/Sensai/blob/main/web/sensai_web/prompts.py) with the Settings page section.
 
 ## Story 1: Keep the better instructions, with evidence
 

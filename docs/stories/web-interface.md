@@ -4,8 +4,8 @@
 - Drafting lead: Omar
 - Status: done
 
-Code: [`web/sensai_web/`](../../web/sensai_web/) (stdlib HTTP server, NDJSON streams) and its static page.
-Contract: [`web/web-ui.md`](../../web/web-ui.md).
+Code: [`web/sensai_web/`](https://github.com/OmarCodes022/Sensai/tree/main/web/sensai_web/) (stdlib HTTP server, NDJSON streams) and its static page.
+Contract: [`web/web-ui.md`](https://github.com/OmarCodes022/Sensai/blob/main/web/web-ui.md).
 
 ## Story 1: Do my whole week in one page
 

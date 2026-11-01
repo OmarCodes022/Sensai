@@ -4,8 +4,8 @@
 - Drafting lead: Omar
 - Status: done
 
-Code: [`usage_log.py`](../../src/sensai/usage_log.py) (log lines and statistics), the turn loggers in
-[`cli/usage.py`](../../src/sensai/cli/usage.py) and [`turn.py`](../../web/sensai_web/turn.py), and the web
+Code: [`usage_log.py`](https://github.com/OmarCodes022/Sensai/blob/main/src/sensai/usage_log.py) (log lines and statistics), the turn loggers in
+[`cli/usage.py`](https://github.com/OmarCodes022/Sensai/blob/main/src/sensai/cli/usage.py) and [`turn.py`](https://github.com/OmarCodes022/Sensai/blob/main/web/sensai_web/turn.py), and the web
 Insights page. Guide: [Usage log and statistics](../user-guide/insights.md).
 
 ## Story 1: Every exchange recorded
