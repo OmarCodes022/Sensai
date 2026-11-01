@@ -1,8 +1,9 @@
 # Features
 
 The Epitech subject lists optional features in a catalogue where each one has
-an ID, and B1 is the base chat every project must have. Sensai has seven
-features; five are catalogue entries: B1, A5, M1, T2 and A1.
+an ID, and B1 is the base chat every project must have. This page explains the
+base features; [More features](#more-features) lists the others. Every feature
+works in the terminal and in the [web page](../user-guide/web.md).
 
 ## Base chat (B1)
 
@@ -89,3 +90,26 @@ fixed number of steps and lists anything still wrong. Only her request and the
 final answer stay in the chat.
 
 [Reasoning step by step](../user-guide/thinking.md)
+
+## More features
+
+| Feature | Guide |
+| --- | --- |
+| Branching and interrupt (X2) | [Sessions](../user-guide/sessions.md#editing-an-earlier-message-branching) |
+| MCP tools (T1) | [MCP tools](../user-guide/mcp.md) |
+| Team of agents (A2) | [Team of agents](../user-guide/team.md) |
+| Weekly campaign document and weekly run (M4, T5, A3) | [Campaign document](../user-guide/campaign.md) |
+| Brand document search, advanced search (R1, R2) | [Document search](../user-guide/documents.md) |
+| Brand facts memory (M3) | [Brand facts](../user-guide/brand-facts.md) |
+| Guardrails (EV2) | [Guardrails](../user-guide/guardrails.md) |
+| Answer scoring (EV1) | [Results](https://github.com/OmarCodes022/Sensai/tree/main/evals/faithfulness) |
+| File access within permissions (T4) | [File access](../user-guide/files.md) |
+| Questions and forms (X4) | [Questions and forms](../user-guide/questions.md) |
+| Web search (T3) | [Web search](../user-guide/web-search.md) |
+| Export and public links (X3) | [Export](../user-guide/export.md) |
+| Scheduled drafts (X5) | [Scheduled drafts](../user-guide/scheduling.md) |
+| Semantic cache (A6), picked examples (A7) | [Cache](../user-guide/cache.md), [Examples](../user-guide/examples.md) |
+| Usage log and statistics (EV3) | [Usage log](../user-guide/insights.md) |
+| Prompt versions (A4) | [Prompt versions](https://github.com/OmarCodes022/Sensai/tree/main/evals/prompt_compare) |
+
+Each has at least two user stories: see the [stories index](../stories/README.md).

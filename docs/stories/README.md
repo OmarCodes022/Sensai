@@ -1,6 +1,6 @@
 # User stories
 
-Every feature of the [README table](../../README.md#what-it-does) has at least two stories with acceptance
+Every feature of the [README table](https://github.com/OmarCodes022/Sensai#what-it-does) has at least two stories with acceptance
 criteria. The base features share the eight stories that follow Nadia through her week; the others have
 their own file.
 
