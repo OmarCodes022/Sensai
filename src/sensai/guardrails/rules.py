@@ -65,7 +65,8 @@ class Guardrail:
     def _found(self, name: str, text: str) -> list[re.Match]:
         found = [m for pattern in self.patterns.get(name, ()) for m in pattern.finditer(text)]
         if name == "phone":  # Dates and short numbers are not phone numbers.
-            found = [m for m in found if sum(c.isdigit() for c in m.group()) >= 9 and not ISO_DATE.fullmatch(m.group())]
+            # A date, or a date and an hour ("2026-09-29 18:00"), is not a phone number: none starts with one.
+            found = [m for m in found if sum(c.isdigit() for c in m.group()) >= 9 and not ISO_DATE.match(m.group())]
         return found
 
     def _redact(self, text: str, direction: str) -> tuple[str, list[str]]:
