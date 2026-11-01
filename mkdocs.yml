@@ -1,5 +1,5 @@
 site_name: Sensai Documentation
-site_description: Documentation of Sensai, a local command-line AI assistant for a skincare creator
+site_description: Documentation of Sensai, a local AI assistant (terminal and web page) for a skincare creator
 site_url: https://omarcodes022.github.io/Sensai/
 repo_name: OmarCodes022/Sensai
 repo_url: https://github.com/OmarCodes022/Sensai
@@ -18,9 +18,11 @@ nav:
       - Features: overview/features.md
       - How it works: overview/how-it-works.md
       - User stories: overview/user-stories.md
+      - Stories index: stories/README.md
       - Keynote checklist: keynote-checklist.md
   - User guide:
       - Install and configure: user-guide/install.md
+      - Web interface: user-guide/web.md
       - Chatting: user-guide/chatting.md
       - Personas: user-guide/personas.md
       - Sessions and profile: user-guide/sessions.md
@@ -38,7 +40,7 @@ nav:
       - Campaign document: user-guide/campaign.md
       - Questions and forms: user-guide/questions.md
       - Web search: user-guide/web-search.md
-      - Private export: user-guide/export.md
+      - Export and public links: user-guide/export.md
       - Scheduled drafts: user-guide/scheduling.md
       - Long conversations: user-guide/context.md
   - Developer guide:
@@ -51,11 +53,13 @@ nav:
 
 exclude_docs: |
   architecture/
-  product/
   operations/
   tasks/
   diagrams/
-  stories/
+
+not_in_nav: |
+  stories/*.md
+  product/*.md
 
 theme:
   name: material
