@@ -1,4 +1,5 @@
 """The tool registry of one web turn, reporting each call as stream events."""
+import json
 import os
 import tempfile
 from collections.abc import Callable
@@ -52,6 +53,7 @@ class ObservedRegistry(ToolRegistry):
         self._approval = approval
         self._emit = emit
         self._round = 0
+        self.used: list[dict] = []
         fd, self._meta_path = tempfile.mkstemp(prefix="turn-", suffix=".json", dir=meta_dir)
         os.close(fd)
         os.remove(self._meta_path)
@@ -109,6 +111,8 @@ class ObservedRegistry(ToolRegistry):
         return call_id
 
     def _report(self, call_id: str, call: ToolCall, result: ToolResult, duration_ms: int) -> None:
+        self.used.append({"tool": call.name, "input": json.dumps(dict(call.arguments), ensure_ascii=False)[:200],
+                          "ms": duration_ms, "ok": result.error is None})  # EV3: logged with the turn.
         # The model already got the whole report; the page shows it without the line meant for the model.
         event = self._attempt({"type": "tool_result", "id": call_id, "name": call.name, "ok": result.error is None,
                                "error": for_page(call.name, result.error), "output": for_page(call.name, result.output),

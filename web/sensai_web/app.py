@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from threading import Event, Lock, RLock
 
 from sensai.chat import saved_sessions
+from sensai import usage_log
 from sensai.chat.context import ContextState, choose_window, ollama_window
 from sensai.chat.prompts import load_system_prompt
 from sensai.chat.saved_sessions import SessionRecorder, profile_block
@@ -128,6 +129,8 @@ class WebApp:
         self.health = Health(cfg.host, cfg.model)
         self.meta_dir = tempfile.mkdtemp(prefix="sensai-web-")
         settings = (settings or Settings()).model_copy(update={"host": cfg.host, "context_length": cfg.context_length})
+        self.log_path = settings.log_path  # EV3: every model call is logged there (empty: off).
+        usage_log.configure(self.log_path)
         self.mcp = MCPCatalogue(settings.mcp_config)
         self.mcp.reload()
         try:

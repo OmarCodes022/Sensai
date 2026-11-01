@@ -11,6 +11,7 @@ from sensai.sandbox import remove_stale_folders
 from sensai.tools import run_with_tools
 from sensai_web.app import ActiveSession, WebApp, now
 from sensai_web.approvals import WebApproval
+from sensai import usage_log
 from sensai_web import cache
 from sensai_web.compaction import after_turn
 from sensai_web.errors import llm_failure
@@ -46,6 +47,15 @@ def _persist(app: WebApp, active: ActiveSession, emit: Emit, stop, budget: float
         emit({"type": "saved", "session_id": recorder.session_id})
     if recorder.title and recorder.title != title_before:
         emit({"type": "title", "title": recorder.title})
+
+
+def _log(app: WebApp, active: ActiveSession, question: str, status, failure, tools) -> None:
+    """EV3: one line for the turn, with its token counts and the tools it used."""
+    usage, last = app.usage.summary(), active.session.messages[-1]
+    answer = last.content if status == "completed" and last.role == "assistant" else ""
+    usage_log.record("chat", app.model, question, answer, persona=active.persona_id, tools=tools,
+                     latency_ms=usage["latency_ms"], prompt_tokens=usage["prompt_tokens"],
+                     output_tokens=usage["output_tokens"], error=None if status == "completed" else failure or "failed")
 
 
 def run_turn(app: WebApp, active: ActiveSession, stop, text: str, emit: Emit) -> str | None:
@@ -84,7 +94,7 @@ def run_turn(app: WebApp, active: ActiveSession, stop, text: str, emit: Emit) ->
                               WebForm(app.questions, emit, stop, turn_id, approval), app.web,
                               make_ranker(app.checker, app.model) if app.rag_mode == "advanced" else None,
                               app.mcp)
-    status = None
+    status, failure = None, None
     stream = run_with_tools(
         session, registry, text, token,
         on_tool=lambda call, result: registry.malformed(call, result) if call.name == INVALID else None)
@@ -93,23 +103,27 @@ def run_turn(app: WebApp, active: ActiveSession, stop, text: str, emit: Emit) ->
             emit({"type": "text", "delta": chunk})
         status = "completed"
     except OperationCancelled:
-        status = "interrupted"
+        status, failure = "interrupted", "cancelled"
     except OperationTimedOut:
-        status = "timed_out"
+        status, failure = "timed_out", "timed out"
     except ValueError:
         emit({"type": "error", "code": "empty_input", "message": "Please type something.", "hint": None})
+        failure = "empty input"
     except LLMError as exc:
         emit({"type": "error", **llm_failure(exc, app.model)})
+        failure = str(exc)
     except GuardrailRefused as exc:
         stopped(emit, exc)
-        status = "blocked"
+        status, failure = "blocked", f"blocked: {exc.reason}"
     except SensaiError as exc:
         emit({"type": "error", "code": "error", "message": str(exc), "hint": None})
+        failure = str(exc)
     finally:
         stream.close()
         session.extra = ()  # Examples are for this question only, never kept.
         registry.close()
         remove_stale_folders()  # A killed tool worker may not have removed its folder.
+    _log(app, active, text, status, failure, registry.used)
     settle(app, active, status == "completed", emit)  # Fact changes count only for a completed reply.
     if status == "blocked":  # The reply was stopped: the page drops it, nothing is saved.
         emit({"type": "done", "status": "completed", "turn_id": turn_id})
