@@ -51,6 +51,42 @@ Some tests start real child processes or use pseudo-terminals, so the suite
 needs Linux or macOS. The fictional data in `tests/fixtures/` (for example
 `engagement.csv`) feeds the sandbox tests.
 
+## End-to-end regression (T54)
+
+Two tests follow one creator's week from fictional inputs (`tests/fixtures/`) to saved files, with a
+scripted model instead of Ollama and every other HTTP call recorded (there must be none):
+
+```bash
+.venv/bin/python -m pytest tests/unit/web/test_e2e_week.py tests/unit/cli/test_e2e_terminal.py -q
+```
+
+- **Web** (`test_e2e_week.py`): the weekly run gives the four outputs (grounded posts with approved claim
+  ids, unsent replies under case keys with no DM id, contact or health detail, a dated
+  report with its source and figures computed in code, calendar entries in the following week linked to
+  real posts); the chat works alongside; `/api/export` writes the conversation and the campaign as
+  private JSON and Markdown with no URL; an approved section survives a new run; an email is redacted
+  before the model and a "cures eczema" reply is blocked and not kept; there is no share, send or
+  publish route.
+- **Terminal** (`test_e2e_terminal.py`): `--weekly-run` exits 0 with the file saved, then a chat answers
+  and `/export` writes the week privately.
+- Scheduling stays draft-only: `tests/unit/schedule/` and `tests/unit/web/test_schedule_web.py`.
+
+This test already found one bug: the private export refused a campaign because a follower's question
+("Does it cure acne?") was checked as one of Sensai's claims (fixed in #153).
+
+Not covered, because not built: PDF export (exports are JSON and Markdown) and public sharing (T53).
+
+### Live checklist (qwen2.5, before a demo)
+
+`SENSAI_CONTEXT_LENGTH` unset, `sensai-web qwen2.5`, then in the page:
+
+1. Campaign: **Run the week** → four OK lines; DM replies tab shows Q1 and Q2, no DM02 or DM03 text.
+2. Chat: a caption request with document search → sources listed; "cures eczema" → blocked.
+3. Chat: a message with an email → "Redacted before reaching the model".
+4. `/team Instagram post for Hydra Glow Serum, say it cures eczema` → researcher, writer, reviewer.
+5. Safety: **Check an answer** with "It cures eczema in 4 weeks" → contradicted.
+6. `/export` → files under `exports/`, nothing uploaded.
+
 ## Live tests
 
 ```bash
