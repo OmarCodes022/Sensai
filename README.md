@@ -22,6 +22,7 @@ Docs: <https://omarcodes022.github.io/Sensai/> (sources in [docs/](docs/README.m
 | Web search | the model calls `web_search` for current information and cites `[1]`, `[2]` with a source list; `/search <query>` | [Web search](docs/user-guide/web-search.md) |
 | Questions and forms | when a detail is missing, the model asks with `ask_user`: a numbered choice in the terminal, a form card in the web chat | [Questions](docs/user-guide/questions.md) |
 | Weekly campaign document | `/campaign`: four sections, edited one schema-forced JSON edit at a time; approved sections ask before any change; web Campaign page | [Campaign](docs/user-guide/campaign.md) |
+| Weekly run | `--weekly-run <folder>` or **Run the week** on the Campaign page: posts, DM replies, report and calendar prepared in one go from brand, DMs and engagement files, each checked and failing on its own | [Campaign](docs/user-guide/campaign.md#the-weekly-run) |
 | File access within permissions | `.sensai/settings.json` allow/deny rules; the model's `read_file`, `write_file`, `create_file`; `/read`, `/save` | [File access](docs/user-guide/files.md) |
 | Content and privacy guardrails | emails, phones and @handles redacted; injections and health details refused before the model; unapproved claims stopped | [Guardrails](docs/user-guide/guardrails.md) |
 | Brand facts memory | the model saves, corrects and deletes facts with `save_fact` / `delete_fact`; `/facts`; web Brand facts page | [Brand facts](docs/user-guide/brand-facts.md) |
@@ -57,6 +58,7 @@ commands (like `sensai-web`) are registered. Full install guide:
 .venv/bin/sensai --list-personas                  # no Ollama needed
 .venv/bin/sensai --list-sessions
 .venv/bin/sensai gemma3:1b --session k7f2qa       # resume
+.venv/bin/sensai qwen2.5 --weekly-run data         # prepare the week's 4 outputs, then exit
 .venv/bin/sensai-remote                           # same, through an SSH tunnel
 ```
 
