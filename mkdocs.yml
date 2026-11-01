@@ -26,6 +26,7 @@ nav:
       - Tools and sandbox: user-guide/tools.md
       - MCP tools: user-guide/mcp.md
       - Reasoning step by step: user-guide/thinking.md
+      - Team of agents: user-guide/team.md
       - Document search: user-guide/documents.md
       - Brand facts: user-guide/brand-facts.md
       - Guardrails: user-guide/guardrails.md
