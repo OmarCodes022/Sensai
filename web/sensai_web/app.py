@@ -132,6 +132,7 @@ class WebApp:
         try:
             self.guard = load_guardrail(settings.guardrails_file, settings.brand_file)
             self.guardrails_file = settings.guardrails_file  # The weekly run checks with the same rules.
+            self.brand_file = settings.brand_file  # /team's researcher reads every claim and its status.
         except GuardrailConfigError as exc:
             raise StartupError(str(exc)) from None
         # Every reply is checked line by line before the page sees it (EV2).
