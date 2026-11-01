@@ -7,6 +7,7 @@ answers in plain text, like the session database, and stays out of git.
 import hashlib
 import json
 import math
+import os
 import sqlite3
 from dataclasses import dataclass
 
@@ -71,5 +72,7 @@ class SemanticCache:
             connection.execute("INSERT INTO answers VALUES (?, ?, ?, ?)", (scope_id, question, json.dumps(vector), answer))
 
     def clear(self) -> int:
+        if not os.path.exists(self.path):  # Nothing cached: no empty file is created.
+            return 0
         with self._connect() as connection:
             return connection.execute("DELETE FROM answers").rowcount
