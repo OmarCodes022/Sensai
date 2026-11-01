@@ -372,7 +372,7 @@
  "slash.share": "Share this conversation",
  "slash.unshare": "Stop sharing",
  "slash.think": "Think step by step",
- "slash.team": "Ask several roles together",
+ "slash.team": "A researcher, a writer and a reviewer work on a post",
  "slash.edit": "Edit an earlier message",
  "starter.redaction.1": "Write 2 caption variants for Hydra Glow Serum using only approved claims",
  "starter.redaction.2": "Draft a launch post for Calm Barrier Cream",
@@ -968,5 +968,6 @@
  "weekly.failed": "failed",
  "weekly.saved": "Saved {file}: nothing was sent or published.",
  "weekly.nothing": "Nothing was saved, sent or published.",
- "weekly.stopped": "Stopped: nothing was saved."
+ "weekly.stopped": "Stopped: nothing was saved.",
+ "slash.teamUsage": "Write the brief for the team, for example: /team Instagram post for Hydra Glow Serum"
 }

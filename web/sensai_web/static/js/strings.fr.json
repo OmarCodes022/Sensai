@@ -372,7 +372,7 @@
  "slash.share": "Partager cette conversation",
  "slash.unshare": "Arrêter le partage",
  "slash.think": "Réfléchir étape par étape",
- "slash.team": "Interroger plusieurs rôles ensemble",
+ "slash.team": "Un chercheur, un rédacteur et un relecteur travaillent sur un post",
  "slash.edit": "Modifier un message précédent",
  "starter.redaction.1": "Rédige 2 variantes de légende pour Hydra Glow Serum avec uniquement des allégations approuvées",
  "starter.redaction.2": "Rédige un post de lancement pour Calm Barrier Cream",
@@ -968,5 +968,6 @@
  "weekly.failed": "échec",
  "weekly.saved": "{file} enregistré : rien n'a été envoyé ni publié.",
  "weekly.nothing": "Rien n'a été enregistré, envoyé ni publié.",
- "weekly.stopped": "Arrêté : rien n'a été enregistré."
+ "weekly.stopped": "Arrêté : rien n'a été enregistré.",
+ "slash.teamUsage": "Écrivez la consigne pour l'équipe, par exemple : /team post Instagram pour Hydra Glow Serum"
 }
