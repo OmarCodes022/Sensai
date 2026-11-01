@@ -72,6 +72,7 @@ def config(app: WebApp, request):
     return {
         "capabilities": {name: True for name in (*CAPABILITIES, *(("documents",) if app.docs.enabled else ()),
                                                   *(("file_access",) if app.files is not None else ()),
+                                                  *(("cache",) if app.cache is not None else ()),
                                                   *(("web_search",) if app.web is not None else ()),
                                                   *(("schedule",) if app.scheduler is not None else ()))},
         "draft_personas": app.catalogue.drafts(),

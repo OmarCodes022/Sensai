@@ -11,6 +11,7 @@ from sensai.sandbox import remove_stale_folders
 from sensai.tools import run_with_tools
 from sensai_web.app import ActiveSession, WebApp, now
 from sensai_web.approvals import WebApproval
+from sensai_web import cache
 from sensai_web.compaction import after_turn
 from sensai_web.errors import llm_failure
 from sensai_web.facts import settle
@@ -65,6 +66,14 @@ def run_turn(app: WebApp, active: ActiveSession, stop, text: str, emit: Emit) ->
     token = CancellationToken(monotonic() + cfg.operation_timeout, stop.is_set)
     for notice in app.refresh_prompt(active):
         emit({"type": "warning", "code": "documents", "message": notice})
+    first = cache.first_question(app, active)  # A6: later questions depend on earlier turns.
+    if first and cache.serve(app, active, text, emit):
+        _persist(app, active, emit, stop, cfg.operation_timeout)
+        active.updated_at = now()
+        if active.recorder.saved:
+            app.times.record(active.recorder.session_id, number, started_at, active.updated_at)
+        emit({"type": "done", "status": "completed", "turn_id": turn_id})
+        return "completed"
     approval = WebApproval(app.approvals, emit, stop, turn_id)
     app.memory.drop()
     if app.web is not None:
@@ -112,6 +121,8 @@ def run_turn(app: WebApp, active: ActiveSession, stop, text: str, emit: Emit) ->
         active.output_tokens = _add(active.output_tokens, usage["output_tokens"])
         active.last_prompt_tokens = usage["prompt_tokens"]
         _persist(app, active, emit, stop, cfg.operation_timeout)
+        if first:
+            cache.remember(app, active, text)
         active.updated_at = now()
         if active.recorder.saved:
             app.times.record(active.recorder.session_id, number, started_at, active.updated_at, usage)
