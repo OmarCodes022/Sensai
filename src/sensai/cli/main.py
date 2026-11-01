@@ -20,6 +20,8 @@ from sensai.chat.context import ContextState, choose_window, loaded_window, olla
 from sensai.cli.context_commands import compact, summarize
 from sensai.cli.team import team_command
 from sensai.cli.cache import answer_from_cache, remember, use_examples
+from sensai.cli.usage import log_turn, tool_entry
+from sensai import usage_log
 from sensai.memory.semantic_cache import SemanticCache, scope as cache_scope_of
 from sensai.chat.examples import ExamplePicker
 from sensai.chat.agents import brand_facts
@@ -297,6 +299,7 @@ def parse_args(settings: Settings, argv: Sequence[str] | None = None) -> argpars
     p.add_argument("--list-personas", action="store_true", help="list personas and exit")
     p.add_argument("--session", help="resume a saved session by ID")
     p.add_argument("--list-sessions", action="store_true", help="list saved sessions and exit")
+    p.add_argument("--stats", action="store_true", help="show usage statistics from the log (SENSAI_LOG) and exit")
     p.add_argument("--clear-cache", action="store_true", help="empty the semantic cache (SENSAI_CACHE) and exit")
     p.add_argument("--db", default=settings.db_path,
                    help=f"SQLite session database (default: {DEFAULT_DB_PATH})")
@@ -328,7 +331,7 @@ def parse_args(settings: Settings, argv: Sequence[str] | None = None) -> argpars
     args.data_dir = settings.data_dir or None
     if args.persona is None:
         args.persona = settings.persona
-    if not args.model and not args.list_personas and not args.list_sessions and not args.clear_cache:
+    if not args.model and not args.list_personas and not args.list_sessions and not args.clear_cache and not args.stats:
         p.error("no model given: pass one or set SENSAI_MODEL in .env")
     return args
 
@@ -373,7 +376,7 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
          campaign: CampaignStore | None = None, approval=None, web: WebSearch | None = None,
          doc_search: DocSearch | None = None, exporter: Exporter | None = None,
          mcp: Catalogue | None = None, context: ContextState | None = None, summary_client=None, probe=None,
-         team_facts=lambda: "", cache=None, cache_scope=lambda: "", examples=None) -> None:
+         team_facts=lambda: "", cache=None, cache_scope=lambda: "", examples=None, meter=None) -> None:
     if base_prompt is None:
         base_prompt = session.messages[0].content
     if tool_registry is None:
@@ -626,7 +629,11 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
                 def step_token():
                     return CancellationToken(monotonic() + operation_timeout, cancel_requested)
 
-                settle_facts(_think(session, tool_registry, request, checker, step_token, write, recorder))
+                if meter is not None:
+                    meter.reset()
+                done = _think(session, tool_registry, request, checker, step_token, write, recorder)
+                log_turn(session, f"/think {request}", done, None, [], meter, getattr(recorder, "persona_id", None))
+                settle_facts(done)
             continue
         if command and command[0] == "/team":
             if len(command) == 1:
@@ -637,7 +644,10 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
                 def step_token():  # Each agent gets its own deadline; Ctrl+C stops the team.
                     return CancellationToken(monotonic() + operation_timeout, cancel_requested)
 
-                team_command(session, brief, checker, team_facts(), guard, step_token, write, recorder)
+                if meter is not None:
+                    meter.reset()
+                done = team_command(session, brief, checker, team_facts(), guard, step_token, write, recorder)
+                log_turn(session, f"/team {brief}", done, None, [], meter, getattr(recorder, "persona_id", None))
             continue
         original = branch = None
         if command and command[0] == "/edit":
@@ -701,7 +711,12 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
         if doc_search is not None:
             doc_search.report = None
 
+        tools_used, outcome = [], None  # EV3: logged with the turn.
+        if meter is not None:
+            meter.reset()
+
         def on_tool(call, result):
+            tools_used.append(tool_entry(call, result))
             if call.name == RUN_PYTHON.name:
                 calls, limit = tool_registry.usage(call.name)
                 if limit and calls > limit:
@@ -732,17 +747,24 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
             token.cancel()
             _sweep_quietly()  # A killed tool worker may not have removed its folder.
             write("\nRéponse interrompue")
+            outcome = "cancelled"
         except OperationTimedOut:
             _sweep_quietly()
             write("\nDélai maximal dépassé")
+            outcome = "timed out"
         except ValueError:
             write("Please type something.")
+            outcome = "empty input"
         except GuardrailRefused as e:
             write(f"\nReply blocked: {e} ({e.reason})")
+            outcome = f"blocked: {e.reason}"
         except SensaiError as e:
             write(f"error: {e}")
+            outcome = str(e)
         finally:
             stream.close()
+        log_turn(session, text, completed, outcome, tools_used, meter,
+                 getattr(recorder, "persona_id", None))
         session.extra = ()  # Never kept past the question.
         if original is not None and not completed:
             session.messages[:] = original  # An interrupted or failed edit leaves the conversation as it was.
@@ -917,8 +939,10 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
         raw_client = create_client(settings)
         client = GuardedClient(raw_client, guard)  # Every reply is checked line by line before it is shown.
         context = ContextState(budget, source)
+        usage_log.configure(settings.log_path)  # EV3: every model call is logged.
+        meter = usage_log.Meter()
         if hasattr(raw_client, "set_usage_sink"):
-            raw_client.set_usage_sink(context.on_usage)
+            raw_client.set_usage_sink(lambda usage: (context.on_usage(usage), meter.add(usage)))
         summary_client = None
         if isinstance(raw_client, OllamaClient):  # The summary's own answer is capped at a quarter of the window.
             def summary_client(budget):
@@ -991,7 +1015,7 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
                  doc_search=found[0] if found else None, exporter=Exporter(guard, settings.exports_dir),
                  mcp=mcp, context=context, summary_client=summary_client,
                  team_facts=lambda: "\n".join(part for part in (brand_facts(settings.brand_file), memory.block()) if part),
-                 examples=ExamplePicker(embed) if settings.examples else None,
+                 examples=ExamplePicker(embed) if settings.examples else None, meter=meter,
                  cache=cache, cache_scope=lambda: cache_scope_of(args.creator, session.model, session.messages[0].content),
                  probe=lambda: loaded_window(args.host, args.model) if isinstance(raw_client, OllamaClient) else None)
     finally:
@@ -1004,6 +1028,10 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
 def main(argv: Sequence[str] | None = None) -> None:
     settings = Settings()
     args = parse_args(settings, argv)
+    if args.stats:
+        print(usage_log.report(usage_log.stats(usage_log.read(settings.log_path))) if settings.log_path
+              else "Logging is off (SENSAI_LOG is empty).")
+        return
     if args.clear_cache:
         removed = SemanticCache(settings.cache_path, embed=None).clear()
         print(f"Cache cleared: {removed} answer{'s' * (removed != 1)} removed ({settings.cache_path}).")
