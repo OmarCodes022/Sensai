@@ -1,9 +1,11 @@
 # Product scope: one creator, four reviewable outputs
 
-These are **product acceptance definitions**, not an implemented four-output
-flow. The current chat runtime does not ingest DMs or analytics, save these
-artifacts, export them, schedule content, or publish. This scope does not
-require keynote planning.
+These are the **product acceptance definitions** of the four weekly outputs.
+The weekly run ([campaign guide](../user-guide/campaign.md#the-weekly-run))
+prepares them from the brand, DM and engagement files and saves them to the
+campaign document; private export, public links and scheduled drafts follow
+the release boundary below. Sensai never sends a DM, remotely schedules or
+posts to Instagram.
 
 ## Creator and recurring problem
 

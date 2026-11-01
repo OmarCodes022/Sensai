@@ -1,6 +1,6 @@
 # Sensai
 
-Sensai is a command-line AI assistant for a creator who runs her own skincare
+Sensai is a local AI assistant, in the terminal and a web page (`sensai-web`), for a creator who runs her own skincare
 brand. It chats with a local model through [Ollama](https://ollama.com), streams
 its replies, switches between working personas and remembers past sessions. It
 can also compute figures with a calculator or a short Python program instead of
@@ -26,6 +26,9 @@ resumes the same session where she left off.
 | Python sandbox | Runs the model's Python code on your data files, after you approve it | [Tools and sandbox](user-guide/tools.md) |
 | MCP tools (T1) | Connects the servers listed in `mcp.json`, with your approval for each call | [MCP tools](user-guide/mcp.md) |
 | Reasoning loops (A1) | `/think` plans, uses tools, drafts, checks and revises, showing every step | [Reasoning step by step](user-guide/thinking.md) |
+
+These are the base features. The repository README lists every feature (campaign, weekly run,
+guardrails, document search, team of agents and more), each with its guide and user stories.
 
 ## Quick start
 

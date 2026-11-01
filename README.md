@@ -37,7 +37,7 @@ Docs: <https://omarcodes022.github.io/Sensai/> (sources in [docs/](docs/README.m
 | Long conversations | older messages are summarized at 80% of the window; `/context` shows the count, `/compact` summarizes now (terminal and web) | [Long conversations](docs/user-guide/context.md) |
 | Web interface | `sensai-web <model>` | [below](#web-interface) |
 
-Planned work and what is not built yet: [product scope](docs/product/scope.md).
+User stories for every feature: [stories index](docs/stories/README.md). What the weekly outputs must meet: [product scope](docs/product/scope.md).
 
 ## Quick start
 
@@ -157,7 +157,7 @@ CI runs the unit tests on every push and pull request. Adversarial testing:
 
 ## More documentation
 
-- [Overview](docs/overview/features.md): features, how a turn works, user stories.
+- [Overview](docs/overview/features.md): features, how a turn works, user stories; [stories index](docs/stories/README.md) for every feature.
 - [User guide](docs/user-guide/install.md): install, chat, personas, sessions, tools.
 - [Developer guide](docs/developer-guide/architecture.md): architecture, file structure, storage, adding a tool, contributing.
 - [Privacy and product claims](docs/product/privacy-and-claims.md) and [product scope](docs/product/scope.md).
