@@ -14,7 +14,7 @@ from sensai.guardrails import load_guardrail
 from sensai.release.share import ShareError, Shares, handler, section_text
 from sensai.cli.share_commands import share_command, unshare_command
 
-BRAND = str(Path(__file__).parents[1] / "fixtures" / "brand.json")
+BRAND = str(Path(__file__).parents[2] / "fixtures" / "brand.json")
 
 
 @pytest.fixture

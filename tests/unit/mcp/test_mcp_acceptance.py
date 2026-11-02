@@ -15,9 +15,9 @@ from sensai.core.ports import ToolCall, ToolDefinition
 from sensai.core.cancellation import CancellationToken, OperationCancelled
 from sensai.mcp.client import EXAMPLE_CONFIG, GUIDE_URL, Catalogue, Server, exchange
 from sensai.tools.registry import ToolRegistry
-from .web.conftest import web
+from ..web.conftest import web
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 PEER = ROOT / "tests/helpers/mcp_acceptance_server.py"
 
 

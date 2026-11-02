@@ -14,7 +14,7 @@ from sensai.rag import basic as rag
 from sensai.rag.basic import (DOCS_PROMPT, DocError, DocLibrary, add_command, docs_command, reindex_command,
                         remove_command, search_docs_handler)
 
-FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "docs"
+FIXTURES = Path(__file__).resolve().parents[2] / "fixtures" / "docs"
 
 
 @pytest.fixture

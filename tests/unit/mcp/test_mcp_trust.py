@@ -11,9 +11,9 @@ from sensai.chat.session import ChatSession
 from sensai.cli.main import repl
 from sensai.mcp.client import Catalogue
 from sensai.tools.registry import ToolRegistry
-from .web.conftest import web
+from ..web.conftest import web
 
-PEER = Path(__file__).resolve().parents[1] / "helpers/mcp_acceptance_server.py"
+PEER = Path(__file__).resolve().parents[2] / "helpers/mcp_acceptance_server.py"
 # Leaves a marker as soon as it is started, then acts as a normal server.
 STARTER = "import pathlib, runpy, sys; pathlib.Path(sys.argv[1]).touch(); sys.argv = sys.argv[1:]; runpy.run_path(sys.argv[1], run_name='__main__')"
 
