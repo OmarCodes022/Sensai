@@ -27,7 +27,7 @@ As a creator who works in short sessions, I want to resume my own earlier chats 
 Features: Sessions and profile (M1), Personas (A5)
 
 Acceptance criteria:
-- A new chat prints `Session <id>` and is saved to `sensai.sqlite3` after its first completed exchange, not before (`cli/test_sessions.py`).
+- A new chat prints `Session <id>` and is saved to `outputs/sensai.sqlite3` after its first completed exchange, not before (`cli/test_sessions.py`).
 - `sensai --list-sessions` prints each session's ID, last update (UTC) and title, newest first, without a model (`cli/test_sessions.py`).
 - `sensai gemma3:1b --session <id>` restores the earlier exchanges and the saved persona (`cli/test_sessions.py`).
 - `/history` lists my own messages, numbered from 1, one line each, without calling the model (`cli/test_history.py`).

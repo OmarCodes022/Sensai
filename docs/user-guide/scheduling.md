@@ -11,7 +11,7 @@ SENSAI_MODEL=qwen2.5 .venv/bin/python -m sensai.release.schedule schedule.local.
 
 ```text
 Scheduler started: 2 tasks. Ctrl+C to stop.
-[09:00] post-ideas -> drafts/2026-11-02-0900-post-ideas.md
+[09:00] post-ideas -> outputs/drafts/2026-11-02-0900-post-ideas.md
 [09:00] dm-themes failed: cannot reach Ollama (will retry in 1440 min)
 ```
 
@@ -32,7 +32,7 @@ before anything runs.
 - Each task runs when the scheduler starts, then every `every_minutes`.
 - A run is one chat request with the shared rules and the task's persona, under the usual
   time limit, and the reply goes through the [guardrails](guardrails.md)' check.
-- The answer is saved as `drafts/<date>-<time>-<task>.md` with a short header (task,
+- The answer is saved as `outputs/drafts/<date>-<time>-<task>.md` with a short header (task,
   persona, model, time). A failed run (Ollama down, missing model, a refused claim) is
   reported, saves nothing, and is retried at the next interval. Ctrl+C stops cleanly.
 

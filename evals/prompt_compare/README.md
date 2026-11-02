@@ -47,7 +47,7 @@ bad arguments (no model, missing or empty file).
 
 ## Read the report
 
-The report is saved to `prompt-reports/compare-<date-time>.md` (git-ignored)
+The report is saved to `outputs/prompt-reports/compare-<date-time>.md` (git-ignored)
 and its path is printed. It contains:
 
 - the date, model, host, questions file and, for each prompt, its path, short

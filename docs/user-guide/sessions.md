@@ -11,7 +11,7 @@ Each chat gets a short ID, printed when it starts:
 Session k7f2qa
 ```
 
-Sensai saves the session to `sensai.sqlite3` after its first completed
+Sensai saves the session to `outputs/sensai.sqlite3` after its first completed
 exchange, then after each one. Interrupted, failed or empty exchanges are never
 saved. After the first save, a short separate request asks the model for a
 title; if that fails, the start of your first message becomes the title.
@@ -112,7 +112,7 @@ sample brand facts and approved claims the sandbox can read.
 | Option | Variable | Default | Effect |
 | --- | --- | --- | --- |
 | `--creator` | `SENSAI_CREATOR` | `default` | Keeps the sessions and profiles of different creators apart |
-| `--db` | `SENSAI_DB` | `sensai.sqlite3` | SQLite file, relative to the folder you start Sensai from |
+| `--db` | `SENSAI_DB` | `outputs/sensai.sqlite3` | SQLite file, relative to the folder you start Sensai from |
 
 ## Good to know
 
@@ -125,4 +125,4 @@ sample brand facts and approved claims the sandbox can read.
   saved persona.
 - If the saved persona no longer exists, Sensai stops with
   `error: persona '<id>' saved with session <id> is no longer available; pass --persona`.
-- Git ignores `sensai.sqlite3` and files ending in `.local.json`.
+- Git ignores `outputs/sensai.sqlite3` and files ending in `.local.json`.

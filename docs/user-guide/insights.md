@@ -1,6 +1,6 @@
 # Usage log and statistics
 
-Every model call adds one JSON line to `sensai-log.jsonl` (`SENSAI_LOG` changes the path; empty turns
+Every model call adds one JSON line to `outputs/sensai-log.jsonl` (`SENSAI_LOG` changes the path; empty turns
 the log off):
 
 ```json
