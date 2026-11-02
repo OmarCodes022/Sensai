@@ -23,7 +23,7 @@ Acceptance criteria:
    Ollama stopped the script prints a clear message, no traceback.
 3. `--compare v1 v2` prints both versions side by side; the web Safety page lists the saved runs.
 
-Tests: `tests/unit/test_judge.py` (schema, not judged, compare), `tests/unit/web/test_evaluation_web.py`.
+Tests: `tests/unit/quality/test_judge.py` (schema, not judged, compare), `tests/unit/web/test_evaluation_web.py`.
 
 ## Story 2: No invented or outdated claim ends up in a post
 
