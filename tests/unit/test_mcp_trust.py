@@ -9,7 +9,7 @@ import pytest
 from fakes import FakeClient
 from sensai.chat.session import ChatSession
 from sensai.cli.main import repl
-from sensai.mcp_client import Catalogue
+from sensai.mcp.client import Catalogue
 from sensai.tools import ToolRegistry
 from .web.conftest import web
 
@@ -280,7 +280,7 @@ def test_web_startup_line_points_at_the_question(web, setup, capsys):
 
 def test_servers_are_discovered_in_parallel(tmp_path, monkeypatch):
     from time import monotonic, sleep
-    from sensai import mcp_client
+    from sensai.mcp import client as mcp_client
 
     def slow(name, spec):
         sleep(0.5)

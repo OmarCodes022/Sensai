@@ -24,7 +24,7 @@ MAX_OUTPUT = 10_000  # As for run_python: a result goes to the model and into th
 GUIDE_URL = "https://omarcodes022.github.io/Sensai/user-guide/mcp/"
 EXAMPLE_CONFIG = """{
   "mcpServers": {
-    "sensai": {"command": "python", "args": ["-m", "sensai.mcp_server"]},
+    "sensai": {"command": "python", "args": ["-m", "sensai.mcp.server"]},
     "time": {"command": "uvx", "args": ["mcp-server-time==2026.10.28"]}
   }
 }

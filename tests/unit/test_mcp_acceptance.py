@@ -13,7 +13,7 @@ import pytest
 
 from sensai.core.ports import ToolCall, ToolDefinition
 from sensai.core.cancellation import CancellationToken, OperationCancelled
-from sensai.mcp_client import EXAMPLE_CONFIG, GUIDE_URL, Catalogue, Server, exchange
+from sensai.mcp.client import EXAMPLE_CONFIG, GUIDE_URL, Catalogue, Server, exchange
 from sensai.tools import ToolRegistry
 from .web.conftest import web
 
@@ -383,7 +383,7 @@ def metrics(csv_path, arguments):
             "name": "weekly_engagement", "arguments": arguments}},
     ]
     env = {**os.environ, "PYTHONPATH": str(ROOT / "src"), "SENSAI_ENGAGEMENT_CSV": str(csv_path)}
-    run = subprocess.run([sys.executable, "-m", "sensai.mcp_server"],
+    run = subprocess.run([sys.executable, "-m", "sensai.mcp.server"],
                          input="".join(json.dumps(m) + "\n" for m in messages), text=True,
                          capture_output=True, timeout=5, env=env)
     assert run.returncode == 0, run.stderr
@@ -412,7 +412,7 @@ def test_invalid_metrics_counts_are_errors(tmp_path, reached, engaged):
 
 
 def test_csv_with_a_byte_order_mark_is_read(tmp_path):
-    from sensai.mcp_server import weekly_engagement
+    from sensai.mcp.server import weekly_engagement
 
     path = tmp_path / "metrics.csv"
     path.write_text("date,channel,accounts_reached,accounts_engaged\n2026-09-21,Instagram,10,2\n", encoding="utf-8-sig")
@@ -426,7 +426,7 @@ def test_csv_parser_error_is_a_tool_error_not_a_dead_server(tmp_path):
     metrics = tmp_path / "metrics.csv"
     metrics.write_text("date,channel,accounts_reached,accounts_engaged\n" + "x" * 200_000 + ",a,1,1\n", encoding="utf-8")
     path.write_text(json.dumps({"mcpServers": {"sensai": {
-        "command": sys.executable, "args": ["-m", "sensai.mcp_server"],
+        "command": sys.executable, "args": ["-m", "sensai.mcp.server"],
         "env": {"SENSAI_ENGAGEMENT_CSV": str(metrics), "PYTHONPATH": str(ROOT / "src")}}}}), encoding="utf-8")
     catalogue = Catalogue(path)
     assert catalogue.reload()
