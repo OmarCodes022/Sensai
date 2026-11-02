@@ -4,8 +4,8 @@
 - Drafting lead: Omar
 - Status: done (auto-selected few-shot examples only)
 
-Code: [`chat/examples.py`](../../src/sensai/chat/examples.py), [`examples.json`](../../src/sensai/chat/examples.json),
-`ChatSession.extra` in [`chat/session.py`](../../src/sensai/chat/session.py).
+Code: [`chat/examples.py`](https://github.com/OmarCodes022/Sensai/blob/main/src/sensai/chat/examples.py), [`examples.json`](https://github.com/OmarCodes022/Sensai/blob/main/src/sensai/chat/examples.json),
+`ChatSession.extra` in [`chat/session.py`](https://github.com/OmarCodes022/Sensai/blob/main/src/sensai/chat/session.py).
 Guide: [Picked examples](../user-guide/examples.md).
 
 ## Story 1: Content in the right format the first time

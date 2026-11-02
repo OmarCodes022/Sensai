@@ -5,6 +5,7 @@ scripted clients; tests opt into the other fixtures explicitly.
 """
 
 import os
+from pathlib import Path
 
 import pytest
 
@@ -15,6 +16,7 @@ from sensai.settings import Settings
 REAL_GENERATE_TITLE = saved_sessions.generate_title
 REAL_DEFAULT_DB_PATH = cli.DEFAULT_DB_PATH
 REAL_SETUP_DOCS = cli._setup_docs
+REPO = Path(__file__).resolve().parents[2]
 
 
 @pytest.fixture(autouse=True)
@@ -39,6 +41,19 @@ def no_shared_sample_files(monkeypatch):
     """The repository's data/profile.json and data/personas.json must not leak into tests."""
     monkeypatch.setattr(saved_sessions, "DEFAULT_PROFILE_FILE", "no-such-profile.json")
     monkeypatch.setattr(personas, "DEFAULT_FILE", "no-such-personas.json")
+
+
+@pytest.fixture(autouse=True)
+def no_local_config(monkeypatch):
+    """The developer's mcp.json and .sensai/settings.json in the repository root stay out of the tests."""
+    from sensai_web import app as web_app
+    in_repo = lambda path: Path(path).resolve() in (REPO, REPO / "mcp.json")  # noqa: E731
+    for module, name in ((cli, "Catalogue"), (web_app, "MCPCatalogue")):
+        real = getattr(module, name)
+        monkeypatch.setattr(module, name, lambda path="mcp.json", real=real: real(str(REPO / "no-such-mcp.json") if in_repo(path) else path))
+    for module in (cli, web_app):
+        real = module.open_project
+        monkeypatch.setattr(module, "open_project", lambda folder, *args, real=real: None if in_repo(folder) else real(folder, *args))
 
 
 @pytest.fixture(autouse=True)
