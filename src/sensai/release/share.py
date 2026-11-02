@@ -16,7 +16,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from sensai.campaign.models import Campaign
 
 SHAREABLE = ("posts", "report", "calendar")
-DEFAULT_DIR = "shares"
+DEFAULT_DIR = "outputs/shares"
 DEFAULT_PORT = 8766  # sensai-web uses 8765
 TOKEN = re.compile(r"[A-Za-z0-9_-]{22}\Z")  # secrets.token_urlsafe(16)
 

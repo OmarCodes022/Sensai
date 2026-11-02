@@ -1,4 +1,4 @@
-// /export in the chat (X3, private): the conversation and the week's campaign written to exports/ on this computer.
+// /export in the chat (X3, private): the conversation and the week's campaign written to outputs/exports/ on this computer.
 import { h } from '../dom.js';
 import { t } from '../i18n.js';
 

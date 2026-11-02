@@ -915,7 +915,7 @@
  "export.campaign": "Campaign",
  "export.refused": "{name} not exported: the guardrails refused it ({reason}). The previous export is unchanged.",
  "export.noCampaign": "No campaign yet: only the conversation was exported.",
- "export.private": "Private files in exports/: nothing was uploaded or shared.",
+ "export.private": "Private files in outputs/exports/: nothing was uploaded or shared.",
  "export.failed": "Export failed",
  "schedule.tasks": "Tasks",
  "schedule.intro": "Tasks from {file}, run with {model}. Each answer is saved as a draft on this computer; nothing is posted or sent.",

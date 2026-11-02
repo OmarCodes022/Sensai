@@ -7,7 +7,7 @@ from math import isfinite
 
 from sensai.settings import Settings
 
-DEFAULT_DB = "sensai.sqlite3"
+DEFAULT_DB = "outputs/sensai.sqlite3"
 # effective-config key -> (environment variable, Settings field)
 KEYS = {
     "ollama_host": ("OLLAMA_HOST", "host"), "model": ("SENSAI_MODEL", "model"),

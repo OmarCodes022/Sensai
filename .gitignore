@@ -20,21 +20,17 @@ devtools/
 docs/operations/push-evidence-sync.md
 site/
 
-# Weekly campaign documents (yours, not shared)
+# Everything Sensai writes: sessions database, cache, usage log, campaigns, exports,
+# drafts, public share pages and prompt reports (plain text, yours, never shared)
+outputs/
+# The same files where older versions wrote them, in the repository root
 campaigns/
 exports/
 drafts/
-# Local MCP commands and environment overrides
-mcp.json
-
-# Semantic cache (A6): questions and answers in plain text
+shares/
+prompt-reports/
 sensai-cache.sqlite3
-
-# Usage log (EV3): every exchange in plain text
 sensai-log.jsonl
 
-# Prompt comparison reports (A4)
-prompt-reports/
-
-# Public share pages (X3): served by python -m sensai.release.share
-shares/
+# Local MCP commands and environment overrides
+mcp.json

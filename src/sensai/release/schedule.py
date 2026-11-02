@@ -21,7 +21,7 @@ from sensai.core.cancellation import CancellationToken
 from sensai.core.errors import SensaiError
 
 NAME = re.compile(r"[a-z0-9][a-z0-9-]{0,39}\Z")
-DEFAULT_DRAFTS = "drafts"
+DEFAULT_DRAFTS = "outputs/drafts"
 TICK_SECONDS = 30
 
 

@@ -2,7 +2,7 @@
 
 As a skincare creator, I want to save this week's plan and my conversation as files on my computer, so that I can read, print or paste them into my notes outside Sensai
 
-- `/export` (terminal or web chat) writes the conversation and the campaign as JSON and Markdown in exports/
+- `/export` (terminal or web chat) writes the conversation and the campaign as JSON and Markdown in outputs/exports/
 - The campaign Markdown shows the four sections with their status, the calendar as a table and the report figures with their source
 - The campaign export is refreshed automatically after each saved change
 

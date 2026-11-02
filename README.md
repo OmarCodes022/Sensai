@@ -18,14 +18,14 @@ Docs: <https://omarcodes022.github.io/Sensai/> (sources in [docs/](docs/README.m
 | Tools | the model calls `calculate` and `run_python` (you approve each run); a failed run goes back to the model, which fixes its code, up to 3 runs per question | [Tools and sandbox](docs/user-guide/tools.md) |
 | Step-by-step reasoning | `/think <request>`: a plan, tool calls, a draft, a check against your rules, revisions | [Reasoning step by step](docs/user-guide/thinking.md) |
 | Scheduled drafts | recurring requests from `schedule.local.json` run on their own and save dated drafts; `python -m sensai.release.schedule`, or the web Schedule page | [Scheduling](docs/user-guide/scheduling.md) |
-| Export and public links (X3) | `/export` writes the conversation and the week's campaign to `exports/` as JSON and Markdown, after the guardrails; `/share posts\|report\|calendar` (or **Share** on the Campaign page) publishes one section as a no-login page on the local network after you approve the exact content and link, `/unshare` removes it | [Export](docs/user-guide/export.md), [Public links](docs/user-guide/export.md#public-links) |
+| Export and public links (X3) | `/export` writes the conversation and the week's campaign to `outputs/exports/` as JSON and Markdown, after the guardrails; `/share posts\|report\|calendar` (or **Share** on the Campaign page) publishes one section as a no-login page on the local network after you approve the exact content and link, `/unshare` removes it | [Export](docs/user-guide/export.md), [Public links](docs/user-guide/export.md#public-links) |
 | Web search | the model calls `web_search` for current information and cites `[1]`, `[2]` with a source list; `/search <query>` | [Web search](docs/user-guide/web-search.md) |
 | Questions and forms | when a detail is missing, the model asks with `ask_user`: a numbered choice in the terminal, a form card in the web chat | [Questions](docs/user-guide/questions.md) |
 | Weekly campaign document | `/campaign`: four sections, edited one schema-forced JSON edit at a time; approved sections ask before any change; web Campaign page | [Campaign](docs/user-guide/campaign.md) |
 | Team of agents (A2) | `/team <brief>`: a researcher, a writer and a reviewer work on one post, each step and handoff shown, at most 2 revisions; terminal and web | [Team](docs/user-guide/team.md) |
-| Semantic cache (A6) | `SENSAI_CACHE=1`: a new session's first question, close to an earlier one with the same model, persona and profile, is answered at once from `sensai-cache.sqlite3` (plain text, git-ignored); `--clear-cache` | [Cache](docs/user-guide/cache.md) |
+| Semantic cache (A6) | `SENSAI_CACHE=1`: a new session's first question, close to an earlier one with the same model, persona and profile, is answered at once from `outputs/sensai-cache.sqlite3` (plain text, git-ignored); `--clear-cache` | [Cache](docs/user-guide/cache.md) |
 | Picked examples (A7) | `SENSAI_EXAMPLES=1`: the two closest example requests and answers are shown to the model for each message, never saved; "Examples used" is printed | [Examples](docs/user-guide/examples.md) |
-| Usage log and statistics (EV3) | every model call is a line in `sensai-log.jsonl` (plain text, git-ignored); `sensai --stats` or the web Insights page show calls, errors, latency, tokens, tools and days | [Insights](docs/user-guide/insights.md) |
+| Usage log and statistics (EV3) | every model call is a line in `outputs/sensai-log.jsonl` (plain text, git-ignored); `sensai --stats` or the web Insights page show calls, errors, latency, tokens, tools and days | [Insights](docs/user-guide/insights.md) |
 | Prompt versions (A4) | dated copies of the instructions in `evals/prompt_compare/versions/`; `compare.py` (or Settings → Prompt versions) asks the same questions to two of them, side by side with latency and tokens; `--prompt <file>` or **Use this version** rolls back | [Prompt versions](evals/prompt_compare/README.md) |
 | Weekly run | `--weekly-run <folder>` or **Run the week** on the Campaign page: posts, DM replies, report and calendar prepared in one go from brand, DMs and engagement files, each checked and failing on its own | [Campaign](docs/user-guide/campaign.md#the-weekly-run) |
 | File access within permissions | `.sensai/settings.json` allow/deny rules; the model's `read_file`, `write_file`, `create_file`; `/read`, `/save` | [File access](docs/user-guide/files.md) |
@@ -66,7 +66,7 @@ commands (like `sensai-web`) are registered. Full install guide:
 .venv/bin/sensai gemma3:1b --session k7f2qa       # resume
 .venv/bin/sensai qwen2.5 --weekly-run data         # prepare the week's 4 outputs, then exit
 .venv/bin/sensai --clear-cache                     # empty the semantic cache (SENSAI_CACHE=1)
-.venv/bin/sensai --stats                           # usage statistics from sensai-log.jsonl
+.venv/bin/sensai --stats                           # usage statistics from outputs/sensai-log.jsonl
 .venv/bin/sensai-remote                           # same, through an SSH tunnel
 ```
 
@@ -97,6 +97,11 @@ you launch). The folder is a placeholder in git: its contents are never pushed.
 Add CSV, TSV, JSON, text or Markdown files there, or in the web page under
 **Tools, then Data files** (drop files, or add example data). `SENSAI_DATA_DIR`
 points elsewhere.
+
+Everything Sensai writes goes to `outputs/` (git-ignored): the session database
+`sensai.sqlite3`, the cache, the usage log `sensai-log.jsonl`, and the folders
+`campaigns/`, `exports/`, `drafts/`, `shares/` and `prompt-reports/`. `data/` is
+only read.
 
 The sandbox stops runaway code, not malicious code: it keeps network access and
 can read files by path. Limits and details: [Tools and sandbox](docs/user-guide/tools.md).
@@ -133,7 +138,7 @@ variables win over `.env`, and command-line options win over both.
 | --- | --- | --- |
 | `SENSAI_MODEL` | model to chat with | none |
 | `OLLAMA_HOST` | Ollama base URL | `http://localhost:11434` |
-| `SENSAI_DB` | session database | `sensai.sqlite3` |
+| `SENSAI_DB` | session database | `outputs/sensai.sqlite3` |
 | `SENSAI_CREATOR` | key that separates creators' sessions and profiles | `default` |
 | `SENSAI_DATA_DIR` | files the sandbox can read | `./data` if it exists |
 | `SENSAI_SEARCH_PROVIDER`, `SENSAI_SEARCH_API_KEY` | web search provider (`brave`, `duckduckgo`, `off`) and the Brave Search API key | Brave with a key, else DuckDuckGo |

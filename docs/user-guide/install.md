@@ -37,7 +37,7 @@ command-line options win over both. Only the model is required.
 | `SENSAI_PROMPT` | packaged prompt | Text file with the shared instructions; empty means the packaged prompt | `--prompt` |
 | `SENSAI_PERSONA` | none | Persona to start with | `--persona` |
 | `SENSAI_PERSONAS_FILE` | built-in personas | JSON file that replaces the built-in personas | `--personas-file` |
-| `SENSAI_DB` | `sensai.sqlite3` | SQLite file for sessions and profiles | `--db` |
+| `SENSAI_DB` | `outputs/sensai.sqlite3` | SQLite file for sessions and profiles | `--db` |
 | `SENSAI_CREATOR` | `default` | Creator key that keeps sessions and profiles apart | `--creator` |
 | `SENSAI_PROFILE_FILE` | none | JSON profile to store and add to every chat | `--profile-file` |
 | `SENSAI_DATA_DIR` | none | Folder whose files are copied into each Python sandbox run | none |
@@ -64,7 +64,7 @@ Type a message and the reply streams below it; type `exit` to leave.
 ## Good to know
 
 - `.venv/bin/sensai --help` lists every option.
-- `.env` and the default `sensai.sqlite3` are looked up in the folder you
+- `.env` and the default `outputs/sensai.sqlite3` are looked up in the folder you
   start Sensai from.
 - Without `SENSAI_CONTEXT_LENGTH`, Sensai uses the window Ollama chose for your computer (`/api/ps`). Ollama often
   chooses 4096, too small next to Sensai's own instructions (about 2,000 tokens), so Sensai doubles it to 8192.

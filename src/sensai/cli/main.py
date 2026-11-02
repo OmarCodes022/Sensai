@@ -63,7 +63,7 @@ from sensai.rag.basic import (DOCS_PROMPT, SEARCH_DOCS, DocLibrary, add_command,
                        remove_command, search_docs_handler)
 from sensai.llm.embeddings import OllamaEmbeddingAdapter
 
-DEFAULT_DB_PATH = "sensai.sqlite3"
+DEFAULT_DB_PATH = "outputs/sensai.sqlite3"
 MAX_SCRIPT_BYTES = 1024 * 1024
 SUMMARY_WIDTH = 160
 

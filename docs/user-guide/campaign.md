@@ -2,13 +2,13 @@
 
 Each week's deliverable is one **campaign document**, not a chat transcript: four sections
 (post drafts, DM reply suggestions, the weekly report and the content calendar), saved as
-`campaigns/<week>.json` (for example `2026-W45`, the coming week). It grows one small,
+`outputs/campaigns/<week>.json` (for example `2026-W45`, the coming week). It grows one small,
 checked edit at a time.
 
 ```text
 > /campaign posts write a post about Hydra Glow Serum
 Posts: add post P1
-Saved campaigns/2026-W45.json
+Saved outputs/campaigns/2026-W45.json
 > /campaign calendar schedule P1 on Wednesday at 18:00
 Calendar: add entry E1
 > /campaign
@@ -40,7 +40,7 @@ usual, then Sensai stops and shows exactly what would change:
 ```text
 Posts are approved. Sensai wants to:
   Action:  replace post P1
-  Where:   campaigns/2026-W45.json
+  Where:   outputs/campaigns/2026-W45.json
   Before:  'Hydra Glow Serum hydrates skin for up to 8 hours.'
   After:   'Thirsty skin? Hydra Glow Serum hydrates for up to 8 hours.'
 Apply this change? [y/N]
@@ -62,7 +62,7 @@ DM replies ... OK     2 suggestions · 2 DMs left out (contains name and persona
 Posts ........ OK     4 drafts (claims C01, C03)
 Calendar ..... OK     4 entries, 2026-09-28 to 2026-10-01
 Report week 2026-09-21 to 2026-09-27 · calendar for 2026-09-28 to 2026-10-04
-Saved campaigns/2026-W40.json: nothing was sent or published.
+Saved outputs/campaigns/2026-W40.json: nothing was sent or published.
 ```
 
 - **Report:** the figures come from the weekly row of `engagement.csv` (a date like

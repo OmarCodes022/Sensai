@@ -395,11 +395,11 @@ def test_default_database_stays_out_of_the_repository(monkeypatch, tmp_path, ids
         assert [s.id for s in repository.for_creator("default").sessions.list()] == ["k7f2qa"]
     assert not (ROOT / "sensai.sqlite3").exists()
     ignored = (ROOT / ".gitignore").read_text().splitlines()
-    assert "sensai.sqlite3*" in ignored and "*.local.json" in ignored
+    assert "outputs/" in ignored and "*.local.json" in ignored
 
 
 def test_real_default_database_path_is_relative_to_cwd(real_default_db_path):
-    assert real_default_db_path == "sensai.sqlite3"
+    assert real_default_db_path == "outputs/sensai.sqlite3"
     assert cli.DEFAULT_DB_PATH != real_default_db_path
 
 

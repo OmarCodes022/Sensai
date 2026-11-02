@@ -23,5 +23,5 @@ $ SENSAI_CACHE=1 sensai qwen2.5
 - In the web page the reply carries a "From the cache" chip with the similarity and the original
   question.
 
-The cache file `sensai-cache.sqlite3` (`SENSAI_CACHE_FILE`) keeps questions and answers in plain text,
+The cache file `outputs/sensai-cache.sqlite3` (`SENSAI_CACHE_FILE`) keeps questions and answers in plain text,
 like the session database. It is in `.gitignore`.

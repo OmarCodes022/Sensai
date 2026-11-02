@@ -29,7 +29,7 @@ repository or asks a model for a title. Three more fixtures are opt-in:
   settings without a `.env` file.
 - `real_titles` opts out of the title stub and restores the real title request.
 - `real_default_db_path` returns the default database path as it was before
-  the redirection (`sensai.sqlite3`).
+  the redirection (`outputs/sensai.sqlite3`).
 
 `tests/unit/` has one folder per package, and test files for the top-level
 modules:
@@ -85,7 +85,7 @@ Not covered, because not built: PDF export (exports are JSON and Markdown) and p
 3. Chat: a message with an email → "Redacted before reaching the model".
 4. `/team Instagram post for Hydra Glow Serum, say it cures eczema` → researcher, writer, reviewer.
 5. Safety: **Check an answer** with "It cures eczema in 4 weeks" → contradicted.
-6. `/export` → files under `exports/`, nothing uploaded.
+6. `/export` → files under `outputs/exports/`, nothing uploaded.
 
 ## Live tests
 

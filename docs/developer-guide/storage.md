@@ -1,7 +1,7 @@
 # Storage
 
 Sensai keeps sessions and creator profiles in one SQLite file:
-`sensai.sqlite3` in the current folder by default, or the path given by `--db`
+`outputs/sensai.sqlite3` in the current folder by default, or the path given by `--db`
 or `SENSAI_DB`. `src/sensai/memory/sqlite_store.py` owns it. The schema also
 has a `facts` table, not used by the CLI yet.
 
@@ -10,7 +10,7 @@ has a `facts` table, not used by the CLI yet.
 ```python
 from sensai.memory.sqlite_store import StorageRepository
 
-with StorageRepository("sensai.sqlite3") as repository:  # opens and migrates
+with StorageRepository("outputs/sensai.sqlite3") as repository:  # opens and migrates
     creator = repository.for_creator("default")           # scopes every query
     creator.sessions.list()                               # newest first
     creator.profiles.load("default")                      # None when absent

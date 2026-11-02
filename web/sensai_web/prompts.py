@@ -14,7 +14,7 @@ from sensai.quality.prompt_versions import Answer, read_questions, render_report
 from sensai_web.errors import ApiError
 
 FOLDER = os.environ.get("SENSAI_PROMPT_VERSIONS", os.path.join("evals", "prompt_compare", "versions"))
-REPORTS = "prompt-reports"
+REPORTS = "outputs/prompt-reports"
 
 
 def named(name: object):
