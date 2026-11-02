@@ -112,4 +112,4 @@ final answer stay in the chat.
 | Usage log and statistics (EV3) | [Usage log](../user-guide/insights.md) |
 | Prompt versions (A4) | [Prompt versions](https://github.com/OmarCodes022/Sensai/tree/main/evals/prompt_compare) |
 
-Each has at least two user stories: see the [stories index](../stories/README.md).
+Each has at least two user stories: see [User stories](user-stories.md).
