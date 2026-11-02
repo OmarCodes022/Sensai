@@ -10,7 +10,7 @@ import threading
 from collections import defaultdict
 from datetime import datetime, timezone
 
-DEFAULT_PATH = "sensai-log.jsonl"
+DEFAULT_PATH = "outputs/sensai-log.jsonl"
 _lock = threading.Lock()
 _path: str | None = None  # None: logging is off (unit tests, or SENSAI_LOG set to empty).
 
@@ -31,6 +31,7 @@ def record(kind: str, model: str, question: str, answer: str = "", *, persona: s
             "latency_ms": round(latency_ms) if latency_ms is not None else None,
             "prompt_tokens": prompt_tokens, "output_tokens": output_tokens, "tools": tools or [], "error": error}
     try:
+        os.makedirs(os.path.dirname(_path) or ".", exist_ok=True)
         with _lock, open(_path, "a", encoding="utf-8") as f:
             f.write(json.dumps(line, ensure_ascii=False) + "\n")
     except OSError:

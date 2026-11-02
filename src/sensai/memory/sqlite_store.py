@@ -76,6 +76,7 @@ class StorageRepository:
     """
 
     def __init__(self, path: str | Path):
+        Path(path).parent.mkdir(parents=True, exist_ok=True)  # outputs/ on a first run.
         self._connection = sqlite3.connect(path, isolation_level=None)
         self._active = False
         self._rollback_only = False

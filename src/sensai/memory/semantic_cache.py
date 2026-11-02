@@ -42,6 +42,7 @@ class SemanticCache:
         self.path, self.embed, self.threshold, self.off = path, embed, threshold, ""
 
     def _connect(self):
+        os.makedirs(os.path.dirname(self.path) or ".", exist_ok=True)
         connection = sqlite3.connect(self.path, timeout=5)
         connection.execute(SCHEMA)
         return connection
