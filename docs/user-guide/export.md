@@ -35,7 +35,7 @@ One section of the week (posts, report or calendar) can be shared as a read-only
 the same network opens without logging in, for example a teammate's phone:
 
 ```text
-$ python -m sensai.share          # in another terminal: serves shares/ on port 8766
+$ python -m sensai.release.share          # in another terminal: serves shares/ on port 8766
 > /share calendar
 Sensai wants to:
   Action:  publish a public, no-login page

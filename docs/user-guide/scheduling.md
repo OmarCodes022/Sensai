@@ -6,7 +6,7 @@ sent.
 
 ```bash
 cp schedule.example.json schedule.local.json     # yours, not shared (gitignored)
-SENSAI_MODEL=qwen2.5 .venv/bin/python -m sensai.schedule schedule.local.json
+SENSAI_MODEL=qwen2.5 .venv/bin/python -m sensai.release.schedule schedule.local.json
 ```
 
 ```text
