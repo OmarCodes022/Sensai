@@ -7,7 +7,7 @@ from time import monotonic
 from urllib.parse import unquote
 
 from sensai.core.cancellation import CancellationToken
-from sensai import usage_log
+from sensai.quality import usage_log
 from sensai.core.errors import LLMError
 from sensai.core.messages import Message
 from sensai.mcp.client import EXAMPLE_CONFIG, GUIDE_URL

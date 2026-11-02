@@ -5,7 +5,7 @@
 
 ```python
 from sensai.llm.ollama import OllamaClient
-from sensai.telemetry import BoundedEventSink
+from sensai.quality.telemetry import BoundedEventSink
 
 events = []
 sink = BoundedEventSink(events.append, max_events=128)

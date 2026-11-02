@@ -68,7 +68,7 @@ def test_read_questions_skips_blank_and_comment_lines(tmp_path):
 
 
 def test_default_questions_exist_and_the_packaged_prompt_is_a_version():
-    from sensai.prompt_versions import versions
+    from sensai.quality.prompt_versions import versions
     assert len(compare.read_questions(compare.DEFAULT_QUESTIONS)) == 6
     packaged = (ROOT / "src" / "sensai" / "chat" / "system_prompt.txt").read_bytes()
     found = versions(str(SCRIPT.parent / "versions"))

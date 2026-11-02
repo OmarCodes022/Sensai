@@ -3,7 +3,7 @@ import json
 import os
 
 from sensai.core.errors import LLMConnectionError, LLMError
-from sensai.judge import judge
+from sensai.quality.judge import judge
 from sensai.rag.basic import search_with_hits
 from sensai_web.errors import ApiError
 

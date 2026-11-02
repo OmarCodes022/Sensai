@@ -23,7 +23,7 @@ from sensai.chat.session import ChatSession  # noqa: E402
 from sensai.core.cancellation import CancellationToken  # noqa: E402
 from sensai.core.errors import LLMConnectionError, LLMError  # noqa: E402
 from sensai.core.ports import ToolResult  # noqa: E402
-from sensai.judge import judge  # noqa: E402
+from sensai.quality.judge import judge  # noqa: E402
 from sensai.llm.embeddings import OllamaEmbeddingAdapter  # noqa: E402
 from sensai.llm.ollama import OllamaClient  # noqa: E402
 from sensai.llm.structured import OllamaStructuredClient  # noqa: E402

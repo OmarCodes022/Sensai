@@ -14,7 +14,7 @@ from sensai.core.messages import Message
 from sensai.llm import create_client, ollama
 from sensai.llm.ollama import OllamaClient
 from sensai.llm.ollama_api import UsageError
-from sensai.telemetry import BoundedEventSink
+from sensai.quality.telemetry import BoundedEventSink
 
 
 @pytest.mark.parametrize("source", ["direct", "factory"])

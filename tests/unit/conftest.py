@@ -59,7 +59,7 @@ def no_local_config(monkeypatch):
 @pytest.fixture(autouse=True)
 def no_usage_log(monkeypatch):
     """The EV3 log would otherwise be written in the working directory; a test opts in with usage_log._path."""
-    from sensai import usage_log
+    from sensai.quality import usage_log
     monkeypatch.setattr(usage_log, "_path", None)
     monkeypatch.setattr(usage_log, "configure", lambda path: None)
 

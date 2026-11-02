@@ -9,7 +9,7 @@ from sensai.core.errors import LLMError
 from sensai.llm.ollama import OllamaClient
 from sensai.llm.ollama_api import OllamaUsage, UsageError
 from sensai.core.messages import Message
-from sensai.telemetry import (
+from sensai.quality.telemetry import (
     BoundedEventSink,
     EventDeliveryError,
     EventName,

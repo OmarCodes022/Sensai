@@ -23,7 +23,7 @@ from sensai.cli.cache import answer_from_cache, remember, use_examples
 from sensai.cli.usage import log_turn, tool_entry
 from sensai.cli.share_commands import share_command, unshare_command
 from sensai.release.share import Shares
-from sensai import usage_log
+from sensai.quality import usage_log
 from sensai.memory.semantic_cache import SemanticCache, scope as cache_scope_of
 from sensai.chat.examples import ExamplePicker
 from sensai.chat.agents import brand_facts

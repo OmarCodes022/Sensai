@@ -4,7 +4,7 @@
 - Drafting lead: Omar
 - Status: done
 
-Code: [`judge.py`](https://github.com/OmarCodes022/Sensai/blob/main/src/sensai/judge.py) (the judge and its schema),
+Code: [`judge.py`](https://github.com/OmarCodes022/Sensai/blob/main/src/sensai/quality/judge.py) (the judge and its schema),
 [`evals/faithfulness/run.py`](https://github.com/OmarCodes022/Sensai/blob/main/evals/faithfulness/run.py) (the evaluation) and
 [`evaluation.py`](https://github.com/OmarCodes022/Sensai/blob/main/web/sensai_web/evaluation.py) with the web Safety page.
 Results: [evals/faithfulness/README.md](https://github.com/OmarCodes022/Sensai/blob/main/evals/faithfulness/README.md).

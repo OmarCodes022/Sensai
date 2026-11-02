@@ -2,7 +2,7 @@
 import json
 from time import monotonic
 
-from sensai import usage_log
+from sensai.quality import usage_log
 from sensai.core.cancellation import CancellationToken
 from sensai.core.errors import SensaiError
 from sensai.core.messages import Message

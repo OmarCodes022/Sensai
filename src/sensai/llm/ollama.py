@@ -46,7 +46,7 @@ class OllamaClient(LLMClient):
         self.num_predict = num_predict  # Caps the answer's length (the M2 summary); None: no cap.
         self._telemetry = None
         if event_sink is not None:
-            from sensai.telemetry import Telemetry
+            from sensai.quality.telemetry import Telemetry
 
             self._telemetry = Telemetry(event_sink)
         self._usage_sink = usage_sink
@@ -79,7 +79,7 @@ class OllamaClient(LLMClient):
         started = perf_counter()
         operation_id = None
         if self._telemetry is not None:
-            from sensai.telemetry import new_operation_id
+            from sensai.quality.telemetry import new_operation_id
 
             operation_id = new_operation_id()
             self._telemetry.request_started(operation_id)

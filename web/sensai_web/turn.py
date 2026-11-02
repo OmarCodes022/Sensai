@@ -11,7 +11,7 @@ from sensai.sandbox import remove_stale_folders
 from sensai.tools import run_with_tools
 from sensai_web.app import ActiveSession, WebApp, now
 from sensai_web.approvals import WebApproval
-from sensai import usage_log
+from sensai.quality import usage_log
 from sensai_web import cache
 from sensai_web.compaction import after_turn
 from sensai_web.errors import llm_failure

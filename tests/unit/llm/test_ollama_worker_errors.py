@@ -13,7 +13,7 @@ from sensai.core.isolation import ControlledLLMClient
 from sensai.core.messages import Message
 from sensai.llm import ollama
 from sensai.llm.ollama_api import UsageError
-from sensai.telemetry import BoundedEventSink
+from sensai.quality.telemetry import BoundedEventSink
 
 
 class LocalOllama(ollama.OllamaClient):

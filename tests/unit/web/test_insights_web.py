@@ -1,5 +1,5 @@
 """EV3 in the page: each turn is logged with its tools, and /api/stats feeds the Insights page."""
-from sensai import usage_log
+from sensai.quality import usage_log
 
 
 def test_a_turn_is_logged_and_the_stats_show_it(web, tmp_path, monkeypatch):

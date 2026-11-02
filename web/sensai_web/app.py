@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from threading import Event, Lock, RLock
 
 from sensai.chat import saved_sessions
-from sensai import usage_log
+from sensai.quality import usage_log
 from sensai.chat.context import ContextState, choose_window, ollama_window
 from sensai.chat.prompts import load_system_prompt
 from sensai.chat.saved_sessions import SessionRecorder, profile_block

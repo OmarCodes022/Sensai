@@ -17,7 +17,7 @@ runtime.
 | `sensai.memory` | SQLite storage of sessions and profiles |
 | `sensai.core` | Shared types: messages, errors, cancellation token, typed ports, process isolation |
 | `sensai.settings` | Settings from the environment and `.env` |
-| `sensai.telemetry` | Usage and event hooks; the CLI uses only its operation IDs |
+| `sensai.quality.telemetry` | Usage and event hooks; the CLI uses only its operation IDs |
 
 This is how the modules call each other when `sensai` runs (the dotted arrow
 is not used by the CLI, which sets no event sink):

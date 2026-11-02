@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 from sensai.llm import OllamaClient
-from sensai.prompt_versions import (Answer, Prompt, UsageRecorder, markdown_text, read_prompt,  # noqa: F401
+from sensai.quality.prompt_versions import (Answer, Prompt, UsageRecorder, markdown_text, read_prompt,  # noqa: F401
                                     read_questions, render_report, run_comparison, text_block)
 from sensai.settings import Settings
 
