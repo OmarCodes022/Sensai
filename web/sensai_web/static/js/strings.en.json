@@ -964,6 +964,7 @@
  "weekly.stop": "Stop",
  "weekly.title": "Weekly run",
  "weekly.working": "Starting…",
+ "weekly.call": "Model call {n} so far.",
  "weekly.reading": "Preparing the week from {folder} with {model}…",
  "weekly.failed": "failed",
  "weekly.saved": "Saved {file}: nothing was sent or published.",

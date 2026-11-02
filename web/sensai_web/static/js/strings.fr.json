@@ -964,6 +964,7 @@
  "weekly.stop": "Arrêter",
  "weekly.title": "Préparation de la semaine",
  "weekly.working": "Démarrage…",
+ "weekly.call": "Appel au modèle n° {n} en cours.",
  "weekly.reading": "Préparation de la semaine depuis {folder} avec {model}…",
  "weekly.failed": "échec",
  "weekly.saved": "{file} enregistré : rien n'a été envoyé ni publié.",

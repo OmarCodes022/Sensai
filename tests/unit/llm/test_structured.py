@@ -59,6 +59,7 @@ def test_valid_reply_uses_model_schema_and_non_streaming_http():
             "messages": [message.model_dump(mode="json") for message in MESSAGES],
             "format": Label.model_json_schema(),
             "stream": False,
+            "think": False,
         },
         stream=False,
         timeout=4,

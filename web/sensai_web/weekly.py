@@ -11,9 +11,14 @@ class Stopped(Exception):
 def run(app, stop, emit) -> None:
     """Holds the turn slot from the caller; reads the data folder, writes only the campaign document."""
 
+    calls = 0
+
     def ask(instructions: str, request: str, schema):
+        nonlocal calls
         if stop.is_set():
             raise Stopped()
+        calls += 1
+        emit({"type": "call", "n": calls})  # A slow model takes 20-30 s a call: the page shows it is moving.
         messages = [Message(role="system", content=instructions), Message(role="user", content=request)]
         return app.checker.complete(app.model, messages, schema)
 

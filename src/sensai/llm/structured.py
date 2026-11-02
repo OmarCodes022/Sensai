@@ -46,6 +46,7 @@ class OllamaStructuredClient:
             "messages": [message.model_dump(mode="json") for message in messages],
             "format": schema.model_json_schema(),
             "stream": False,
+            "think": False,  # A thinking model (qwen3.5) would reason first: slower, and the JSON is all we use.
         }
         if self.context_length is not None:
             body["options"] = {"num_ctx": self.context_length}

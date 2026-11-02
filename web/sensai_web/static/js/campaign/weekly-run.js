@@ -19,11 +19,13 @@ export function createWeeklyRun({ api, onDoc }) {
   async function start() {
     setRunning(true);
     const progress = h('p', { class: 'muted row' }, spinner(), t('weekly.working'));
+    let reading = t('weekly.working');
     panel.hidden = false;
     panel.replaceChildren(h('h2', null, t('weekly.title')), progress);
     try {
       await api.weeklyRun({ onEvent: (e) => {
-        if (e.type === 'start') progress.lastChild.textContent = t('weekly.reading', { folder: e.folder, model: e.model });
+        if (e.type === 'start') { reading = t('weekly.reading', { folder: e.folder, model: e.model }); progress.lastChild.textContent = reading; }
+        else if (e.type === 'call') progress.lastChild.textContent = `${reading} ${t('weekly.call', { n: e.n })}`;
         else if (e.type === 'step') { panel.insertBefore(line(e), progress); announce(`${e.name}: ${e.ok ? 'OK' : t('weekly.failed')}`); }
         else if (e.type === 'done') {
           const text = e.status === 'stopped' ? t('weekly.stopped') : e.saved ? t('weekly.saved', { file: e.saved }) : t('weekly.nothing');

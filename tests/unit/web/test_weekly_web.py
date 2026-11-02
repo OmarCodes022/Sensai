@@ -32,6 +32,8 @@ def test_the_page_runs_the_week_and_shows_each_output(web, tmp_path, monkeypatch
     assert status == 200 and events[0]["type"] == "start"
     steps = [(e["name"], e["ok"]) for e in events if e["type"] == "step"]
     assert steps == [("Report", True), ("DM replies", True), ("Posts", True), ("Calendar", True)]
+    calls = [e["n"] for e in events if e["type"] == "call"]  # One event before every model call: progress in the page.
+    assert calls == list(range(1, len(calls) + 1)) and len(calls) >= 4
     done = events[-1]
     assert done["status"] == "completed" and done["ok"] and done["saved"].endswith("2026-W40.json")
     assert done["doc"]["week"] == "2026-W40" and page.call("GET", "/api/campaign")[1]["week"] == "2026-W40"
