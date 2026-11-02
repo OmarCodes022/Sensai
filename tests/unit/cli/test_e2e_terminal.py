@@ -48,7 +48,7 @@ def test_the_week_in_the_terminal_then_a_private_export(setup, tmp_path, monkeyp
     with pytest.raises(SystemExit) as stopped:
         cli.main(["qwen2.5", "--weekly-run", str(inputs)])
     out = capsys.readouterr().out
-    assert stopped.value.code == 0 and "Saved campaigns/2026-W40.json: nothing was sent or published." in out
+    assert stopped.value.code == 0 and "Saved outputs/campaigns/2026-W40.json: nothing was sent or published." in out
     for name in ("Report", "DM replies", "Posts", "Calendar"):
         assert f"{name} " in out and "failed" not in out
 
@@ -58,7 +58,7 @@ def test_the_week_in_the_terminal_then_a_private_export(setup, tmp_path, monkeyp
     cli.main(["qwen2.5", "--db", str(tmp_path / "s.db")])
     out = capsys.readouterr().out
     assert "Sure." in out and "campaigns/2026-W40.json" in out
-    exported = json.loads((tmp_path / "exports" / "campaigns" / "2026-W40.json").read_text(encoding="utf-8"))
+    exported = json.loads((tmp_path / "outputs" / "exports" / "campaigns" / "2026-W40.json").read_text(encoding="utf-8"))
     assert [r["case_key"] for r in exported["sections"]["replies"]["items"]] == ["Q1", "Q2"]
     assert "emma" not in json.dumps(exported).lower()
     assert [u for u in outgoing if not str(u).startswith("http://localhost:11434")] == []  # Nothing sent elsewhere.

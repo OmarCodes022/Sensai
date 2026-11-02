@@ -43,7 +43,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                           context_length=settings.context_length)
     date = datetime.now()
     results = run_comparison(client, args.model, prompts, questions, recorder)
-    output = args.output or Path("prompt-reports") / f"compare-{date:%Y%m%d-%H%M%S}.md"
+    output = args.output or Path("outputs/prompt-reports") / f"compare-{date:%Y%m%d-%H%M%S}.md"
     output.parent.mkdir(parents=True, exist_ok=True)
     questions_path = args.questions.resolve()
     if questions_path.is_relative_to(Path.cwd()):

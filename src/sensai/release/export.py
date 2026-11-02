@@ -13,7 +13,7 @@ from sensai.chat.blocks import split_block
 from sensai.chat.saved_sessions import TOOL_PROTOCOL_PREFIXES
 from sensai.core.errors import SensaiError
 
-DEFAULT_DIR = "exports"
+DEFAULT_DIR = "outputs/exports"
 
 
 class ExportRefused(SensaiError):

@@ -139,7 +139,7 @@ def test_report_renders_answers_and_paths_safely():
     assert "(No answer text.)" in report
 
 
-def test_main_writes_default_report_under_prompt_reports(tmp_path, monkeypatch, capsys):
+def test_main_writes_default_report_under_outputs_prompt_reports(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     a = write(tmp_path / "a.txt", "Prompt A\n")
     b = write(tmp_path / "b.txt", "Prompt B\n")
@@ -152,9 +152,9 @@ def test_main_writes_default_report_under_prompt_reports(tmp_path, monkeypatch, 
 
     monkeypatch.setattr(compare, "OllamaClient", factory)
     assert compare.main([a, b, "--model", "m", "--questions", questions]) == 0
-    reports = list((tmp_path / "prompt-reports").glob("compare-*.md"))
+    reports = list((tmp_path / "outputs" / "prompt-reports").glob("compare-*.md"))
     assert len(reports) == 1
-    assert str(Path("prompt-reports") / reports[0].name) in capsys.readouterr().out
+    assert str(Path("outputs/prompt-reports") / reports[0].name) in capsys.readouterr().out
     assert created == [("http://localhost:11434", 60.0, None)]
 
 
@@ -188,4 +188,4 @@ def test_main_exit_2_on_bad_input(tmp_path, monkeypatch, case):
     with pytest.raises(SystemExit) as exit_info:
         compare.main(argv)
     assert exit_info.value.code == 2
-    assert not (tmp_path / "prompt-reports").exists()
+    assert not (tmp_path / "outputs" / "prompt-reports").exists()

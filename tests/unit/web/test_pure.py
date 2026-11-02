@@ -113,7 +113,7 @@ def test_flags_beat_the_environment_and_defaults_apply(monkeypatch):
     settings = Settings(_env_file=None)
     args = parser(settings).parse_args(["m", "--operation-timeout", "5", "--port", "0"])
     cfg = resolve(args, settings, env={}, dotenv=set())
-    assert (cfg.operation_timeout, cfg.db_path, cfg.bind) == (5.0, "sensai.sqlite3", "127.0.0.1")
+    assert (cfg.operation_timeout, cfg.db_path, cfg.bind) == (5.0, "outputs/sensai.sqlite3", "127.0.0.1")
     assert cfg.effective["turn_budget"] == {"value": 5.0, "source": "cli"}
 
 

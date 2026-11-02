@@ -33,24 +33,24 @@ class Settings(BaseSettings):
     # Semantic cache (A6): off unless SENSAI_CACHE=1; a session's first question may be answered from it.
     cache: bool = Field(False, validation_alias="SENSAI_CACHE")
     cache_threshold: float = Field(0.92, gt=0, le=1, validation_alias="SENSAI_CACHE_THRESHOLD")
-    cache_path: str = Field("sensai-cache.sqlite3", validation_alias="SENSAI_CACHE_FILE")
+    cache_path: str = Field("outputs/sensai-cache.sqlite3", validation_alias="SENSAI_CACHE_FILE")
     examples: bool = Field(False, validation_alias="SENSAI_EXAMPLES")
     # EV3: one JSON line per model call (empty to turn it off); plain text, git-ignored.
-    log_path: str = Field("sensai-log.jsonl", validation_alias="SENSAI_LOG")
+    log_path: str = Field("outputs/sensai-log.jsonl", validation_alias="SENSAI_LOG")
     # X3 public links: the pages /share writes, the port `python -m sensai.release.share` serves them on, and the host
     # shown in links (unset: this computer's local network address).
-    shares_dir: str = Field("shares", validation_alias="SENSAI_SHARES_DIR")
+    shares_dir: str = Field("outputs/shares", validation_alias="SENSAI_SHARES_DIR")
     share_port: int = Field(8766, gt=0, lt=65536, validation_alias="SENSAI_SHARE_PORT")
     share_host: str | None = Field(None, validation_alias="SENSAI_SHARE_HOST")  # A7: picked few-shot examples per request
     # Document search mode: advanced (filter, model rerank, drop weak matches; R2) or basic (closest chunks; R1).
     rag_mode: str = Field("advanced", pattern="^(advanced|basic)$", validation_alias="SENSAI_RAG")
     # Guardrails (EV2): extra rules, and the brand file whose approved claims replies may use.
-    campaigns_dir: str = Field("campaigns", validation_alias="SENSAI_CAMPAIGNS_DIR")  # The weekly documents (M4).
-    exports_dir: str = Field("exports", validation_alias="SENSAI_EXPORTS_DIR")  # Private JSON/Markdown exports (X3).
+    campaigns_dir: str = Field("outputs/campaigns", validation_alias="SENSAI_CAMPAIGNS_DIR")  # The weekly documents (M4).
+    exports_dir: str = Field("outputs/exports", validation_alias="SENSAI_EXPORTS_DIR")  # Private JSON/Markdown exports (X3).
     # Scheduling (X5): the tasks file the web page runs (unset: schedule.local.json if it exists) and the drafts folder.
     schedule_file: str | None = Field(default_factory=lambda: "schedule.local.json" if os.path.isfile("schedule.local.json") else None,
                                       validation_alias="SENSAI_SCHEDULE_FILE")
-    drafts_dir: str = Field("drafts", validation_alias="SENSAI_DRAFTS_DIR")
+    drafts_dir: str = Field("outputs/drafts", validation_alias="SENSAI_DRAFTS_DIR")
     # Web search (T3): brave (needs the key), duckduckgo (no key) or off; default brave when a key is set.
     search_provider: str | None = Field(None, validation_alias="SENSAI_SEARCH_PROVIDER")
     search_api_key: str | None = Field(None, validation_alias="SENSAI_SEARCH_API_KEY")

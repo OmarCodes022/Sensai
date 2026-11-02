@@ -5,7 +5,7 @@ from datetime import date, datetime, timedelta, timezone
 
 from sensai.campaign.models import Campaign
 
-DEFAULT_DIR = "campaigns"
+DEFAULT_DIR = "outputs/campaigns"
 
 
 class CampaignError(ValueError):
