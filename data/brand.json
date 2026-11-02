@@ -46,6 +46,85 @@
                     "approved": false
                 }
             ]
+        },
+        {
+            "id": "P03",
+            "name": "Velvet Cleansing Balm",
+            "claims": [{
+                    "id": "C05",
+                    "text": "Removes long-wear makeup in one step",
+                    "source": "internal lab test v1.1",
+                    "valid_from": "2026-03-01",
+                    "valid_until": "2027-09-01",
+                    "approved": true
+                }
+            ]
+        },
+        {
+            "id": "P04",
+            "name": "Dew Veil SPF 50",
+            "claims": [{
+                    "id": "C06",
+                    "text": "Broad-spectrum SPF 50 protection",
+                    "source": "ISO 24444 test report 2026",
+                    "valid_from": "2026-04-01",
+                    "valid_until": "2028-04-01",
+                    "approved": true
+                },
+                {
+                    "id": "C07",
+                    "text": "Water-resistant for 80 minutes",
+                    "source": "external lab test 2024",
+                    "valid_until": "2026-03-01",
+                    "approved": false
+                }
+            ]
+        },
+        {
+            "id": "P05",
+            "name": "Rose Mist Toner",
+            "claims": [{
+                    "id": "C08",
+                    "text": "Refreshes skin instantly",
+                    "source": "consumer panel v1.0",
+                    "valid_from": "2026-02-01",
+                    "valid_until": "2027-08-01",
+                    "approved": true
+                }
+            ]
+        },
+        {
+            "id": "P06",
+            "name": "Night Renew Oil",
+            "claims": [{
+                    "id": "C09",
+                    "text": "Skin feels softer after 2 weeks",
+                    "source": "consumer panel v2.0",
+                    "valid_from": "2026-05-01",
+                    "valid_until": "2027-11-01",
+                    "approved": true
+                },
+                {
+                    "id": "C10",
+                    "text": "Erases wrinkles",
+                    "source": null,
+                    "valid_until": null,
+                    "approved": false
+                }
+            ]
+        },
+        {
+            "id": "P07",
+            "name": "Soft Focus Eye Cream",
+            "claims": [{
+                    "id": "C11",
+                    "text": "Visibly reduces puffiness in 7 days",
+                    "source": "internal lab test v1.3",
+                    "valid_from": "2026-06-01",
+                    "valid_until": "2027-12-01",
+                    "approved": true
+                }
+            ]
         }
     ]
 }
