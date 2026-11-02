@@ -1033,5 +1033,5 @@
  "share.links": "Shared links",
  "share.remove": "Remove",
  "share.removed": "The link now answers 404.",
- "share.serve": "Links work while python -m sensai.share runs (port {port}), for devices on the same network."
+ "share.serve": "Links work while python -m sensai.release.share runs (port {port}), for devices on the same network."
 }

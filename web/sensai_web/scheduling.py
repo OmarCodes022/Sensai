@@ -4,7 +4,7 @@ import threading
 from datetime import datetime
 
 from sensai.chat.saved_sessions import profile_block
-from sensai.schedule import Scheduler, brand_block, load_tasks, make_runner
+from sensai.release.schedule import Scheduler, brand_block, load_tasks, make_runner
 from sensai_web.errors import ApiError
 
 

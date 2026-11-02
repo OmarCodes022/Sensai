@@ -22,7 +22,7 @@ from sensai.cli.team import team_command
 from sensai.cli.cache import answer_from_cache, remember, use_examples
 from sensai.cli.usage import log_turn, tool_entry
 from sensai.cli.share_commands import share_command, unshare_command
-from sensai.share import Shares
+from sensai.release.share import Shares
 from sensai import usage_log
 from sensai.memory.semantic_cache import SemanticCache, scope as cache_scope_of
 from sensai.chat.examples import ExamplePicker
@@ -39,7 +39,7 @@ from sensai.campaign.edits import editable as campaign_editable
 from sensai.guardrails.rules import Claims
 from sensai.llm.structured import StructuredOutputError
 from sensai.chat.blocks import split_block
-from sensai.export import Exporter, ExportRefused
+from sensai.release.export import Exporter, ExportRefused
 from sensai.rag.advanced import DocSearch, make_ranker
 from sensai.search import WEB_SEARCH, SearchError, WebSearch, numbered, provider_for, search
 from sensai.chat.questions import ASK_USER, TerminalForm

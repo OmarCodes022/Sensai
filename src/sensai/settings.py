@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     examples: bool = Field(False, validation_alias="SENSAI_EXAMPLES")
     # EV3: one JSON line per model call (empty to turn it off); plain text, git-ignored.
     log_path: str = Field("sensai-log.jsonl", validation_alias="SENSAI_LOG")
-    # X3 public links: the pages /share writes, the port `python -m sensai.share` serves them on, and the host
+    # X3 public links: the pages /share writes, the port `python -m sensai.release.share` serves them on, and the host
     # shown in links (unset: this computer's local network address).
     shares_dir: str = Field("shares", validation_alias="SENSAI_SHARES_DIR")
     share_port: int = Field(8766, gt=0, lt=65536, validation_alias="SENSAI_SHARE_PORT")

@@ -8,7 +8,7 @@ import pytest
 from sensai.campaign import CampaignStore, apply, plan
 from sensai.campaign.models import EntryEdit, PostEdit
 from sensai.core.messages import Message
-from sensai.export import Exporter, ExportRefused
+from sensai.release.export import Exporter, ExportRefused
 from sensai.guardrails import load_guardrail
 
 BRAND = str(Path(__file__).parents[2] / "fixtures" / "brand.json")

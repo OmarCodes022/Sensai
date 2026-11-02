@@ -1,6 +1,6 @@
 """Scheduling (X5): recurring requests from a JSON file, each answer saved as a dated draft; nothing is sent.
 
-    python -m sensai.schedule schedule.local.json
+    python -m sensai.release.schedule schedule.local.json
 
 Each task runs when the scheduler starts, then every `every_minutes`. A run is one chat request
 with the shared prompt, the brand's products and approved claims, and the task's persona, under the usual time limit; the reply goes through
@@ -173,7 +173,7 @@ def main(argv: list[str] | None = None) -> int:
 
     argv = sys.argv[1:] if argv is None else argv
     if len(argv) != 1:
-        print("usage: python -m sensai.schedule <tasks.json>")
+        print("usage: python -m sensai.release.schedule <tasks.json>")
         return 2
     settings = Settings()
     if not settings.model:
