@@ -379,7 +379,16 @@ class DocLibrary:
         return name, self.put(name, text)
 
     def read(self, name: object) -> dict:
-        """One document as it is on disk, with what the index knows about it (when indexed)."""
+        """One document as it is on disk, with what the index knows about it (when indexed).
+
+        dms.json shows what is indexed (the privacy-filtered questions), which is what the model can see.
+        """
+        if name == INBOX and self._inbox is not None and os.path.isfile(self._inbox[0]):
+            text = inbox_document(*self._inbox)
+            with self._lock:
+                doc = self._docs.get(name)
+            return {"name": name, "bytes": len(text.encode("utf-8")), "text": text,
+                    **({k: doc[k] for k in ("source", "version", "product", "title", "chunks")} if doc else {})}
         name = self.check_name(name)
         target = os.path.join(self.folder or DEFAULT_FOLDER, name)
         if not self.enabled or os.path.islink(target) or not os.path.isfile(target):

@@ -84,6 +84,7 @@ export function mount(root, { api }) {
   }
 
   function removeButton(name) {
+    if (name === 'dms.json') return null;  // The DMs come from data/dms.json, privacy-filtered: nothing to remove here.
     let armed = false, timer2 = null;
     const remove = iconButton('trash', t('documents.remove', { name }), { variant: 'ghost', size: 'sm' });
     const sure = button(t('documents.sure'), { variant: 'danger', size: 'sm', hidden: true });

@@ -62,3 +62,13 @@ def test_questions_come_in_blocks_of_ten_so_a_short_inbox_is_one_result(tmp_path
     parts = text.split("---\n\n", 1)[1].split("\n\n")
     assert [p.count("\n- ") for p in parts[:2]] == [10, 2]
     assert parts[2:] == [f"Customer question received by DM: Question number {n} about the serum?" for n in range(12)]
+
+
+def test_the_inbox_preview_shows_what_is_indexed_not_the_raw_file(tmp_path):
+    shutil.copytree(FIXTURES / "docs", tmp_path / "docs")
+    library = DocLibrary(str(tmp_path / "docs"), BagOfWordsEmbedding(), "default", cache_path=str(tmp_path / "s.db"))
+    library.add_inbox(str(inbox(tmp_path)), load_guardrail(None, None))
+    library.sync(wait=True)
+    shown = library.read("dms.json")
+    assert shown["source"] == "customer-dms" and "Does the serum work on dry skin?" in shown["text"]
+    assert "emma" not in shown["text"].lower() and "DM01" not in shown["text"]
