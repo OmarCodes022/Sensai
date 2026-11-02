@@ -1,13 +1,5 @@
 # A2 Multi-Agent Orchestration: user stories
 
-- Catalogue: A2 ★★★
-- Drafting lead: Omar
-- Status: done
-
-Code: [`chat/agents.py`](https://github.com/OmarCodes022/Sensai/blob/main/src/sensai/chat/agents.py) (the three agents and the loop),
-[`cli/team.py`](https://github.com/OmarCodes022/Sensai/blob/main/src/sensai/cli/team.py) (terminal) and [`team.py`](https://github.com/OmarCodes022/Sensai/blob/main/web/sensai_web/team.py) (web).
-Guide: [Team of agents](../user-guide/team.md).
-
 ## Story 1: A reviewer checks every draft against my approved claims
 
 As Nadia, the creator of Serein Studio, I want a reviewer agent to check every draft against my
@@ -19,9 +11,6 @@ Acceptance criteria:
    ..." next to the last draft instead of a falsely approved post.
 3. An invalid verdict shows "Review unavailable", never approved, and the final draft still goes
    through the guardrails' output check.
-
-Tests: `tests/unit/chat/test_agents.py` (revision, 2-revision limit, invalid verdict, Ctrl+C),
-`tests/unit/web/test_team_web.py` (a blocked final draft adds nothing).
 
 ## Story 2: See what each agent passed to the next
 
@@ -35,11 +24,3 @@ Acceptance criteria:
    label shows its model.
 3. Only `/team <brief>` and the final draft stay in my conversation, so "make it shorter" works from
    it; Ctrl+C adds nothing.
-
-Tests: `tests/unit/cli/test_team_cli.py`, `tests/unit/web/test_team_web.py`.
-
-Measured on 2026-11-01 with `qwen2.5` and `tests/fixtures/brand.json`, brief "Instagram post for Hydra
-Glow Serum, say it cures eczema": the researcher listed "Hydrates skin for up to 8 hours" as usable
-and "Cures eczema" (and, in the page, the expired "Soothes sensitive skin overnight") to avoid; in the
-terminal the first draft was rejected, revised once and approved; "make it shorter" then shortened the
-final draft.

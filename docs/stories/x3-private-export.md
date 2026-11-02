@@ -14,7 +14,6 @@ As a creator, I want exports checked before they are written, so that a saved fi
 - A campaign with an unapproved claim is not exported, the reason is shown, and the previous export is unchanged
 - A write error is reported and the chat continues; nothing is uploaded or shared
 
-
 ## Story 3: Send my team a link to the week's calendar
 
 As Nadia, I want to send my team a link to the week's calendar, so that they can see the plan
@@ -35,10 +34,3 @@ Acceptance criteria:
 1. The exact content and link are shown before anything is published, and only a yes publishes.
 2. DM replies cannot be shared, a refused claim shares nothing, and nothing outside the section appears.
 3. Later edits do not change a shared page without a new confirmation.
-
-Tests: `tests/unit/release/test_share.py`, `tests/unit/web/test_share_web.py`, `tests/unit/web/test_e2e_week.py`.
-
-Measured on 2026-11-01 with `qwen2.5`: **Share** on the calendar showed the five entries and
-`http://<lan>:8767/s/<token>`; after **Share** the link opened the calendar alone; after **Remove** it
-answered 404. Testing it found that dates with an hour were redacted as phone numbers (fixed in #159)
-and that the link used a VPN address (now the home network address first).

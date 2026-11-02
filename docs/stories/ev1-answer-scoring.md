@@ -1,14 +1,5 @@
 # EV1 Automated Eval & Hallucination Detection: user stories
 
-- Catalogue: EV1 ★★★
-- Drafting lead: Omar
-- Status: done
-
-Code: [`judge.py`](https://github.com/OmarCodes022/Sensai/blob/main/src/sensai/quality/judge.py) (the judge and its schema),
-[`evals/faithfulness/run.py`](https://github.com/OmarCodes022/Sensai/blob/main/evals/faithfulness/run.py) (the evaluation) and
-[`evaluation.py`](https://github.com/OmarCodes022/Sensai/blob/main/web/sensai_web/evaluation.py) with the web Safety page.
-Results: [evals/faithfulness/README.md](https://github.com/OmarCodes022/Sensai/blob/main/evals/faithfulness/README.md).
-
 ## Story 1: Know whether a change made Sensai better or worse
 
 As a developer working on Sensai, I want one command that scores answers for relevance,
@@ -23,8 +14,6 @@ Acceptance criteria:
    Ollama stopped the script prints a clear message, no traceback.
 3. `--compare v1 v2` prints both versions side by side; the web Safety page lists the saved runs.
 
-Tests: `tests/unit/quality/test_judge.py` (schema, not judged, compare), `tests/unit/web/test_evaluation_web.py`.
-
 ## Story 2: No invented or outdated claim ends up in a post
 
 As Nadia, the creator of Serein Studio, I want answers checked for claims my documents do not
@@ -37,8 +26,3 @@ Acceptance criteria:
    README records the misses and false alarms on correct answers.
 3. On the web Safety page, **Check an answer** judges any pasted answer against what document search
    finds for its question.
-
-Measured on 2026-11-01 with `qwen2.5` as judge: the planted check flagged 3 of 3 wrong answers with
-0 false alarms on 3 correct ones. In the page, "Yes! Calm Barrier Cream cures eczema in 4 weeks and it
-is fragrance-free." was split into "cures eczema in 4 weeks" (contradicted, calm-barrier-cream) and
-"It is fragrance-free" (supported).

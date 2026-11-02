@@ -1,13 +1,5 @@
 # Weekly run: user stories
 
-- Catalogue: integrates T2, T3, T4, T5, M4 and A1 (one run, not a new feature score)
-- Drafting lead: Omar
-- Status: done
-
-Code: [`weekly/`](https://github.com/OmarCodes022/Sensai/tree/main/src/sensai/weekly/) (inputs, outputs, run),
-[`cli/weekly.py`](https://github.com/OmarCodes022/Sensai/blob/main/src/sensai/cli/weekly.py) and [`weekly.py`](https://github.com/OmarCodes022/Sensai/blob/main/web/sensai_web/weekly.py) (web).
-Guide: [The weekly run](../user-guide/campaign.md#the-weekly-run).
-
 ## Story 1: Prepare the whole week in one go
 
 As Nadia, the creator of Serein Studio, I want one command to turn my brand file, my DMs and
@@ -23,9 +15,6 @@ Acceptance criteria:
    least 3 calendar entries in the following week, each linked to one of those posts.
 4. A missing file, a model failure or too few usable items fails only its own output.
 
-Tests: `tests/unit/weekly/test_weekly.py`, `tests/unit/cli/test_weekly_cli.py`,
-`tests/unit/web/test_weekly_web.py`.
-
 ## Story 2: Trust that nothing unsafe or private gets through
 
 As Nadia, I want DMs with personal or health details left out, and every generated text
@@ -39,7 +28,3 @@ Acceptance criteria:
 3. A text the guardrails refuse gets one rewrite, told why, then is left out with the reason.
 4. Approved sections are never changed, Ctrl+C or **Stop** saves nothing, and nothing is ever
    sent or published.
-
-Measured on 2026-11-01 with `qwen2.5` on `tests/fixtures` and in the page: all four outputs
-OK; DM02 (email) and DM03 (pregnancy) left out with their reasons and absent from the file;
-DM04 answered "...They are not medicines... it's always best to consult a dermatologist."
