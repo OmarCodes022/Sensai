@@ -112,7 +112,7 @@ docs/
 - **Change how a persona becomes instructions:** `src/sensai/chat/personas.py`.
 - **Add a tool:** a definition and a handler, registered in `_tools()` in
   `src/sensai/cli/main.py`; see [Extending](extending.md).
-- **Change the sandbox limits:** `SandboxLimits` in `src/sensai/sandbox.py`.
+- **Change the sandbox limits:** `SandboxLimits` in `src/sensai/tools/sandbox.py`.
 - **Add an in-chat command:** `repl()` in `src/sensai/cli/main.py`.
 - **Add an option or a setting:** `parse_args()` in `src/sensai/cli/main.py`,
   `src/sensai/settings.py` and `.env.example`.

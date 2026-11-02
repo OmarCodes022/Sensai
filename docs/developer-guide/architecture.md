@@ -12,7 +12,7 @@ runtime.
 | --- | --- |
 | `sensai.cli` | The `sensai` command: arguments, startup checks, the chat loop (`repl`), raw terminal input, the approval prompt |
 | `sensai.chat` | Conversation state: `ChatSession`, personas, system prompt, saved-session recording, the tool-block reader, the `/think` loop (`chat.reasoning`) |
-| `sensai.tools`, `sensai.sandbox` | Tool registry and tool loop, `calculate`, `run_python` |
+| `sensai.tools.registry`, `sensai.tools.sandbox` | Tool registry and tool loop, `calculate`, `run_python` |
 | `sensai.llm` | Ollama HTTP clients and wire format: the streaming chat client and the structured client that runs the `/think` check |
 | `sensai.memory` | SQLite storage of sessions and profiles |
 | `sensai.core` | Shared types: messages, errors, cancellation token, typed ports, process isolation |
