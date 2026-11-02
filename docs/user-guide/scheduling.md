@@ -5,8 +5,8 @@ saves each answer as a dated draft. Drafts are only written to disk: nothing is 
 sent.
 
 ```bash
-cp schedule.example.json schedule.local.json     # yours, not shared (gitignored)
-SENSAI_MODEL=qwen2.5 .venv/bin/python -m sensai.release.schedule schedule.local.json
+cp data/schedule.example.json data/schedule.json     # yours, not shared (gitignored)
+SENSAI_MODEL=qwen2.5 .venv/bin/python -m sensai.release.schedule data/schedule.json
 ```
 
 ```text
@@ -38,7 +38,7 @@ before anything runs.
 
 ## In the web interface
 
-When `schedule.local.json` exists (or `SENSAI_SCHEDULE_FILE` points to a file), `sensai-web`
+When `data/schedule.json` exists (or `SENSAI_SCHEDULE_FILE` points to a file), `sensai-web`
 runs the tasks in the background. The **Schedule** page lists each task with its interval, the
 time to its next run and its last result, a **Run now** button, and the drafts, which open in a
 viewer. `SENSAI_DRAFTS_DIR` changes the folder.

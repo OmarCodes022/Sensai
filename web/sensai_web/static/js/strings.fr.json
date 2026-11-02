@@ -925,7 +925,7 @@
  "schedule.runNow": "Exécuter maintenant",
  "schedule.saved": "{file} enregistré",
  "schedule.off": "La planification est désactivée",
- "schedule.offBody": "Copiez schedule.example.json vers schedule.local.json (ou définissez SENSAI_SCHEDULE_FILE), puis relancez Sensai.",
+ "schedule.offBody": "Copiez data/schedule.example.json vers data/schedule.json (ou définissez SENSAI_SCHEDULE_FILE), puis relancez Sensai.",
  "schedule.noDrafts": "Aucun brouillon pour l'instant.",
  "slash.compact": "Résumer les anciens messages maintenant",
  "context.title": "Contexte",

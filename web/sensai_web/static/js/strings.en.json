@@ -925,7 +925,7 @@
  "schedule.runNow": "Run now",
  "schedule.saved": "Saved {file}",
  "schedule.off": "Scheduling is off",
- "schedule.offBody": "Copy schedule.example.json to schedule.local.json (or set SENSAI_SCHEDULE_FILE), then restart Sensai.",
+ "schedule.offBody": "Copy data/schedule.example.json to data/schedule.json (or set SENSAI_SCHEDULE_FILE), then restart Sensai.",
  "schedule.noDrafts": "No drafts yet.",
  "slash.compact": "Summarize older messages now",
  "context.title": "Context",

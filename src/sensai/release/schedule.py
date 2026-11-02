@@ -1,6 +1,6 @@
 """Scheduling (X5): recurring requests from a JSON file, each answer saved as a dated draft; nothing is sent.
 
-    python -m sensai.release.schedule schedule.local.json
+    python -m sensai.release.schedule data/schedule.json
 
 Each task runs when the scheduler starts, then every `every_minutes`. A run is one chat request
 with the shared prompt, the brand's products and approved claims, and the task's persona, under the usual time limit; the reply goes through

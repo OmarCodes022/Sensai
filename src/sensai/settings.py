@@ -47,8 +47,8 @@ class Settings(BaseSettings):
     # Guardrails (EV2): extra rules, and the brand file whose approved claims replies may use.
     campaigns_dir: str = Field("outputs/campaigns", validation_alias="SENSAI_CAMPAIGNS_DIR")  # The weekly documents (M4).
     exports_dir: str = Field("outputs/exports", validation_alias="SENSAI_EXPORTS_DIR")  # Private JSON/Markdown exports (X3).
-    # Scheduling (X5): the tasks file the web page runs (unset: schedule.local.json if it exists) and the drafts folder.
-    schedule_file: str | None = Field(default_factory=lambda: "schedule.local.json" if os.path.isfile("schedule.local.json") else None,
+    # Scheduling (X5): the tasks file the web page runs (unset: data/schedule.json if it exists) and the drafts folder.
+    schedule_file: str | None = Field(default_factory=lambda: "data/schedule.json" if os.path.isfile("data/schedule.json") else None,
                                       validation_alias="SENSAI_SCHEDULE_FILE")
     drafts_dir: str = Field("outputs/drafts", validation_alias="SENSAI_DRAFTS_DIR")
     # Web search (T3): brave (needs the key), duckduckgo (no key) or off; default brave when a key is set.

@@ -26,7 +26,7 @@ def start(app, settings, client) -> Scheduler | None:
 
 def _scheduler(app) -> Scheduler:
     if app.scheduler is None:
-        raise ApiError(409, "schedule_off", "Scheduling is off: there is no schedule.local.json (or SENSAI_SCHEDULE_FILE).")
+        raise ApiError(409, "schedule_off", "Scheduling is off: there is no data/schedule.json (or SENSAI_SCHEDULE_FILE).")
     return app.scheduler
 
 
