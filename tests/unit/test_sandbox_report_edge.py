@@ -10,12 +10,12 @@ import pytest
 
 from permission_ports import AllowAll, Interrupting
 from sandbox_handlers import FAST
-from sensai import sandbox
+from sensai.tools import sandbox
 from sensai.cli.approval import sanitize
 from sensai.core.ports import PermissionDecision, ToolCall
-from sensai.sandbox import (FIX_IT, MODEL_CHARS, SandboxError, SandboxLimits, SandboxRun,
+from sensai.tools.sandbox import (FIX_IT, MODEL_CHARS, SandboxError, SandboxLimits, SandboxRun,
                             data_file_names, model_report, python_tool, report_summary, run_python)
-from sensai.tools import ToolRegistry
+from sensai.tools.registry import ToolRegistry
 
 LIST = "import os\nprint(sorted(n for n in os.listdir() if n != 'main.py'))"
 

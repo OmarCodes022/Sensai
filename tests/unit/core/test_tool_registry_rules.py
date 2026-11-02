@@ -6,7 +6,7 @@ import pytest
 
 from tool_handlers import exercise
 from sensai.core.ports import ToolCall, ToolDefinition, ToolResult
-from sensai.tools import ToolRegistry
+from sensai.tools.registry import ToolRegistry
 
 STRICT = {"type": "object", "properties": {"code": {"type": "string"}},
           "required": ["code"], "additionalProperties": False}

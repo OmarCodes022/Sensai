@@ -3,7 +3,7 @@ import os
 import re
 import tempfile
 
-from sensai.sandbox import SandboxLimits, _wanted
+from sensai.tools.sandbox import SandboxLimits, _wanted
 from sensai_web.errors import ApiError
 
 DEFAULT_DIR = "data"

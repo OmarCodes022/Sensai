@@ -20,7 +20,7 @@ from sensai.core.ports import PolicyDenied, PortError, Profile, SessionSnapshot
 from sensai.llm.ollama import OllamaClient
 from sensai.llm.structured import OllamaStructuredClient
 from sensai.memory.sqlite_store import StorageRepository
-from sensai.sandbox import RUN_PYTHON, SandboxError, data_file_names, data_prompt, remove_stale_folders
+from sensai.tools.sandbox import RUN_PYTHON, SandboxError, data_file_names, data_prompt, remove_stale_folders
 from sensai.settings import Settings
 from sensai.mcp.client import Catalogue as MCPCatalogue
 from sensai.llm.embeddings import OllamaEmbeddingAdapter
@@ -29,10 +29,10 @@ from sensai.campaign import CampaignStore
 from sensai.release.export import Exporter
 from sensai.chat.facts import DELETE_FACT, SAVE_FACT
 from sensai.chat.questions import ASK_USER
-from sensai.search import WEB_SEARCH
+from sensai.tools.search import WEB_SEARCH
 from sensai.security.file_tools import FILE_TOOLS, open_project
 from sensai.guardrails import GuardedClient, GuardrailConfigError, load_guardrail
-from sensai.tools import CALCULATE, tool_instructions
+from sensai.tools.registry import CALCULATE, tool_instructions
 from sensai_web import session_view
 from sensai_web.approvals import Approvals
 from sensai_web.catalogue import Catalogue

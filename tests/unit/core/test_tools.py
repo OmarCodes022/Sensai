@@ -17,7 +17,7 @@ from sensai.core import isolation
 from sensai.core.cancellation import CancellationToken, OperationCancelled, OperationTimedOut
 from sensai.core.errors import LLMError
 from sensai.core.ports import ApprovalDecision, ToolCall, ToolDefinition, ToolResult
-from sensai.tools import CALCULATE, ToolRegistry, calculate, parse_tool_call, run_with_tools, tool_instructions
+from sensai.tools.registry import CALCULATE, ToolRegistry, calculate, parse_tool_call, run_with_tools, tool_instructions
 
 
 def collect(stream):
@@ -372,7 +372,7 @@ def test_approval_prompt_escapes_surrogates_from_model_json():
 
 
 def test_the_tool_name_shorthand_is_read_as_a_tool_call():
-    from sensai.tools import normalize_tool_block
+    from sensai.tools.registry import normalize_tool_block
     assert normalize_tool_block({"calculate": {"expression": "1+1"}}, {"calculate"}) == \
         {"tool": "calculate", "arguments": {"expression": "1+1"}}
     for block in ({"other": {}}, {"calculate": "1+1"}, {"calculate": {}, "x": 1}, {"tool": "calculate"}, None, []):

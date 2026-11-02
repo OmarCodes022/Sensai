@@ -14,12 +14,12 @@ import time
 
 import pytest
 
-from sensai import sandbox
+from sensai.tools import sandbox
 from sensai.core.cancellation import CancellationToken, OperationCancelled, OperationTimedOut
 from sensai.core.ports import ToolCall, ToolResult
-from sensai.sandbox import (PREFIX, RUN_PYTHON, SandboxError, SandboxLimits, SandboxRun,
+from sensai.tools.sandbox import (PREFIX, RUN_PYTHON, SandboxError, SandboxLimits, SandboxRun,
                             format_run, python_tool, run_python)
-from sensai.tools import ToolRegistry
+from sensai.tools.registry import ToolRegistry
 
 FAST = SandboxLimits(wall_seconds=1.5)
 SRC = str(Path(sandbox.__file__).resolve().parents[1])
@@ -357,7 +357,7 @@ def wait_for(path, timeout=10):
 def test_sigterm_in_main_thread_cleans_up_then_terminates(tmp_path, temp_root):
     marker = tmp_path / "pids"
     host = run_host(tmp_path, f"""
-        from sensai.sandbox import run_python
+        from sensai.tools.sandbox import run_python
         run_python({spawner(marker)!r})
         """)
     wait_for(marker)
@@ -374,7 +374,7 @@ def test_sigterm_with_python_handler_cleans_up_and_cancels(tmp_path, temp_root):
     host = run_host(tmp_path, f"""
         import signal
         from sensai.core.cancellation import OperationCancelled
-        from sensai.sandbox import run_python
+        from sensai.tools.sandbox import run_python
         seen = []
         signal.signal(signal.SIGTERM, lambda *args: seen.append("term"))
         try:
@@ -393,7 +393,7 @@ def test_sigterm_with_python_handler_cleans_up_and_cancels(tmp_path, temp_root):
 def test_parent_death_kills_code_and_next_run_sweeps_its_folder(tmp_path, temp_root):
     marker = tmp_path / "pids"
     host = run_host(tmp_path, f"""
-        from sensai.sandbox import run_python
+        from sensai.tools.sandbox import run_python
         run_python({spawner(marker)!r})
         """)
     wait_for(marker)

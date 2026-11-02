@@ -14,64 +14,39 @@ This tree lists the tracked files that matter, with one line each.
 ├── .env.example            sample configuration to copy to .env
 ├── .gitignore
 ├── .github/workflows/      GitHub Actions workflows
-├── src/sensai/             the application
+├── src/sensai/             the assistant, shared by the terminal and the web page
+├── web/sensai_web/         the web server; static/js/ is the page
+├── data/                   the demo inputs: brand claims, DMs, engagement, docs/
 ├── tests/                  unit and integration tests
-├── evals/adversarial/      manual adversarial testing
+├── evals/                  keynote demo, answer scoring, prompt and search comparisons, adversarial
 └── docs/                   this documentation
 ```
 
 ## Application: `src/sensai/`
 
+One package per area; the terminal (`cli/`) and the web server call the same modules.
+
 ```text
 src/sensai/
-├── __init__.py            package marker
-├── __main__.py            entry point of python -m sensai
-├── settings.py            Settings read from environment variables and .env
-├── tools.py               ToolRegistry, the tool loop (run_with_tools) and the calculate tool
-├── sandbox.py             run_python: Python in a limited, throw-away process
-├── mcp_client.py          MCP stdio client and the tool catalogue read from mcp.json
-├── mcp_server.py          our MCP server: weekly_engagement over a CSV
-├── engagement_demo.csv    fictional figures the server reads by default
-├── telemetry.py           usage and event hooks; the CLI uses only new_operation_id
-├── chat/
-│   ├── __init__.py
-│   ├── session.py         ChatSession: history, streaming, rollback of incomplete turns
-│   ├── personas.py        PersonaRegistry: validates a catalogue, builds persona instructions
-│   ├── personas.json      the built-in personas: redaction, communaute, analyse
-│   ├── prompts.py         loads the system prompt file
-│   ├── system_prompt.txt  the default system prompt
-│   ├── saved_sessions.py  session IDs, profile file, titles, SessionRecorder
-│   ├── reasoning.py       /think: plan, act/observe, draft, check and revise loop with its budget
-│   └── blocks.py          BlockReader: hides the final JSON tool block while streaming
-├── cli/
-│   ├── __init__.py
-│   ├── main.py            the sensai command: arguments, startup checks, REPL, in-chat commands
-│   ├── terminal.py        raw POSIX terminal input, Ctrl+C and Esc detection, single-key reads
-│   ├── approval.py        TerminalApproval: the y/n/v prompt before run_python
-│   └── remote.py          sensai-remote: the same chat through an optional SSH tunnel
-├── core/
-│   ├── __init__.py
-│   ├── messages.py        Message: role and content
-│   ├── errors.py          SensaiError, LLMError, ModelNotFoundError, LLMConnectionError
-│   ├── cancellation.py    CancellationToken, OperationCancelled, OperationTimedOut
-│   ├── isolation.py       ControlledLLMClient, ControlledTool: work in killable child processes
-│   ├── ports.py           typed interfaces and values (personas, sessions, profiles, tools, approval)
-│   └── policy.py          privacy and product-claim policy records — not used by the CLI yet
-├── llm/
-│   ├── __init__.py        create_client()
-│   ├── client.py          LLMClient interface, close_stream()
-│   ├── ollama.py          OllamaClient: streaming /api/chat client
-│   ├── ollama_api.py      Ollama wire format and usage records
-│   ├── embeddings.py      Ollama embedding adapter — not used by the CLI yet
-│   └── structured.py      OllamaStructuredClient: JSON-schema replies, used by the /think check
-└── memory/
-    ├── __init__.py
-    ├── sqlite_store.py    StorageRepository: SQLite sessions, profiles, facts and migrations
-    └── vector_index.py    in-memory vector index — not used by the CLI yet
+├── __main__.py            python -m sensai
+├── settings.py            every SENSAI_* setting, from the environment and .env
+├── engagement_demo.csv    fictional figures the MCP server reads by default
+├── llm/                   Ollama over HTTP: chat stream, structured JSON, embeddings, the client factory
+├── chat/                  a turn: session, personas, prompts, saved sessions, context and summaries,
+│                          /think (reasoning.py), /team (agents.py), facts, ask_user, picked examples
+├── tools/                 registry.py (tool loop, calculator), sandbox.py (run_python), search.py (web)
+├── rag/                   basic.py (document library, search_docs), advanced.py (filter and rerank)
+├── guardrails/            rules.py (patterns and claims), client.py (wraps the model)
+├── campaign/              the weekly document: models, schema-forced edits, the store
+├── weekly/                the weekly run: inputs, the four outputs, run
+├── mcp/                   client.py (stdio client, trust, catalogue), server.py (sensai's own server)
+├── security/              filesystem.py (allow and deny rules), file_tools.py (read, write, create)
+├── release/               export.py, share.py (public links), schedule.py (drafts on a timer)
+├── quality/               judge.py (EV1), usage_log.py (EV3), prompt_versions.py (A4), telemetry.py
+├── memory/                sqlite_store.py (sessions, profiles, facts), vector_index.py, semantic_cache.py
+├── core/                  messages, errors, cancellation, killable child processes, ports
+└── cli/                   main.py (the sensai command and slash commands), one file per command group
 ```
-
-`core/ports.py` also defines file and permission ports that are not used by
-the CLI yet.
 
 ## Tests and evaluation
 
@@ -83,7 +58,7 @@ tests/
 │   ├── port_assertions.py reusable checks for port implementations
 │   ├── tool_handlers.py   importable handlers for spawned-tool tests
 │   └── sandbox_handlers.py run_python with small limits
-├── unit/                  offline tests: one folder per package, plus the top-level modules
+├── unit/                  offline tests, one folder per package
 │   └── conftest.py        keeps test databases in a temp folder and skips title requests
 └── integration/           live tests against Ollama, skipped when it is not available
 
@@ -112,7 +87,7 @@ docs/
 - **Change how a persona becomes instructions:** `src/sensai/chat/personas.py`.
 - **Add a tool:** a definition and a handler, registered in `_tools()` in
   `src/sensai/cli/main.py`; see [Extending](extending.md).
-- **Change the sandbox limits:** `SandboxLimits` in `src/sensai/sandbox.py`.
+- **Change the sandbox limits:** `SandboxLimits` in `src/sensai/tools/sandbox.py`.
 - **Add an in-chat command:** `repl()` in `src/sensai/cli/main.py`.
 - **Add an option or a setting:** `parse_args()` in `src/sensai/cli/main.py`,
   `src/sensai/settings.py` and `.env.example`.

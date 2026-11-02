@@ -2,7 +2,7 @@
 import pytest
 
 from fakes import FakeClient, scripted_terminal
-from sensai import search
+from sensai.tools import search
 from sensai.cli import main as cli
 from search_fakes import DUCK, Response
 

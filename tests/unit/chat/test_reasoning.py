@@ -9,7 +9,7 @@ from sensai.core.cancellation import CancellationToken, OperationCancelled
 from sensai.core.errors import LLMError
 from sensai.core.ports import ToolDefinition, ToolResult
 from sensai.llm.structured import StructuredOutputError
-from sensai.tools import CALCULATE, ToolRegistry, calculate, tool_instructions
+from sensai.tools.registry import CALCULATE, ToolRegistry, calculate, tool_instructions
 
 RATE = '{"tool":"calculate","arguments":{"expression":"630 / 4200 * 100"}}'
 LOOKUP = '{"tool":"lookup","arguments":{}}'

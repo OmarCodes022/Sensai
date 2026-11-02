@@ -14,7 +14,7 @@ import pytest
 from sensai.core.ports import ToolCall, ToolDefinition
 from sensai.core.cancellation import CancellationToken, OperationCancelled
 from sensai.mcp.client import EXAMPLE_CONFIG, GUIDE_URL, Catalogue, Server, exchange
-from sensai.tools import ToolRegistry
+from sensai.tools.registry import ToolRegistry
 from .web.conftest import web
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -319,7 +319,7 @@ def test_web_reload_discovers_outside_the_app_lock(web, tmp_path):
 
 
 def test_web_registry_lists_tools_in_prompt_order_with_documents(web, tmp_path):
-    from sensai.tools import tool_instructions
+    from sensai.tools.registry import tool_instructions
     from sensai_web.tools import ObservedRegistry
 
     config(tmp_path / "mcp.json")

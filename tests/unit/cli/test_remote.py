@@ -13,12 +13,12 @@ from sensai.chat import saved_sessions
 from sensai.cli import remote
 from sensai.chat.personas import PersonaRegistry
 from sensai.settings import Settings
-from sensai.sandbox import RUN_PYTHON
-from sensai.tools import CALCULATE, tool_instructions
+from sensai.tools.sandbox import RUN_PYTHON
+from sensai.tools.registry import CALCULATE, tool_instructions
 from sensai.memory.sqlite_store import StorageRepository
 from sensai.chat.facts import DELETE_FACT, SAVE_FACT
 from sensai.chat.questions import ASK_USER
-from sensai.search import WEB_SEARCH
+from sensai.tools.search import WEB_SEARCH
 
 TOOLS = "\n\n" + tool_instructions([CALCULATE, RUN_PYTHON, SAVE_FACT, DELETE_FACT, ASK_USER, WEB_SEARCH])
 

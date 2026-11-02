@@ -29,7 +29,7 @@ from sensai.llm.ollama import OllamaClient  # noqa: E402
 from sensai.llm.structured import OllamaStructuredClient  # noqa: E402
 from sensai.rag.basic import DOCS_PROMPT, SEARCH_DOCS, DocLibrary, search_with_hits  # noqa: E402
 from sensai.rag.advanced import advanced_search, make_ranker  # noqa: E402
-from sensai.tools import ToolRegistry, run_with_tools, tool_instructions  # noqa: E402
+from sensai.tools.registry import ToolRegistry, run_with_tools, tool_instructions  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 DOCS = ROOT / "tests" / "fixtures" / "docs"

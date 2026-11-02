@@ -6,11 +6,11 @@ from time import monotonic
 
 import pytest
 
-from sensai import sandbox
+from sensai.tools import sandbox
 from sensai.cli import main as cli
 from sensai.core.cancellation import CancellationToken
 from sensai.core.ports import PermissionDecision
-from sensai.sandbox import FIX_IT, SandboxLimits, data_file_names, data_prompt, python_tool, run_python
+from sensai.tools.sandbox import FIX_IT, SandboxLimits, data_file_names, data_prompt, python_tool, run_python
 
 
 @pytest.fixture(autouse=True)

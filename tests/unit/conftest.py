@@ -68,7 +68,7 @@ def no_usage_log(monkeypatch):
 def no_web(monkeypatch):
     """Unit tests never reach the internet: a web search sees a network error unless a test fakes it."""
     import requests
-    from sensai import search
+    from sensai.tools import search
 
     def offline(*args, **kwargs):
         raise requests.ConnectionError("network disabled in unit tests")

@@ -9,11 +9,11 @@ import tempfile
 import pytest
 
 from sandbox_handlers import FAST, RefuseNames
-from sensai import sandbox
+from sensai.tools import sandbox
 from sensai.core.ports import PermissionDecision, PermissionRequest, ToolCall
-from sensai.sandbox import (FIX_IT, MODEL_CHARS, SandboxError, SandboxRun, data_file_names,
+from sensai.tools.sandbox import (FIX_IT, MODEL_CHARS, SandboxError, SandboxRun, data_file_names,
                             format_run, model_report, python_tool, report_summary, run_python)
-from sensai.tools import ToolRegistry
+from sensai.tools.registry import ToolRegistry
 
 
 @pytest.fixture(autouse=True)

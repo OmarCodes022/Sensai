@@ -5,7 +5,7 @@ Neither needs a change to the chat loop.
 
 ## How the model calls a tool
 
-The CLI appends `tool_instructions()` (`src/sensai/tools.py`) to the system
+The CLI appends `tool_instructions()` (`src/sensai/tools/registry.py`) to the system
 prompt: the tools as JSON (name, description, parameters) and how to call
 them. To use a tool, the model ends its reply with one JSON object at column
 zero, on its own line:

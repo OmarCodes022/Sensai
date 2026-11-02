@@ -7,8 +7,8 @@ from sensai.chat import saved_sessions
 from sensai.chat.saved_sessions import user_messages
 from sensai.core.cancellation import CancellationToken, OperationCancelled, OperationTimedOut
 from sensai.core.errors import GuardrailRefused, LLMError, SensaiError
-from sensai.sandbox import remove_stale_folders
-from sensai.tools import run_with_tools
+from sensai.tools.sandbox import remove_stale_folders
+from sensai.tools.registry import run_with_tools
 from sensai_web.app import ActiveSession, WebApp, now
 from sensai_web.approvals import WebApproval
 from sensai.quality import usage_log

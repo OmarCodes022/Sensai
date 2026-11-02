@@ -13,11 +13,11 @@ import time
 
 import pytest
 
-from sensai import sandbox
+from sensai.tools import sandbox
 from sensai.core.cancellation import CancellationToken, OperationCancelled
 from sensai.core.ports import ToolCall
-from sensai.sandbox import PREFIX, RUN_PYTHON, SandboxLimits, format_run, python_tool, run_python
-from sensai.tools import ToolRegistry
+from sensai.tools.sandbox import PREFIX, RUN_PYTHON, SandboxLimits, format_run, python_tool, run_python
+from sensai.tools.registry import ToolRegistry
 
 FAST = SandboxLimits(wall_seconds=1.5)
 LINUX = sys.platform.startswith("linux")

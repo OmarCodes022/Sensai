@@ -7,7 +7,7 @@ from sensai.core.cancellation import CancellationToken, OperationCancelled, Oper
 from sensai.core.errors import GuardrailRefused, LLMError, SensaiError
 from sensai.core.messages import Message
 from sensai.chat.saved_sessions import user_messages
-from sensai.sandbox import remove_stale_folders
+from sensai.tools.sandbox import remove_stale_folders
 from sensai_web.app import ActiveSession, WebApp, now
 from sensai_web.approvals import WebApproval
 from sensai_web.errors import llm_failure

@@ -11,7 +11,7 @@ from sensai.cli import main as cli
 from sensai.core.cancellation import OperationCancelled, OperationTimedOut
 from sensai.core.errors import LLMError
 from sensai.core.ports import ToolDefinition, ToolResult
-from sensai.tools import ToolRegistry
+from sensai.tools.registry import ToolRegistry
 
 pytestmark = pytest.mark.usefixtures("isolated_settings")
 LOOKUP = '{"tool":"lookup","arguments":{"q":"rate"}}'

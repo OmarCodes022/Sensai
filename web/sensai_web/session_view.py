@@ -5,8 +5,8 @@ from collections.abc import Mapping, Sequence
 from sensai.chat.blocks import split_block
 from sensai.chat.saved_sessions import TOOL_PROTOCOL_PREFIXES, user_messages
 from sensai.core.messages import Message
-from sensai.tools import normalize_tool_block
-from sensai.sandbox import FIX_IT, RUN_PYTHON
+from sensai.tools.registry import normalize_tool_block
+from sensai.tools.sandbox import FIX_IT, RUN_PYTHON
 
 HISTORY_WIDTH = 100
 TOOL_NAMES = {"calculate", "run_python", "search_docs", "save_fact", "delete_fact"}  # Shorthand blocks of these are tool calls.

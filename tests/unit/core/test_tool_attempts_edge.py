@@ -8,7 +8,7 @@ from fakes import FakeClient
 from sensai.chat import saved_sessions
 from sensai.chat.session import ChatSession
 from sensai.core.ports import ApprovalDecision, ToolDefinition, ToolResult
-from sensai.tools import CALCULATE, ToolRegistry, calculate, run_with_tools
+from sensai.tools.registry import CALCULATE, ToolRegistry, calculate, run_with_tools
 
 PROBE = ToolDefinition("probe", "Probe", {"type": "object", "properties": {"n": {"type": "integer"}},
                                           "required": ["n"], "additionalProperties": False})

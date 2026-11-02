@@ -5,7 +5,7 @@ import os
 import pytest
 
 from sensai.core.messages import Message
-from sensai.sandbox import FIX_IT
+from sensai.tools.sandbox import FIX_IT
 from sensai_web import session_view
 
 STOP = "Stopped after 3 attempts: answer with the last result or error, without calling run_python again."
@@ -239,7 +239,7 @@ def test_the_model_gets_the_end_of_stderr_and_the_page_keeps_all_of_it(web):
 
 
 def test_the_tools_list_and_the_chat_registry_share_one_limit(tmp_path):
-    from sensai.sandbox import PYTHON_ATTEMPTS
+    from sensai.tools.sandbox import PYTHON_ATTEMPTS
     from sensai_web.tools import ObservedRegistry, tool_list
 
     class Approval:
@@ -252,7 +252,7 @@ def test_the_tools_list_and_the_chat_registry_share_one_limit(tmp_path):
 
 
 def test_the_cli_uses_the_shared_constants_unchanged():
-    from sensai import sandbox
+    from sensai.tools import sandbox
     from sensai.cli import main as cli
     assert cli.PYTHON_ATTEMPTS is sandbox.PYTHON_ATTEMPTS == 3 and cli.data_prompt is sandbox.data_prompt
     assert not hasattr(cli, "_data_prompt")

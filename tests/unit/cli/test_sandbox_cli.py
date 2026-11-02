@@ -11,7 +11,7 @@ from fakes import FakeClient, scripted_terminal
 from sensai.chat.session import ChatSession
 from sensai.cli import main as cli
 from sensai.core.ports import ApprovalDecision
-from sensai.sandbox import FIX_IT, PREFIX
+from sensai.tools.sandbox import FIX_IT, PREFIX
 from sensai.settings import Settings
 
 pytestmark = pytest.mark.usefixtures("isolated_settings")

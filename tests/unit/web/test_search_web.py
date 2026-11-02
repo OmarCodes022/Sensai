@@ -1,6 +1,6 @@
 """Web search in the page: the model's search, the sources event, /api/search and switching it off."""
 from search_fakes import DUCK, Response
-from sensai import search
+from sensai.tools import search
 
 
 def test_the_model_searches_and_the_sources_follow_the_reply(web, monkeypatch):

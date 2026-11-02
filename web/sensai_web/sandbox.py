@@ -15,11 +15,11 @@ from functools import partial
 from sensai.core.cancellation import CancellationToken, OperationTimedOut
 from sensai.core.errors import SensaiError
 from sensai.core.ports import ToolCall, ToolResult
-from sensai.sandbox import (
+from sensai.tools.sandbox import (
     RUN_PYTHON, SandboxError, SandboxLimits, SandboxRun, _FILE_TOO_LARGE, _MB,
     format_run, model_report, run_python,
 )
-from sensai.tools import ToolRegistry
+from sensai.tools.registry import ToolRegistry
 from sensai_web.errors import ApiError
 
 MAX_CODE_BYTES = 1024 * 1024

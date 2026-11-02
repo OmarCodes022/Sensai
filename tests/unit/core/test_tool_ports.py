@@ -10,7 +10,7 @@ import pytest
 from sensai.chat.blocks import BlockReader, split_block
 from sensai.core.isolation import ControlledTool
 from sensai.core.ports import ApprovalPort, ToolCall, ToolDefinition, ToolPort, ToolResult
-from sensai.tools import (
+from sensai.tools.registry import (
     MAX_TOOL_CALLS,
     TOOL_TIMEOUT_SECONDS,
     ToolRegistry,
@@ -76,6 +76,6 @@ def test_registry_takes_optional_approval_port():
 
 
 def test_modules_import_without_loading_cli():
-    code = ("import sys, sensai.tools, sensai.chat.blocks; "
+    code = ("import sys, sensai.tools.registry, sensai.chat.blocks; "
             "assert not any(m.startswith('sensai.cli') for m in sys.modules)")
     subprocess.run([sys.executable, "-c", code], check=True)

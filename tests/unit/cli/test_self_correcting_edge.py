@@ -16,8 +16,8 @@ from sensai.chat.session import ChatSession
 from sensai.cli import main as cli
 from sensai.core.ports import ApprovalDecision, ToolResult
 from sensai.memory.sqlite_store import StorageRepository
-from sensai.sandbox import FIX_IT, PREFIX, RUN_PYTHON, SandboxRun, model_report
-from sensai.tools import ToolRegistry
+from sensai.tools.sandbox import FIX_IT, PREFIX, RUN_PYTHON, SandboxRun, model_report
+from sensai.tools.registry import ToolRegistry
 
 pytestmark = pytest.mark.usefixtures("isolated_settings")
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"

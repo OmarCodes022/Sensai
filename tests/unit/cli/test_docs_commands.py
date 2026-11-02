@@ -11,7 +11,7 @@ from sensai.chat.session import ChatSession
 from sensai.cli import main as cli
 from sensai.core.errors import ModelNotFoundError
 from sensai.rag.basic import DOCS_PROMPT, DocLibrary
-from sensai.tools import ToolRegistry
+from sensai.tools.registry import ToolRegistry
 
 pytestmark = pytest.mark.usefixtures("isolated_settings")
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures" / "docs"

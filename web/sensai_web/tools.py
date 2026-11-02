@@ -9,13 +9,13 @@ from time import monotonic
 from sensai.core.ports import ToolCall, ToolResult
 from sensai.rag.basic import SEARCH_DOCS, DocLibrary, search_with_hits
 from sensai.rag.advanced import advanced_search
-from sensai.sandbox import PYTHON_ATTEMPTS, RUN_PYTHON
+from sensai.tools.sandbox import PYTHON_ATTEMPTS, RUN_PYTHON
 from sensai.chat.facts import DELETE_FACT, SAVE_FACT, FactMemory
 from sensai.chat.questions import ASK_USER
 from sensai.mcp.client import TIMEOUT as MCP_TIMEOUT
-from sensai.search import WEB_SEARCH
+from sensai.tools.search import WEB_SEARCH
 from sensai.security.file_tools import FILE_TOOLS, FileTools
-from sensai.tools import CALCULATE, ToolRegistry, calculate
+from sensai.tools.registry import CALCULATE, ToolRegistry, calculate
 from sensai_web.approvals import WebApproval
 from sensai_web.sandbox import run_handler, take_record
 from sensai_web.session_view import for_page

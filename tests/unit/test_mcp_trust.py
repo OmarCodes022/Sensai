@@ -10,7 +10,7 @@ from fakes import FakeClient
 from sensai.chat.session import ChatSession
 from sensai.cli.main import repl
 from sensai.mcp.client import Catalogue
-from sensai.tools import ToolRegistry
+from sensai.tools.registry import ToolRegistry
 from .web.conftest import web
 
 PEER = Path(__file__).resolve().parents[1] / "helpers/mcp_acceptance_server.py"

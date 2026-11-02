@@ -1,8 +1,8 @@
 """Web search: the two providers, clear errors, numbered results and the tool's running source list."""
 import pytest
 
-from sensai import search
-from sensai.search import SearchError, WebSearch, provider_for
+from sensai.tools import search
+from sensai.tools.search import SearchError, WebSearch, provider_for
 from search_fakes import DUCK, Response
 
 def test_duckduckgo_results_are_parsed_and_unsafe_links_dropped(monkeypatch):

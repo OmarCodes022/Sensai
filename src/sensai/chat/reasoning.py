@@ -14,7 +14,7 @@ from sensai.core.messages import Message
 from sensai.core.ports import ToolCall, ToolResult
 from sensai.llm.client import close_stream
 from sensai.llm.structured import StructuredOutputError
-from sensai.tools import ToolObserver, ToolRegistry, run_with_tools, tool_instructions
+from sensai.tools.registry import ToolObserver, ToolRegistry, run_with_tools, tool_instructions
 
 SHOWN_LINES = 6
 SHOWN_CHARS = 500
