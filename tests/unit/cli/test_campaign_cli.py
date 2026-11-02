@@ -71,4 +71,4 @@ def test_invalid_edits_and_run_only_sections_change_nothing(monkeypatch, tmp_pat
          {"op": "add", "date": (coming_week()[1] + timedelta(days=2)).isoformat(), "time": "18:00", "post_id": "P9", "theme": "x"})
     out = capsys.readouterr().out
     assert "C02 is not approved" in out and "post P9 does not exist" in out and "filled only by the weekly run" in out
-    assert document(tmp_path)["sections"]["posts"]["items"] == []
+    assert not list((tmp_path / "campaigns").glob("*.json"))  # Every edit refused: no file is written.

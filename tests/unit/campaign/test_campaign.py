@@ -24,7 +24,7 @@ def claims():
 def test_a_new_document_is_the_coming_week_with_four_empty_sections(store):
     doc = store.latest()
     assert (doc.week, doc.start, doc.end) == ("2026-W45", "2026-11-02", "2026-11-08")
-    assert Path(store.path(doc.week)).exists() and store.latest() == doc
+    assert not Path(store.path(doc.week)).exists()  # Shown, not saved: only a real change writes the file.
     assert overview(doc)[1:5] == ["Posts (0)......... draft", "DM replies (0).... draft",
                                   "Report............ draft: no data yet", "Calendar (0)...... draft"]
 
