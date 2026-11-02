@@ -902,3 +902,22 @@ def test_the_shared_sample_profile_seeds_only_a_creator_without_one(tmp_path):
     saved_sessions.seed_profile(Profiles, sample)
     assert saved["default"].preferences == {"voice": "mine"}
     saved_sessions.seed_profile(Profiles, tmp_path / "missing.json")
+
+
+def test_terminal_turns_record_times_and_tokens_for_the_web_page(monkeypatch, tmp_path, ids):
+    from types import SimpleNamespace
+    from sensai.memory.turn_times import TurnTimes
+
+    class Counted(FakeClient):
+        def set_usage_sink(self, sink):
+            self.sink = sink
+
+        def stream(self, model, messages, cancellation=None):
+            yield from super().stream(model, messages, cancellation)
+            self.sink(SimpleNamespace(prompt_tokens=120, output_tokens=7, latency_ms=850.0))
+
+    ids.append("k7f2qa")
+    chat(monkeypatch, tmp_path, Counted(["One."], ["Two."]), ["Q1", "Q2", "exit"])
+    times = TurnTimes(str(tmp_path / "s.db"), "default")
+    assert sorted(times.load("k7f2qa")) == [1, 2]
+    assert times.usage("k7f2qa")[2] == {"prompt_tokens": 120, "output_tokens": 7, "latency_ms": 850, "server_duration_ms": None}

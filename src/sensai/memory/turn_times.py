@@ -1,8 +1,8 @@
 """When each turn started and finished, and the token counts Ollama reported for it.
 
-Session storage keeps messages without timestamps, so the web layer records its
-own in an extra table of the same database. Turns made in the terminal have no
-entry, and the page then simply shows no time for them.
+Session storage keeps messages without timestamps, so the terminal and the web page record
+them in an extra table of the same database (its name predates the terminal recording too).
+Turns from before that have no entry, and the page shows n/a for them.
 """
 import json
 import sqlite3

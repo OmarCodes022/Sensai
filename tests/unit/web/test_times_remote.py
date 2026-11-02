@@ -7,7 +7,7 @@ import pytest
 from sensai.cli.remote import RemoteError
 from sensai.core.messages import Message
 from sensai_web import cli, session_view
-from sensai_web.times import TurnTimes
+from sensai.memory.turn_times import TurnTimes
 
 
 def test_times_are_stored_per_creator_and_session(tmp_path):

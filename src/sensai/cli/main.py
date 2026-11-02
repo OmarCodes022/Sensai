@@ -20,7 +20,7 @@ from sensai.chat.context import ContextState, choose_window, loaded_window, olla
 from sensai.cli.context_commands import compact, summarize
 from sensai.cli.team import team_command
 from sensai.cli.cache import answer_from_cache, remember, use_examples
-from sensai.cli.usage import log_turn, tool_entry
+from sensai.cli.usage import log_turn, record_times, tool_entry
 from sensai.cli.share_commands import share_command, unshare_command
 from sensai.release.share import Shares
 from sensai.quality import usage_log
@@ -54,6 +54,7 @@ from sensai.chat.personas import PersonaRegistry
 from sensai.chat.session import ChatSession
 from sensai.settings import Settings
 from sensai.mcp.client import EXAMPLE_CONFIG, GUIDE_URL, Catalogue
+from sensai.memory.turn_times import TurnTimes
 from sensai.memory.sqlite_store import StorageError, StorageRepository
 from sensai.core.messages import Message
 from sensai.tools.sandbox import (PYTHON_ATTEMPTS, RUN_PYTHON, SandboxError, SandboxLimits, data_file_names,
@@ -379,7 +380,7 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
          doc_search: DocSearch | None = None, exporter: Exporter | None = None,
          mcp: Catalogue | None = None, context: ContextState | None = None, summary_client=None, probe=None,
          team_facts=lambda: "", cache=None, cache_scope=lambda: "", examples=None, meter=None,
-         shares=None) -> None:
+         shares=None, times=None) -> None:
     if base_prompt is None:
         base_prompt = session.messages[0].content
     if tool_registry is None:
@@ -645,6 +646,8 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
                     meter.reset()
                 done = _think(session, tool_registry, request, checker, step_token, write, recorder)
                 log_turn(session, f"/think {request}", done, None, [], meter, getattr(recorder, "persona_id", None))
+                if done:
+                    record_times(times, recorder, session, meter)
                 settle_facts(done)
             continue
         if command and command[0] == "/team":
@@ -660,6 +663,8 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
                     meter.reset()
                 done = team_command(session, brief, checker, team_facts(), guard, step_token, write, recorder)
                 log_turn(session, f"/team {brief}", done, None, [], meter, getattr(recorder, "persona_id", None))
+                if done:
+                    record_times(times, recorder, session, meter)
             continue
         original = branch = None
         if command and command[0] == "/edit":
@@ -781,6 +786,8 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
         if original is not None and not completed:
             session.messages[:] = original  # An interrupted or failed edit leaves the conversation as it was.
         if completed and branch is not None:
+            if times is not None:  # The branch keeps the times and counts of the turns before message N.
+                times.copy(recorder.session_id, branch.session_id, number - 1)
             recorder = branch
         if completed and context is not None:
             # Count before the title or summary requests report their own usage.
@@ -789,6 +796,7 @@ def repl(session: ChatSession, read: Callable[[str], str] = input, write=print,
                 write(context.line(tokens))
         if completed and recorder is not None:
             recorder.after_turn(session)
+            record_times(times, recorder, session, meter)
         if completed and first:
             remember(cache, cache_scope(), text, session)
         settle_facts(completed)
@@ -1028,6 +1036,7 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
                  mcp=mcp, context=context, summary_client=summary_client,
                  team_facts=lambda: "\n".join(part for part in (brand_facts(settings.brand_file), memory.block()) if part),
                  examples=ExamplePicker(embed) if settings.examples else None, meter=meter,
+                 times=TurnTimes(args.db or DEFAULT_DB_PATH, args.creator),
                  shares=Shares(settings.shares_dir, settings.share_host, settings.share_port),
                  cache=cache, cache_scope=lambda: cache_scope_of(args.creator, session.model, session.messages[0].content),
                  probe=lambda: loaded_window(args.host, args.model) if isinstance(raw_client, OllamaClient) else None)

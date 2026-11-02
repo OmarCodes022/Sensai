@@ -1,6 +1,8 @@
 """EV3 in the terminal: one log line per chat turn, with the tools it used."""
 import json
+from datetime import datetime, timezone
 
+from sensai.chat.saved_sessions import user_messages
 from sensai.quality import usage_log
 
 
@@ -16,3 +18,13 @@ def log_turn(session, question: str, completed: bool, outcome: str | None, tools
                      prompt_tokens=meter.prompt_tokens if meter is not None else None,
                      output_tokens=meter.output_tokens if meter is not None else None,
                      error=None if completed else outcome or "failed")
+
+
+def record_times(times, recorder, session, meter) -> None:
+    """A saved turn's start, end and token counts, which the web page shows next to it."""
+    if times is None or meter is None or not getattr(recorder, "saved", False):
+        return
+    usage = {"prompt_tokens": meter.prompt_tokens, "output_tokens": meter.output_tokens,
+             "latency_ms": round(meter.latency_ms), "server_duration_ms": None}
+    times.record(recorder.session_id, len(user_messages(session.messages)), meter.started,
+                 datetime.now(timezone.utc).isoformat(timespec="seconds"), usage)

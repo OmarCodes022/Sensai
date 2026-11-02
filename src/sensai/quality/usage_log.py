@@ -47,6 +47,7 @@ class Meter:
     def reset(self) -> None:
         self.prompt_tokens = self.output_tokens = None
         self.latency_ms = 0.0
+        self.started = datetime.now(timezone.utc).isoformat(timespec="seconds")  # The turn's start, for the page.
 
     def add(self, usage) -> None:
         self.latency_ms += usage.latency_ms

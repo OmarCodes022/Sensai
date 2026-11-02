@@ -48,7 +48,7 @@ from sensai_web.websearch import make as make_search
 from sensai_web.health import Health
 from sensai_web.profile import clean_preferences
 from sensai_web.tabs import TabLock
-from sensai_web.times import TurnTimes
+from sensai.memory.turn_times import TurnTimes
 from sensai_web.usage import UsageCollector
 
 LIST_LIMIT = 200
