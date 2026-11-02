@@ -207,7 +207,7 @@ class FileSystemPort(Protocol):
     symlinks (including ancestors). Read/write require an existing file;
     create is exclusive in an existing parent. Denials raise PolicyDenied
     before mutation; other I/O failures raise PortError without file contents.
-    See docs/tasks/filesystem-permissions.md for the full contract.
+    Implemented by sensai.security.filesystem; rules in docs/user-guide/files.md.
     Runtime protocol checks establish member presence only, not security.
     """
 
