@@ -1,0 +1,8 @@
+[
+  {
+    "name": "post-ideas",
+    "prompt": "Propose two Instagram post ideas for this week for Serein Studio, each with a one-line caption. Use only approved product claims.",
+    "every_minutes": 600,
+    "persona": "redaction"
+  }
+]

@@ -5,7 +5,7 @@ saves each answer as a dated draft. Drafts are only written to disk: nothing is 
 sent.
 
 ```bash
-cp data/schedule.example.json data/schedule.json     # yours, not shared (gitignored)
+cp data/schedule.example.json data/schedule.json     # only if it is missing: the repository ships one
 SENSAI_MODEL=qwen2.5 .venv/bin/python -m sensai.release.schedule data/schedule.json
 ```
 
