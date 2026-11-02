@@ -1,11 +1,11 @@
 // Demo fixtures (spec appendix C): Nadia, Serein Studio, Instagram, Europe/Paris. Exact values.
 export const PERSONAS = [
   { id: 'redaction', name: 'Rédaction', tone: 'warm', role: 'Drafts posts and captions for validation.', response_scope: 'Drafts only. Nothing is published.',
-    starters: ['Write 2 caption variants for Hydra Glow Serum using only approved claims', 'Draft a launch post for Calm Barrier Cream', 'Rewrite this caption to sound warmer'] },
+    starters: ['Rédige 2 variantes de légende pour Hydra Glow Serum avec uniquement des allégations approuvées', 'Rédige un post de lancement pour Calm Barrier Cream', 'Réécris cette légende avec un ton plus chaleureux'] },
   { id: 'communaute', name: 'Communauté', tone: 'kind', role: 'Suggests unsent replies to comments and DMs.', response_scope: 'Suggestions only. Nothing is sent.',
-    starters: ['Suggest an unsent reply to: Does the serum work on dry skin?', 'Reply to a question about shipping times', 'Help me answer a worried follow-up kindly'] },
+    starters: ['Propose une réponse non envoyée à : Le sérum convient-il aux peaux sèches ?', 'Réponds à une question sur les délais de livraison', 'Aide-moi à répondre avec bienveillance à une relance inquiète'] },
   { id: 'analyse', name: 'Analyse', tone: 'precise', role: 'Reads aggregate Instagram figures and prepares a weekly report.', response_scope: 'Aggregate figures only.',
-    starters: ["Summarise last week's engagement from these figures", 'Explain the zero-reach day on 28 Sep', 'What should we test next week?'] },
+    starters: ["Résume l'engagement de la semaine dernière à partir de ces chiffres", 'Explique le jour à portée nulle du 28 septembre', 'Que devrions-nous tester la semaine prochaine ?'] },
 ];
 
 export const HEALTH = { ok: true, version: '0.1.0', ollama: { reachable: true, host: 'http://localhost:11434', latency_ms: 12 }, model: { name: 'gemma3:1b', available: true }, remote: false };

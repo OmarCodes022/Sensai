@@ -17,13 +17,14 @@ ID = re.compile(r"[a-z0-9][a-z0-9_-]{0,39}\Z")
 MAX_TEXT = 2000
 
 # Starter prompts shown on an empty chat, by persona id.
-STARTERS = {
-    "redaction": ["Write 2 caption variants for Hydra Glow Serum using only approved claims",
-                  "Draft a launch post for Calm Barrier Cream", "Rewrite this caption to sound warmer"],
-    "communaute": ["Suggest an unsent reply to: Does the serum work on dry skin?",
-                   "Reply to a question about shipping times", "Help me answer a worried follow-up kindly"],
-    "analyse": ["Summarise last week's engagement from these figures",
-                "Explain the zero-reach day on 28 Sep", "What should we test next week?"],
+STARTERS = {  # In French, like the built-in personas.
+    "redaction": ["Rédige 2 variantes de légende pour Hydra Glow Serum avec uniquement des allégations approuvées",
+                  "Rédige un post de lancement pour Calm Barrier Cream", "Réécris cette légende avec un ton plus chaleureux"],
+    "communaute": ["Propose une réponse non envoyée à : Le sérum convient-il aux peaux sèches ?",
+                   "Réponds à une question sur les délais de livraison",
+                   "Aide-moi à répondre avec bienveillance à une relance inquiète"],
+    "analyse": ["Résume l'engagement de la semaine dernière à partir de ces chiffres",
+                "Explique le jour à portée nulle du 28 septembre", "Que devrions-nous tester la semaine prochaine ?"],
 }
 # Personas whose output is a draft for the creator to review, never something sent.
 DRAFT_PERSONAS = ("redaction", "communaute")
