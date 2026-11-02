@@ -1,10 +1,12 @@
 """/campaign in the terminal: overview, schema-forced edits, approval locks with a before/after confirmation."""
 import json
+from datetime import timedelta
 from pathlib import Path
 
 import pytest
 
 from fakes import FakeClient, scripted_terminal
+from sensai.campaign.document import coming_week
 from sensai.cli import main as cli
 
 BRAND = str(Path(__file__).parents[2] / "fixtures" / "brand.json")
@@ -65,7 +67,7 @@ def test_an_approved_section_asks_and_only_yes_applies(monkeypatch, tmp_path, ca
 def test_invalid_edits_and_run_only_sections_change_nothing(monkeypatch, tmp_path, capsys):
     chat(monkeypatch, tmp_path, ["/campaign posts claim", "/campaign calendar ghost", "/campaign report x", "exit"],
          {"op": "add", "caption": "Cures eczema", "claim_ids": ["C02"]},
-         {"op": "add", "date": "2026-11-04", "time": "18:00", "post_id": "P9", "theme": "x"})
+         {"op": "add", "date": (coming_week()[1] + timedelta(days=2)).isoformat(), "time": "18:00", "post_id": "P9", "theme": "x"})
     out = capsys.readouterr().out
     assert "C02 is not approved" in out and "post P9 does not exist" in out and "filled only by the weekly run" in out
     assert document(tmp_path)["sections"]["posts"]["items"] == []
