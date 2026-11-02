@@ -69,7 +69,7 @@ scripted model instead of Ollama and every other HTTP call recorded (there must 
   publish route.
 - **Terminal** (`test_e2e_terminal.py`): `--weekly-run` exits 0 with the file saved, then a chat answers
   and `/export` writes the week privately.
-- Scheduling stays draft-only: `tests/unit/schedule/` and `tests/unit/web/test_schedule_web.py`.
+- Scheduling stays draft-only: `tests/unit/release/test_schedule.py` and `tests/unit/web/test_schedule_web.py`.
 
 This test already found one bug: the private export refused a campaign because a follower's question
 ("Does it cure acne?") was checked as one of Sensai's claims (fixed in #153).

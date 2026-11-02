@@ -8,7 +8,7 @@ import pytest
 from sensai.core.errors import LLMConnectionError, LLMError
 from sensai.quality.judge import Judgement, Statement, judge
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 spec = importlib.util.spec_from_file_location("ev1_run", ROOT / "evals" / "faithfulness" / "run.py")
 run = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(run)

@@ -9,7 +9,7 @@ from sensai.llm.structured import StructuredOutputError
 from sensai.rag.basic import DocLibrary
 from sensai.rag.advanced import DocSearch, advanced_search, allowed_sources, make_ranker
 
-FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "docs"
+FIXTURES = Path(__file__).resolve().parents[2] / "fixtures" / "docs"
 
 
 @pytest.fixture

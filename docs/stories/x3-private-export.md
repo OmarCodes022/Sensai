@@ -36,7 +36,7 @@ Acceptance criteria:
 2. DM replies cannot be shared, a refused claim shares nothing, and nothing outside the section appears.
 3. Later edits do not change a shared page without a new confirmation.
 
-Tests: `tests/unit/test_share.py`, `tests/unit/web/test_share_web.py`, `tests/unit/web/test_e2e_week.py`.
+Tests: `tests/unit/release/test_share.py`, `tests/unit/web/test_share_web.py`, `tests/unit/web/test_e2e_week.py`.
 
 Measured on 2026-11-01 with `qwen2.5`: **Share** on the calendar showed the five entries and
 `http://<lan>:8767/s/<token>`; after **Share** the link opened the calendar alone; after **Remove** it

@@ -22,7 +22,7 @@ from sensai.tools.sandbox import (PREFIX, RUN_PYTHON, SandboxError, SandboxLimit
 from sensai.tools.registry import ToolRegistry
 
 FAST = SandboxLimits(wall_seconds=1.5)
-SRC = str(Path(sandbox.__file__).resolve().parents[1])
+SRC = str(Path(sandbox.__file__).resolve().parents[2])
 LINUX = sys.platform.startswith("linux")
 
 

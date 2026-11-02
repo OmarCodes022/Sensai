@@ -20,7 +20,7 @@ Acceptance criteria:
 3. Failed requests are saved with their error, cancelled ones as `cancelled`, blocked ones with the
    guardrails' reason; title and summary requests have their own kind.
 
-Tests: `tests/unit/test_usage_log.py`, `tests/unit/web/test_insights_web.py`.
+Tests: `tests/unit/quality/test_usage_log.py`, `tests/unit/web/test_insights_web.py`.
 
 ## Story 2: Notice when Sensai gets slower or less reliable
 

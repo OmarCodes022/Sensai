@@ -21,7 +21,7 @@ def test_real_packaged_server_roundtrip(tmp_path):
     path = tmp_path / 'mcp.json'
     path.write_text(json.dumps({'mcpServers': {'sensai': {
         'command': sys.executable, 'args': ['-m', 'sensai.mcp.server'],
-        'env': {'PYTHONPATH': str(Path(__file__).resolve().parents[2] / 'src')}}}}))
+        'env': {'PYTHONPATH': str(Path(__file__).resolve().parents[3] / 'src')}}}}))
     catalogue = Catalogue(path)
     assert catalogue.reload()
     assert [d.name for d in catalogue.definitions()] == ['sensai.weekly_engagement']
