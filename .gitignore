@@ -34,3 +34,8 @@ sensai-log.jsonl
 
 # Local MCP commands and environment overrides
 mcp.json
+
+# Local demo notes, file-access rules and personal prep notes
+notes/
+.sensai/
+defense-prep.md
