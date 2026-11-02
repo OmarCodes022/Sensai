@@ -3,7 +3,7 @@ import json
 
 from sensai.core.messages import Message
 from sensai.core.ports import PermissionDecision
-from sensai.sandbox import FIX_IT, SandboxError, format_run
+from sensai.tools.sandbox import FIX_IT, SandboxError, format_run
 from sensai_web import app as web_app, sandbox, session_view
 
 STOP = "Stopped after 3 attempts: answer with the last result or error, without calling run_python again."

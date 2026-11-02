@@ -10,8 +10,8 @@ import time
 
 import pytest
 
-from sensai import sandbox
-from sensai.sandbox import PREFIX, SandboxLimits, run_python
+from sensai.tools import sandbox
+from sensai.tools.sandbox import PREFIX, SandboxLimits, run_python
 
 
 @pytest.fixture(autouse=True)

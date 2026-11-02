@@ -11,14 +11,14 @@ from sensai.chat.personas import PersonaRegistry
 from sensai.chat.prompts import load_system_prompt
 from sensai.chat.session import ChatSession
 from sensai.settings import Settings
-from sensai.sandbox import RUN_PYTHON
-from sensai.tools import CALCULATE, tool_instructions
+from sensai.tools.sandbox import RUN_PYTHON
+from sensai.tools.registry import CALCULATE, tool_instructions
 from sensai.core import cancellation
 from sensai.core.cancellation import CancellationToken, OperationCancelled
 from sensai.core.errors import LLMError
 from sensai.chat.facts import DELETE_FACT, SAVE_FACT
 from sensai.chat.questions import ASK_USER
-from sensai.search import WEB_SEARCH
+from sensai.tools.search import WEB_SEARCH
 
 TOOLS = "\n\n" + tool_instructions([CALCULATE, RUN_PYTHON, SAVE_FACT, DELETE_FACT, ASK_USER, WEB_SEARCH])
 REPL_TOOLS = "\n\n" + tool_instructions([CALCULATE, RUN_PYTHON])  # repl() called directly has no fact sheet

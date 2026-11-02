@@ -13,7 +13,7 @@ import shutil
 import subprocess
 
 from sensai.core.ports import ToolCall, ToolDefinition, ToolResult
-from sensai.tools import ToolRegistry
+from sensai.tools.registry import ToolRegistry
 
 PROTOCOL = "2025-11-25"
 # Older versions use the same initialize, tools/list and tools/call subset.

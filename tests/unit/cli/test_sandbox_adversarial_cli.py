@@ -16,8 +16,8 @@ from sensai.chat.session import ChatSession
 from sensai.cli import main as cli
 from sensai.cli.approval import TerminalApproval
 from sensai.core.ports import ApprovalDecision, ApprovalRequest
-from sensai.sandbox import FIX_IT, MODEL_CHARS, PREFIX, RUN_PYTHON, SandboxLimits, python_tool
-from sensai.tools import ToolRegistry
+from sensai.tools.sandbox import FIX_IT, MODEL_CHARS, PREFIX, RUN_PYTHON, SandboxLimits, python_tool
+from sensai.tools.registry import ToolRegistry
 
 pytestmark = pytest.mark.usefixtures("isolated_settings")
 

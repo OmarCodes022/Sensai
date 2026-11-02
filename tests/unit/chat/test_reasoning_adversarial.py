@@ -12,7 +12,7 @@ from sensai.core.cancellation import CancellationToken, OperationCancelled, Oper
 from sensai.core.errors import LLMError
 from sensai.core.ports import ToolDefinition, ToolResult
 from sensai.llm.structured import StructuredOutputError
-from sensai.tools import ToolRegistry, tool_instructions
+from sensai.tools.registry import ToolRegistry, tool_instructions
 
 LOOKUP = '{"tool":"lookup","arguments":{}}'
 

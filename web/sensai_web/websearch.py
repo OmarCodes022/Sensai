@@ -1,5 +1,5 @@
 """Web search (T3) in the page: the model's tool, the sources under the reply, and /search."""
-from sensai.search import SearchError, WebSearch, provider_for, search
+from sensai.tools.search import SearchError, WebSearch, provider_for, search
 from sensai_web.errors import ApiError
 
 

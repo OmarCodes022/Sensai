@@ -2,7 +2,7 @@
 
 import os
 
-from sensai import sandbox
+from sensai.tools import sandbox
 from sensai.core.ports import PermissionDecision
 
 FAST = sandbox.SandboxLimits(wall_seconds=1.5, cpu_seconds=1)

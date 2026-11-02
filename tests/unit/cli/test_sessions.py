@@ -14,8 +14,8 @@ from sensai.cli import main as cli
 from sensai.chat import saved_sessions
 from sensai.chat.personas import PersonaRegistry
 from sensai.settings import Settings
-from sensai.sandbox import RUN_PYTHON
-from sensai.tools import CALCULATE, tool_instructions
+from sensai.tools.sandbox import RUN_PYTHON
+from sensai.tools.registry import CALCULATE, tool_instructions
 from sensai.core.cancellation import OperationCancelled, OperationTimedOut
 from sensai.core.ports import Profile, SessionSnapshot
 from sensai.core.errors import LLMError
@@ -24,7 +24,7 @@ from sensai.memory import sqlite_store
 from sensai.memory.sqlite_store import StorageError, StorageRepository
 from sensai.chat.facts import DELETE_FACT, SAVE_FACT
 from sensai.chat.questions import ASK_USER
-from sensai.search import WEB_SEARCH
+from sensai.tools.search import WEB_SEARCH
 
 TOOLS = "\n\n" + tool_instructions([CALCULATE, RUN_PYTHON, SAVE_FACT, DELETE_FACT, ASK_USER, WEB_SEARCH])
 

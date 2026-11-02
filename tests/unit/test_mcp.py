@@ -8,7 +8,7 @@ import pytest
 from sensai.core.ports import ToolCall
 from sensai.mcp.client import Catalogue
 from sensai.mcp.server import weekly_engagement
-from sensai.tools import ToolRegistry
+from sensai.tools.registry import ToolRegistry
 
 
 @pytest.fixture(autouse=True)

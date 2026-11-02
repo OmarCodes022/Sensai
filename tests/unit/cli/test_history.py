@@ -14,7 +14,7 @@ from sensai.core.ports import ToolDefinition, ToolResult
 from sensai.cli import main as cli
 from sensai.cli.main import repl
 from sensai.memory.sqlite_store import StorageRepository
-from sensai.tools import ToolRegistry
+from sensai.tools.registry import ToolRegistry
 
 
 @pytest.fixture(autouse=True)

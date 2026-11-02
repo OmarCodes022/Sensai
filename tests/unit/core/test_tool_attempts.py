@@ -7,7 +7,7 @@ import pytest
 from fakes import FakeClient
 from sensai.chat.session import ChatSession
 from sensai.core.ports import ApprovalDecision, ToolDefinition, ToolResult
-from sensai.tools import ToolRegistry, run_with_tools
+from sensai.tools.registry import ToolRegistry, run_with_tools
 
 LAST = "\nThis was the last attempt: answer with this result or error, without calling probe again."
 STOP = "Stopped after 2 attempts: answer with the last result or error, without calling probe again."

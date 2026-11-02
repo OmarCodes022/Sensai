@@ -10,7 +10,7 @@ from fakes import FakeClient
 from sensai.chat.blocks import BlockReader
 from sensai.chat.session import ChatSession
 from sensai.core.ports import ToolDefinition, ToolResult
-from sensai.tools import ToolRegistry, run_with_tools
+from sensai.tools.registry import ToolRegistry, run_with_tools
 
 
 def _echo(arguments, cancellation=None):

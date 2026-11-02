@@ -6,7 +6,7 @@ from fakes import FakeClient
 from sensai.chat.session import ChatSession
 from sensai.cli import main as cli
 from sensai.core.ports import ToolDefinition, ToolResult
-from sensai.tools import ToolRegistry
+from sensai.tools.registry import ToolRegistry
 
 pytestmark = pytest.mark.usefixtures("isolated_settings")
 TOOL_CALL = r'{"tool":"lookup","arguments":{"text":"é \"q\"","n":[1,2],"bad":"\ud800"}}'
