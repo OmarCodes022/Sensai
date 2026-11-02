@@ -6,6 +6,7 @@ As Nadia, the creator of Serein Studio, I want every exchange with Sensai record
 what was asked and answered, and how long it took.
 
 Acceptance criteria:
+
 1. Each question and answer is saved with the time, model, persona, latency and token counts.
 2. Tools Sensai used, such as web search or the calculator, are recorded with their input, duration and
    result; a turn without tools has `"tools": []`.
@@ -17,6 +18,7 @@ Acceptance criteria:
 As Nadia, I want to see usage statistics, so that I notice when Sensai becomes slower or less reliable.
 
 Acceptance criteria:
+
 1. `sensai --stats` and the web Insights page show calls, average latency, error rate and tokens.
 2. I see one row per day and how often each tool was used and failed.
 3. `--stats` works without a chat, a model or Ollama, and says clearly when there is no data.

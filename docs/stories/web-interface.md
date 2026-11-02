@@ -6,6 +6,7 @@ As Nadia, the creator of Serein Studio, I want every Sensai feature in one page 
 that I can prepare my week without learning terminal commands.
 
 Acceptance criteria:
+
 1. `sensai-web qwen2.5` serves the page on 127.0.0.1 only; chat replies stream as they are written.
 2. The chat, personas, sessions, campaign, brand facts, documents, tools, schedule and safety pages work
    with the same rules as the terminal (guardrails, approvals, document search, export).
@@ -17,6 +18,7 @@ As Nadia, I want to approve what runs, stop a reply at any time and know that no
 I trust a tool that drafts in my name.
 
 Acceptance criteria:
+
 1. Every Python run and MCP tool call shows an approval card with the code or arguments; the timer
    pauses while I decide; Stop ends a reply, a team, a weekly run or a summary without saving it.
 2. Only one tab talks to Sensai at a time; another tab gets "Open in another tab" with a takeover.

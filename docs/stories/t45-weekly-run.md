@@ -7,6 +7,7 @@ last week's figures into the week's posts, reply suggestions, report and calenda
 Monday starts with drafts to review instead of a blank page.
 
 Acceptance criteria:
+
 1. `sensai qwen2.5 --weekly-run data` (or **Run the week** on the Campaign page) prints one line
    per output, OK or failed, and saves the week's campaign document once, at the end.
 2. The report's figures equal the weekly row of `engagement.csv` (4,200 reached, 630 engaged,
@@ -22,6 +23,7 @@ checked against my approved claims, so that I never review, let alone post, some
 could not say.
 
 Acceptance criteria:
+
 1. DMs marked not eligible or not privacy safe are left out with their reason; their text never
    reaches the model or the saved file, and replies use case keys (`Q1`), never DM ids.
 2. A question like "Does it cure acne?" gets a suggestion that makes no cure claim.

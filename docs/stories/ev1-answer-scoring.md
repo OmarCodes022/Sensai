@@ -7,6 +7,7 @@ coherence and faithfulness, so that I can tell whether a change made Sensai bett
 before showing it.
 
 Acceptance criteria:
+
 1. `evals/faithfulness/run.py --model qwen2.5 --label v1` answers every test question the way the
    chat does (`run_with_tools` with `search_docs`), has a judge score each answer from 1 to 5, prints
    the averages and saves the results under the label.
@@ -20,6 +21,7 @@ As Nadia, the creator of Serein Studio, I want answers checked for claims my doc
 support, so that no invented or outdated claim ends up in my posts.
 
 Acceptance criteria:
+
 1. Every statement the documents do not back is listed with its question, as `unsupported` or
    `contradicted`, with the source it conflicts with.
 2. Planted wrong answers (a cure claim, a wrong duration, invented ingredients) are flagged, and the

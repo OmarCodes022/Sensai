@@ -7,6 +7,7 @@ Sensai to condense old messages when the conversation gets long, so that it
 keeps working without forgetting my launch details.
 
 Acceptance criteria:
+
 1. When a turn reaches 80% of the budget, Sensai prints
    `Context: <count> / <budget> tokens (<pct>%), summarizing <n> older messages…`.
 2. On the next turn it prints the new count, which is lower than before.
@@ -23,6 +24,7 @@ As a creator, I want to see how much context is used and keep my history if a
 summary fails, so that I can trust what Sensai remembers.
 
 Acceptance criteria:
+
 1. `/context` shows the window and where it came from (`set`, `ollama` or
    `default`), the last count, the number of summaries and the tokens saved
    (count before each summary minus the count on the turn after), in the

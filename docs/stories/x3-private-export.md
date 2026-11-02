@@ -20,6 +20,7 @@ As Nadia, I want to send my team a link to the week's calendar, so that they can
 without installing anything or logging in.
 
 Acceptance criteria:
+
 1. `/share calendar` (or **Share** on the Campaign page) gives a link that opens in any browser on the
    network without login, and the page shows only the calendar.
 2. `/unshare` (or **Remove**) makes the link answer 404.
@@ -31,6 +32,7 @@ As Nadia, I want to approve exactly what goes public and be able to take it down
 never exposes customer messages or drafts I did not choose.
 
 Acceptance criteria:
+
 1. The exact content and link are shown before anything is published, and only a yes publishes.
 2. DM replies cannot be shared, a refused claim shares nothing, and nothing outside the section appears.
 3. Later edits do not change a shared page without a new confirmation.
