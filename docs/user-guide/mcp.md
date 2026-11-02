@@ -4,7 +4,7 @@ Sensai supports MCP stdio tools using protocol **2025-11-25** and its `initializ
 
 Inside Sensai, **`/mcp`** shows the config file in use, each server's status and these setup steps: in the terminal it prints them, in web chat it opens the **MCP servers** section of the Tools view. Sensai never edits the file for you, because each entry runs a local command.
 
-Copy `mcp.example.json` to `mcp.json`. Run Sensai with the Python environment containing Sensai activated, so the example's `python -m sensai.mcp_server` resolves correctly. Install [uv](https://docs.astral.sh/uv/getting-started/installation/) for the reference `uvx mcp-server-time==2026.10.28` server, or install that release separately and configure its executable. The time server can download dependencies on first startup.
+Copy `mcp.example.json` to `mcp.json`. Run Sensai with the Python environment containing Sensai activated, so the example's `python -m sensai.mcp.server` resolves correctly. Install [uv](https://docs.astral.sh/uv/getting-started/installation/) for the reference `uvx mcp-server-time==2026.10.28` server, or install that release separately and configure its executable. The time server can download dependencies on first startup.
 
 `SENSAI_MCP_CONFIG` selects another configuration file. No file means no MCP tools. Entries under `mcpServers` accept `command`, an `args` array, and optional `env` string overrides. Commands execute locally during discovery, so Sensai first shows them and asks **Trust this file?**: in the terminal at startup or on `/mcp reload`, in the web Tools view otherwise. Until you accept, nothing from the file runs, which protects you when you start Sensai in a downloaded folder that ships its own `mcp.json`. The question shows each command, the program it resolves to, the environment values it sets (secret-looking ones are hidden) and the folder it runs in. The answer covers that launch folder, that path and that exact content: editing the file, or starting Sensai from another folder, asks again. Trust does not cover what a command does later or the code it loads: servers run in the launch folder, so `python -m` and relative commands can load code from there. Only accept servers you know, and be wary in a folder you downloaded. Your answers are kept in `~/.config/sensai/trusted-mcp.json`; delete an entry to be asked again. Keep credentials in the environment; local `mcp.json` is ignored by Git.
 
@@ -19,7 +19,7 @@ Our server reads packaged fictional figures by default. Ask “What was the enga
 To read another CSV, set the server environment:
 
 ```json
-{"mcpServers":{"sensai":{"command":"python","args":["-m","sensai.mcp_server"],"env":{"SENSAI_ENGAGEMENT_CSV":"/absolute/path/engagement.csv"}}}}
+{"mcpServers":{"sensai":{"command":"python","args":["-m","sensai.mcp.server"],"env":{"SENSAI_ENGAGEMENT_CSV":"/absolute/path/engagement.csv"}}}}
 ```
 
 Columns: `date`, `channel`, `accounts_reached`, `accounts_engaged`. Dates are ISO daily dates or `YYYY-MM-DD/YYYY-MM-DD` weekly ranges from Monday through Sunday. Channels are reported separately. Negative counts, engaged counts above reach, and duplicate date/channel rows are rejected. A matching weekly row takes precedence over daily rows. The tool requires an ISO Monday `week_start`.
