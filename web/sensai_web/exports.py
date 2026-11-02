@@ -1,6 +1,6 @@
 """Private export (X3) in the page: the open conversation and the week's campaign as files on this computer."""
 from sensai.chat.saved_sessions import display_title
-from sensai.export import ExportRefused
+from sensai.release.export import ExportRefused
 
 
 def campaign_export(app, doc) -> dict:

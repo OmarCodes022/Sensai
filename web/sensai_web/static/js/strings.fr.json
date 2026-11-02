@@ -1033,5 +1033,5 @@
  "share.links": "Liens partagés",
  "share.remove": "Retirer",
  "share.removed": "Le lien renvoie désormais 404.",
- "share.serve": "Les liens fonctionnent tant que python -m sensai.share tourne (port {port}), pour les appareils du même réseau."
+ "share.serve": "Les liens fonctionnent tant que python -m sensai.release.share tourne (port {port}), pour les appareils du même réseau."
 }

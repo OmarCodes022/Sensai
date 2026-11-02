@@ -1,5 +1,5 @@
 """X3 public links in the page: propose (checked, nothing written), then publish only on the creator's yes."""
-from sensai.share import Shares, ShareError
+from sensai.release.share import Shares, ShareError
 from sensai_web.errors import ApiError
 
 

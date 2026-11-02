@@ -11,7 +11,7 @@ from sensai.campaign import CampaignStore, apply, plan
 from sensai.campaign.models import EntryEdit, PostEdit, Reply
 from sensai.core.ports import ApprovalDecision
 from sensai.guardrails import load_guardrail
-from sensai.share import ShareError, Shares, handler, section_text
+from sensai.release.share import ShareError, Shares, handler, section_text
 from sensai.cli.share_commands import share_command, unshare_command
 
 BRAND = str(Path(__file__).parents[1] / "fixtures" / "brand.json")
@@ -95,7 +95,7 @@ def test_the_terminal_shows_content_and_url_then_publishes_only_on_yes(store, gu
 
 
 def test_the_link_uses_the_home_network_address_not_a_vpn_tunnel():
-    from sensai.share import lan_host
+    from sensai.release.share import lan_host
     assert lan_host({"10.253.5.20", "100.72.45.7", "192.168.0.14"}) == "192.168.0.14"
     assert lan_host({"100.72.45.7", "172.20.1.4"}) == "172.20.1.4"
     assert lan_host({"127.0.0.1", "169.254.1.1"}) == lan_host(set()) == "127.0.0.1"

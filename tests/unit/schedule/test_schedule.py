@@ -7,7 +7,7 @@ import pytest
 from fakes import FakeClient
 from sensai.chat.personas import PersonaRegistry
 from sensai.core.errors import LLMConnectionError
-from sensai.schedule import Scheduler, Task, load_tasks, main, make_runner
+from sensai.release.schedule import Scheduler, Task, load_tasks, main, make_runner
 
 PERSONAS = PersonaRegistry.from_file(None)
 
@@ -72,7 +72,7 @@ def test_main_refuses_a_bad_file_and_needs_a_model(tmp_path, monkeypatch, capsys
 
 
 def test_brand_block_lists_products_with_only_their_valid_claims(tmp_path):
-    from sensai.schedule import brand_block
+    from sensai.release.schedule import brand_block
     brand = tmp_path / "brand.json"
     brand.write_text(json.dumps({"products": [
         {"name": "Hydra Glow Serum", "claims": [

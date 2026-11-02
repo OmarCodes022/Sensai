@@ -1,6 +1,6 @@
 """/share and /unshare in the terminal (X3): a public link only after the exact content and URL are approved."""
 from sensai.core.ports import ApprovalRequest
-from sensai.share import ShareError
+from sensai.release.share import ShareError
 
 
 def share_command(shares, campaign, guard, approval, argument: str, write) -> None:
@@ -19,7 +19,7 @@ def share_command(shares, campaign, guard, approval, argument: str, write) -> No
         write("Nothing was shared.")
         return
     shares.publish(token, text)
-    write(f"Shared: {url}   (remove with /unshare {token}; serve it with: python -m sensai.share)")
+    write(f"Shared: {url}   (remove with /unshare {token}; serve it with: python -m sensai.release.share)")
 
 
 def unshare_command(shares, argument: str, write) -> None:

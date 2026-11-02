@@ -1,6 +1,6 @@
 """X3 public link: one campaign section as a read-only page anyone on the local network can open.
 
-    python -m sensai.share            # serves shares/ on port 8766; only /s/<token> answers
+    python -m sensai.release.share            # serves shares/ on port 8766; only /s/<token> answers
 
 A share is a snapshot: checked by the guardrails, shown with its URL, written only after the creator
 says yes, never changed by later edits. DM replies are never shared (they come from customer messages).

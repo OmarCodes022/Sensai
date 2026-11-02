@@ -26,7 +26,7 @@ from sensai.mcp.client import Catalogue as MCPCatalogue
 from sensai.llm.embeddings import OllamaEmbeddingAdapter
 from sensai.rag.basic import DOCS_PROMPT, SEARCH_DOCS, DocLibrary
 from sensai.campaign import CampaignStore
-from sensai.export import Exporter
+from sensai.release.export import Exporter
 from sensai.chat.facts import DELETE_FACT, SAVE_FACT
 from sensai.chat.questions import ASK_USER
 from sensai.search import WEB_SEARCH

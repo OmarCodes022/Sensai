@@ -13,7 +13,7 @@ from sensai.campaign.models import Campaign
 from sensai.core.errors import SensaiError
 from sensai.guardrails import GuardrailConfigError, load_guardrail
 from sensai.guardrails.rules import load_claims
-from sensai.schedule import brand_block
+from sensai.release.schedule import brand_block
 from sensai.weekly import outputs
 from sensai.weekly.inputs import InputError, brand_file, dms, earlier_posts, figures
 from sensai.weekly.outputs import Outcome
