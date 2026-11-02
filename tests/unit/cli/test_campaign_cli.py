@@ -27,6 +27,7 @@ def isolated(isolated_settings, tmp_path, monkeypatch):
     (tmp_path / "prompt.txt").write_text("Shared rules", encoding="utf-8")
     monkeypatch.setenv("SENSAI_BRAND_FILE", BRAND)
     monkeypatch.setenv("SENSAI_CAMPAIGNS_DIR", str(tmp_path / "campaigns"))
+    monkeypatch.setenv("SENSAI_EXPORTS_DIR", str(tmp_path / "exports"))  # Validated edits export themselves.
 
 
 def chat(monkeypatch, tmp_path, inputs, *edits, keys=()):
