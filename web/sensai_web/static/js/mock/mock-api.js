@@ -13,6 +13,8 @@ const sessions = createSessions();
 let dataFolder = structuredClone(DATA_FILES);
 const docItem = (d) => ({ name: `${d.id}.md`, bytes: d.chunks * 420, state: 'ready', source: d.id, version: d.version, title: d.product, product: d.type === 'Product sheet' ? d.product : '', chunks: d.chunks });
 let docFiles = DOCS.map(docItem);
+let rules = { allow: ['Read(./data/notes/**)', 'Write(./outputs/drafts/**)', 'Create(./outputs/drafts/**)'], deny: ['Read(./data/notes/private/**)'] }, pendingRules = null;
+const notes = { 'launch.md': 'Hydra Glow Mist launches on 3 December 2026.', 'private/costs.md': 'Margins: not for the model.' };
 const docListing = () => ({ state: 'ready', folder: '/Users/nadia/sensai/data/docs', embed_model: 'nomic-embed-text', documents: docFiles.length, pending: 0, error: null,
   items: structuredClone(docFiles), limits: { file_mb: 2, total_mb: 20, types: ['.md', '.txt'] } });
 const wordsOf = (s) => s.toLowerCase().match(/[\p{L}\p{N}]+/gu) || [];
@@ -184,6 +186,14 @@ const impl = {
     if (dataFolder.files.some((f) => f.name === 'engagement.csv')) throw new ApiError('exists', 'engagement.csv is already in the data folder.', { status: 409 });
     return impl.putData('engagement.csv', ENGAGEMENT_CSV);
   },
+  files: async () => ({ on: rules.allow.length + rules.deny.length > 0, allow: rules.allow.length, deny: rules.deny.length, settings: '.sensai/settings.json' }),
+  fileRules: async () => ({ on: true, file: '.sensai/settings.json', ...structuredClone(rules) }),
+  proposeRules: async (allow, deny) => { pendingRules = { allow, deny }; return { token: 'mock-rules', before: structuredClone(rules), after: { allow, deny } }; },
+  async confirmRules(token, approved) { if (approved) rules = structuredClone(pendingRules ?? rules); return { status: approved ? 'saved' : 'discarded', on: true, file: '.sensai/settings.json', ...structuredClone(rules) }; },
+  notes: async () => ({ dir: 'data/notes', items: Object.entries(notes).map(([path, text]) => ({ path, bytes: new TextEncoder().encode(text).length })).sort((a, b) => a.path.localeCompare(b.path)) }),
+  async readNote(path) { if (!(path in notes)) throw new ApiError('not_found', `No note ${path}.`, { status: 404 }); return { path, text: notes[path] }; },
+  async putNote(path, text) { if (!/^([A-Za-z0-9][A-Za-z0-9._-]*\/){0,2}[A-Za-z0-9][A-Za-z0-9._-]*\.(md|txt)$/i.test(path)) throw new ApiError('bad_note_path', 'Use a relative path like launch.md or private/costs.md.', { status: 400 }); notes[path] = text; return impl.notes(); },
+  async deleteNote(path) { delete notes[path]; return impl.notes(); },
   profile: async () => ({ ...profile }),
   async putProfile(preferences) { profile = { ...profile, preferences: { ...preferences } }; return { ...profile }; },
   async takeover() { state.locked = false; notify(); return { ok: true }; },

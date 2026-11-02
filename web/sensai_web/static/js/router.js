@@ -3,22 +3,24 @@ import { clear } from './dom.js';
 import { emptyState } from './components/state.js';
 import { t } from './i18n.js';
 
-/** live: wired today. cap: capability flag that turns a planned surface live. tasks: owning task IDs. */
+/** live: wired today. cap: capability flag that turns a planned surface live. tasks: owning task IDs. group: sidebar heading. */
 export const ROUTES = [
-  { name: 'chat', icon: 'chat', live: true, key: 1 },
-  { name: 'sessions', icon: 'history', live: true, key: 2 },
-  { name: 'personas', icon: 'persona', live: true, key: 3 },
-  { name: 'profile', icon: 'user', live: true, key: 4 },
-  { name: 'tools', icon: 'tools', live: true, key: 5 },
-  { name: 'settings', icon: 'settings', live: true, key: 6 },
-  { name: 'campaign', icon: 'calendar', cap: 'campaign', tasks: ['T40', 'T45', 'T46', 'T50', 'T53'] },
-  { name: 'brand', icon: 'star', cap: 'facts', tasks: ['T32', 'T07'] },
-  { name: 'documents', icon: 'folder', cap: 'documents', tasks: ['T35', 'T36', 'T43'] },
-  { name: 'insights', icon: 'chart', cap: 'stats', tasks: ['T33'] },
-  { name: 'safety', icon: 'shield-check', cap: 'evaluation', tasks: ['T47', 'T10'] },  // Guardrails (T38) work in chat; this page comes with EV1.
-  { name: 'schedule', icon: 'clock', cap: 'schedule', tasks: ['T51'] },
-  { name: 'keynote', icon: 'play', ui: true },
+  { name: 'chat', icon: 'chat', live: true, key: 1, group: 'work' },
+  { name: 'sessions', icon: 'history', live: true, key: 2, group: 'work' },
+  { name: 'profile', icon: 'user', live: true, key: 4, group: 'inputs' },
+  { name: 'personas', icon: 'persona', live: true, key: 3, group: 'inputs' },
+  { name: 'brand', icon: 'star', cap: 'facts', tasks: ['T32', 'T07'], group: 'inputs' },
+  { name: 'documents', icon: 'folder', cap: 'documents', tasks: ['T35', 'T36', 'T43'], group: 'inputs' },
+  { name: 'files', icon: 'file-text', live: true, group: 'inputs' },
+  { name: 'campaign', icon: 'calendar', cap: 'campaign', tasks: ['T40', 'T45', 'T46', 'T50', 'T53'], group: 'outputs' },
+  { name: 'schedule', icon: 'clock', cap: 'schedule', tasks: ['T51'], group: 'outputs' },
+  { name: 'insights', icon: 'chart', cap: 'stats', tasks: ['T33'], group: 'outputs' },
+  { name: 'settings', icon: 'settings', live: true, key: 6, group: 'settings' },
+  { name: 'tools', icon: 'tools', live: true, key: 5, group: 'settings' },
+  { name: 'safety', icon: 'shield-check', cap: 'evaluation', tasks: ['T47', 'T10'], group: 'settings' },  // Guardrails (T38) work in chat; this page comes with EV1.
+  { name: 'keynote', icon: 'play', ui: true, group: 'settings' },
 ];
+export const GROUPS = ['work', 'inputs', 'outputs', 'settings'];
 
 export function parseHash(hash = location.hash) {
   const [name = 'chat', ...rest] = hash.replace(/^#\/?/, '').split('/').filter(Boolean);

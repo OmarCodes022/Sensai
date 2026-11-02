@@ -160,15 +160,12 @@ class LocalFileSystem:
             f.write(content.encode("utf-8"))
 
 
-def load_settings(folder: str, creator_id: str = "default") -> CreatorPathPolicy | None:
-    """The policy from <folder>/.sensai/settings.json, or None when there is no such file (access off)."""
-    path = os.path.join(folder, SETTINGS)
-    if not os.path.isfile(path):
-        return None
+def parse_permissions(folder: str, permissions: object, creator_id: str = "default") -> CreatorPathPolicy:
+    """The policy for a `permissions` object ({"allow": [...], "deny": [...]}) in <folder>. Raises PolicyDenied."""
     root = os.path.abspath(folder)
     try:
-        with open(path, encoding="utf-8") as f:
-            permissions = json.load(f).get("permissions", {})
+        if not isinstance(permissions, dict):
+            raise ValueError("permissions must be an object")
         grouped: dict[str, dict[tuple[str, bool], set[str]]] = {"allow": {}, "deny": {}}
         for kind in grouped:
             entries = permissions.get(kind, [])
@@ -187,5 +184,18 @@ def load_settings(folder: str, creator_id: str = "default") -> CreatorPathPolicy
                 grouped[kind].setdefault((target, recursive), set()).add(match.group(1).lower())
         rules = {kind: [FileAccessRule(p, frozenset(a), r) for (p, r), a in items.items()] for kind, items in grouped.items()}
         return CreatorPathPolicy(creator_id, rules["allow"], rules["deny"])
-    except (OSError, ValueError, AttributeError, PolicyDenied) as exc:
+    except (ValueError, AttributeError, PolicyDenied) as exc:
         raise PolicyDenied(f"cannot use {SETTINGS}: {exc}") from None
+
+
+def load_settings(folder: str, creator_id: str = "default") -> CreatorPathPolicy | None:
+    """The policy from <folder>/.sensai/settings.json, or None when there is no such file (access off)."""
+    path = os.path.join(folder, SETTINGS)
+    if not os.path.isfile(path):
+        return None
+    try:
+        with open(path, encoding="utf-8") as f:
+            permissions = json.load(f).get("permissions", {})
+    except (OSError, ValueError, AttributeError) as exc:
+        raise PolicyDenied(f"cannot use {SETTINGS}: {exc}") from None
+    return parse_permissions(folder, permissions, creator_id)

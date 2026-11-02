@@ -40,6 +40,7 @@ from sensai_web.config import WebConfig
 from sensai_web.cache import make_cache, make_examples
 from sensai_web.sharing import make_shares
 from sensai_web.datafiles import DataFolder
+from sensai_web.notes import NotesFolder
 from sensai_web.errors import ApiError
 from sensai_web.facts import make_memory
 from sensai_web.scheduling import start as start_schedule
@@ -119,6 +120,7 @@ class WebApp:
         self.tabs = TabLock()
         self.times = TurnTimes(cfg.db_path, cfg.creator)
         self.data = DataFolder(cfg.data_dir)
+        self.notes, self.pending_rules = NotesFolder(), None  # T4 in the page: the notes and the rules, saved on a yes.
         self.docs = DocLibrary(cfg.docs_dir, make_embedding(cfg), cfg.creator, cache_path=cfg.db_path, model=cfg.embed_model)
         self.model = cfg.model  # the page can change it while running
         self.checker = make_checker(cfg)

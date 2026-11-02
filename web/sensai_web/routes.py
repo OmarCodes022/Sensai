@@ -15,7 +15,7 @@ from sensai.memory.vector_index import VectorIndexError
 from sensai.rag.basic import MAX_FILE_BYTES, MAX_TOTAL_BYTES, TYPES, DocError
 from sensai.tools.sandbox import SandboxLimits
 from sensai.tools.registry import MAX_TOOL_CALLS
-from sensai_web import branching, campaign, compaction, evaluation, prompts, sharing, weekly, exports, scheduling, questions, websearch, facts, files, manage, models, sandbox, session_view
+from sensai_web import branching, campaign, compaction, evaluation, prompts, sharing, weekly, exports, scheduling, questions, websearch, facts, file_rules, files, manage, models, sandbox, session_view
 from sensai_web.app import WebApp
 from sensai_web.errors import ApiError, llm_failure
 from sensai_web.tools import tool_list
@@ -482,6 +482,43 @@ def read_file(app: WebApp, request):
 @route("POST", r"/api/files/save")
 def save_file(app: WebApp, request):
     return files.save(app, request.json().get("path"))
+
+
+@route("GET", r"/api/files/rules")
+def get_file_rules(app: WebApp, request):
+    return file_rules.rules(app)
+
+
+@route("POST", r"/api/files/rules")
+def propose_file_rules(app: WebApp, request):
+    body = request.json()
+    return file_rules.propose(app, body.get("allow"), body.get("deny"))
+
+
+@route("POST", r"/api/files/rules/confirm")
+def confirm_file_rules(app: WebApp, request):
+    body = request.json()
+    return file_rules.confirm(app, body.get("token"), body.get("approved"))
+
+
+@route("GET", r"/api/notes")
+def list_notes(app: WebApp, request):
+    return app.notes.listing()
+
+
+@route("GET", r"/api/notes/(?P<path>.+)")
+def read_note(app: WebApp, request, path: str):
+    return app.notes.read(unquote(path))
+
+
+@route("PUT", r"/api/notes/(?P<path>.+)")
+def put_note(app: WebApp, request, path: str):
+    return app.notes.put(unquote(path), request.json().get("text"))
+
+
+@route("DELETE", r"/api/notes/(?P<path>.+)")
+def delete_note(app: WebApp, request, path: str):
+    return app.notes.delete(unquote(path))
 
 
 @route("GET", r"/api/facts")

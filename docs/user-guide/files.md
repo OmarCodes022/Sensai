@@ -8,8 +8,8 @@ off and every file operation is refused.
 // ~/serein/.sensai/settings.json
 {
   "permissions": {
-    "allow": ["Read(./notes/**)", "Read(./brand.json)", "Write(./drafts/**)", "Create(./drafts/**)"],
-    "deny":  ["Read(./notes/private/**)"]
+    "allow": ["Read(./data/notes/**)", "Read(./data/brand.json)", "Write(./outputs/drafts/**)", "Create(./outputs/drafts/**)"],
+    "deny":  ["Read(./data/notes/private/**)"]
   }
 }
 ```
@@ -18,13 +18,23 @@ Start Sensai in that folder (`cd ~/serein && sensai qwen2.5`, or `sensai-web qwe
 
 ```text
 File access on: 4 allow rules, 1 deny rule (.sensai/settings.json)
-> /read notes/launch.md
-Read 1,240 characters from notes/launch.md (sent with your next message)
-> /save drafts/launch-caption.md
-Created drafts/launch-caption.md
-> /read notes/private/costs.md
-Permission denied: read is denied for this path (notes/private/costs.md)
+> /read data/notes/launch.md
+Read 1,240 characters from data/notes/launch.md (sent with your next message)
+> /save outputs/drafts/launch-caption.md
+Created outputs/drafts/launch-caption.md
+> /read data/notes/private/costs.md
+Permission denied: read is denied for this path (data/notes/private/costs.md)
 ```
+
+## In the web page
+
+**Notes and file access** (under Inputs in the sidebar) does both without a text editor:
+
+- **Notes**: add, open, edit and delete the notes in `data/notes/` (`.md` or `.txt`, up to three
+  folders deep, for example `private/costs.md`).
+- **File access rules**: one rule per line for Allow and Deny. **Review changes** checks them
+  (a missing folder or `..` is refused) and shows the rules now and after; nothing is saved until
+  **Apply the new rules**, and the new rules work at once. The model has no tool to change them.
 
 ## Rules
 
@@ -37,6 +47,7 @@ Permission denied: read is denied for this path (notes/private/costs.md)
 - Always refused: `..`, paths outside the rules, similar-named siblings (`drafts-old` is not
   in `drafts`) and symlinks anywhere in the path. There is no delete, listing or folder creation.
 - A broken settings file (unknown action, `..`, a missing folder) stops Sensai at startup.
+  The web page refuses such rules before saving them.
 
 ## Who uses it
 

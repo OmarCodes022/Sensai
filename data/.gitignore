@@ -16,3 +16,9 @@ docs/*
 !docs/calm-barrier-cream-2025.md
 !docs/faq.md
 !docs/hydra-glow-serum.md
+!notes/
+notes/*
+!notes/launch.md
+!notes/private/
+notes/private/*
+!notes/private/costs.md
