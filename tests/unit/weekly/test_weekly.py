@@ -1,5 +1,6 @@
 """The weekly run (T45) on tests/fixtures, with a scripted model: four outputs, each checked and failing alone."""
 import json
+from datetime import date
 import shutil
 from pathlib import Path
 
@@ -7,7 +8,7 @@ import pytest
 
 from sensai.campaign import CampaignStore, approve
 from sensai.core.errors import LLMError
-from sensai.weekly.outputs import EntryDraft, EntryDrafts, PostDraft, PostDrafts, Reading, Suggestion, _time
+from sensai.weekly.outputs import EntryDraft, EntryDrafts, PostDraft, PostDrafts, Reading, Suggestion, _date, _time
 from sensai.weekly.run import run_week
 
 FIXTURES = Path(__file__).parents[2] / "fixtures"
@@ -129,6 +130,23 @@ def test_too_few_posts_fail_and_leave_the_calendar_without_posts(folder, store):
     assert outcomes[3].detail == "no posts to schedule"
 
 
+def test_a_day_in_the_time_is_asked_again_once_with_the_reason(folder, store):
+    days = EntryDrafts(entries=[EntryDraft(date="2026-09-29", time="Tuesday", post_id=f"P{i}", theme="x") for i in (1, 2, 3)])
+    ask = model(EntryDrafts=[days, CALENDAR])
+    _, outcomes, _ = run_week(str(folder), store, ask)
+    assert outcomes[3].ok and outcomes[3].detail.startswith("3 entries")
+    retry = [r for name, r in ask.requests if name == "EntryDrafts"][1]
+    assert "needs a time as HH:MM" in retry and "for example 18:30" in retry
+
+
+def test_a_second_bad_calendar_fails_without_a_third_try(folder, store):
+    days = EntryDrafts(entries=[EntryDraft(date="2026-09-29", time="Tuesday", post_id="P1", theme="x")])
+    ask = model(EntryDrafts=[days, days])
+    _, outcomes, _ = run_week(str(folder), store, ask)
+    assert not outcomes[3].ok and "at least 3" in outcomes[3].detail
+    assert [name for name, _ in ask.requests].count("EntryDrafts") == 2
+
+
 def test_a_model_failure_fails_only_its_output(folder, store):
     _, outcomes, _ = run_week(str(folder), store, model(EntryDrafts=LLMError("connection refused")))
     assert [o.ok for o in outcomes] == [True, True, True, False]
@@ -153,6 +171,14 @@ def test_ctrl_c_saves_nothing_and_keeps_the_earlier_file(folder, store):
 
 
 @pytest.mark.parametrize("given, expected", [("10:00 AM", "10:00"), ("6:30 pm", "18:30"), ("12:15 AM", "00:15"),
-                                             ("18h00", "18:00"), ("noon", "noon")])
+                                             ("18h00", "18:00"), ("9am", "09:00"), ("3 PM", "15:00"), ("noon", "12:00"),
+                                             ("afternoon", "15:00"), ("PM", "15:00"), ("Evening", "18:30"), ("", ""),
+                                             ("Monday", "Monday"), ("9", "9")])
 def test_times_are_read_as_hh_mm(given, expected):
     assert _time(given) == expected
+
+
+@pytest.mark.parametrize(("given", "expected"), [("2026-09-29", "2026-09-29"), ("Tuesday", "2026-09-29"), ("tuesday.", "2026-09-29"),
+                                                 ("Tuesday, 2026-09-29", "2026-09-29"), ("someday", "someday")])
+def test_dates_are_read_from_a_weekday_or_inside_text(given, expected):
+    assert _date(given, date(2026, 9, 28)) == expected

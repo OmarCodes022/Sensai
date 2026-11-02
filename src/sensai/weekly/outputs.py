@@ -69,14 +69,27 @@ def _checked(guard, ask, instructions: str, request: str, schema, text_of):
     return answer, ""
 
 
+PARTS = {"morning": "09:00", "am": "09:00", "noon": "12:00", "midday": "12:00", "afternoon": "15:00", "pm": "15:00",
+         "evening": "18:30", "night": "20:00"}  # A part of the day as a proposal time; the creator edits it.
+
+
 def _time(text: str) -> str:
-    """"10:00 AM", "6:30 pm" or "18h00" as HH:MM; anything else is left for the campaign check to refuse."""
-    found = re.fullmatch(r"\s*(\d{1,2})\s*[:h.]\s*(\d{2})\s*([ap]\.?m\.?)?\s*", text or "", re.I)
-    if not found:
-        return text
-    hour, minute, half = int(found[1]), found[2], (found[3] or "").lower()[:1]
+    """"10:00 AM", "6:30 pm", "9am", "18h00" or "afternoon" as HH:MM; anything else is left for the campaign check."""
+    found = re.fullmatch(r"\s*(\d{1,2})(?:\s*[:h.]\s*(\d{2}))?\s*([ap]\.?m\.?)?\s*", text or "", re.I)
+    if not found or not (found[2] or found[3]):
+        return PARTS.get((text or "").strip().lower().replace(".", ""), text)
+    hour, minute, half = int(found[1]), found[2] or "00", (found[3] or "").lower()[:1]
     hour = hour % 12 + (12 if half == "p" else 0) if half else hour
     return f"{hour:02d}:{minute}"
+
+
+def _date(text: str, monday: date) -> str:
+    """A weekday name ("Tuesday") as its date in the week, or the YYYY-MM-DD inside "Tuesday, 2026-09-29"; else as given."""
+    found = re.search(r"\d{4}-\d{2}-\d{2}", text or "")
+    if found:
+        return found[0]
+    days = {(monday + timedelta(days=i)).strftime("%A").lower(): (monday + timedelta(days=i)).isoformat() for i in range(7)}
+    return days.get((text or "").strip().lower().rstrip("."), text)
 
 
 def _claim_ids(given: list[str], claims) -> list[str]:
@@ -164,6 +177,23 @@ def posts(doc, ask, guard, claims, instructions: str, examples: list[str]):
     return draft, Outcome("Posts", True, detail)
 
 
+def _entries(doc, drafts, guard):
+    """(doc with the entries that pass the guardrails and the campaign checks, reasons for the others)."""
+    draft, dropped = doc.model_copy(deep=True), []
+    draft.sections.calendar.items = []
+    for item in drafts:
+        decision = guard.inspect(item.theme, "output")
+        if not decision.allowed:
+            dropped.append(message_for(decision.reason))
+            continue
+        edit = EntryEdit(op="add", date=_date(item.date, date.fromisoformat(doc.start)), time=_time(item.time), post_id=item.post_id, theme=decision.text)
+        try:
+            draft = plan(draft, "calendar", edit, None).doc
+        except CampaignError as exc:
+            dropped.append(str(exc))
+    return draft, dropped
+
+
 def calendar(doc, ask, guard, instructions: str):
     """(doc with the entries, outcome); entries must point at real posts and fall inside the week."""
     posts_ = doc.sections.posts.items
@@ -174,19 +204,10 @@ def calendar(doc, ask, guard, instructions: str):
     shown = "\n".join(f"- {p.id}: {p.caption}" for p in posts_)
     request = (f"Plan {max(MIN_ITEMS, len(posts_))} calendar entries for the week, one per post where you can.\n"
                f"Dates:\n{days}\nPosts:\n{shown}")
-    drafts = ask(instructions, request, EntryDrafts).entries
-    draft, dropped = doc.model_copy(deep=True), []
-    draft.sections.calendar.items = []
-    for item in drafts:
-        decision = guard.inspect(item.theme, "output")
-        if not decision.allowed:
-            dropped.append(message_for(decision.reason))
-            continue
-        edit = EntryEdit(op="add", date=item.date, time=_time(item.time), post_id=item.post_id, theme=decision.text)
-        try:
-            draft = plan(draft, "calendar", edit, None).doc
-        except CampaignError as exc:
-            dropped.append(str(exc))
+    draft, dropped = _entries(doc, ask(instructions, request, EntryDrafts).entries, guard)
+    if len(draft.sections.calendar.items) < MIN_ITEMS:  # One retry that says what was refused (small models put a day in the time).
+        retry = f"{request}\nYour last answer was refused: {'; '.join(dropped)}. Each time is HH:MM, 24-hour, for example 18:30."
+        draft, dropped = _entries(doc, ask(instructions, retry, EntryDrafts).entries, guard)
     entries = sorted(draft.sections.calendar.items, key=lambda e: (e.date, e.time))
     detail = f"{len(entries)} entries" + (f", {entries[0].date} to {entries[-1].date}" if entries else "")
     detail += f" · {len(dropped)} left out ({'; '.join(dropped)})" if dropped else ""
