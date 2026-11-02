@@ -1,5 +1,5 @@
 // Mock fixtures for the planned Campaign view (spec 9.1). Nadia, Serein Studio, week 2026-W44.
-export const WEEK = { id: '2026-W44', range: 'Mon 26 Oct to Sun 1 Nov', tz: 'Europe/Paris', file: 'campaigns/2026-W44.json' };
+export const WEEK = { id: '2026-W44', range: 'Mon 26 Oct to Sun 1 Nov', tz: 'Europe/Paris', file: 'outputs/campaigns/2026-W44.json' };
 export const SECTIONS = [['posts', 'draft'], ['dm', 'draft'], ['report', 'approved'], ['calendar', 'draft']];
 
 export const POSTS = [

@@ -915,7 +915,7 @@
  "export.campaign": "Campagne",
  "export.refused": "{name} non exportée : les garde-fous l'ont refusée ({reason}). L'export précédent est inchangé.",
  "export.noCampaign": "Pas encore de campagne : seule la conversation a été exportée.",
- "export.private": "Fichiers privés dans exports/ : rien n'a été envoyé ni partagé.",
+ "export.private": "Fichiers privés dans outputs/exports/ : rien n'a été envoyé ni partagé.",
  "export.failed": "L'export a échoué",
  "schedule.tasks": "Tâches",
  "schedule.intro": "Tâches de {file}, exécutées avec {model}. Chaque réponse est enregistrée comme brouillon sur cet ordinateur ; rien n'est publié ni envoyé.",
