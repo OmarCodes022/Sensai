@@ -10,7 +10,7 @@ from sensai.core.errors import SensaiError
 from sensai.core.messages import Message
 from sensai.llm.client import close_stream
 from sensai.llm.ollama_api import OllamaUsage
-from sensai.prompt_versions import Answer, read_questions, render_report, versions
+from sensai.quality.prompt_versions import Answer, read_questions, render_report, versions
 from sensai_web.errors import ApiError
 
 FOLDER = os.environ.get("SENSAI_PROMPT_VERSIONS", os.path.join("evals", "prompt_compare", "versions"))

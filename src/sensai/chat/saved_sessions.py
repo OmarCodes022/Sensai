@@ -7,7 +7,7 @@ from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from time import monotonic
 
-from sensai import usage_log
+from sensai.quality import usage_log
 from sensai.core.cancellation import CancellationToken
 from sensai.core.ports import PortError, Profile, SessionSnapshot
 from sensai.core.errors import SensaiError

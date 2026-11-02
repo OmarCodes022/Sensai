@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from sensai.core.errors import LLMConnectionError, LLMError
-from sensai.judge import Judgement, Statement, judge
+from sensai.quality.judge import Judgement, Statement, judge
 
 ROOT = Path(__file__).resolve().parents[2]
 spec = importlib.util.spec_from_file_location("ev1_run", ROOT / "evals" / "faithfulness" / "run.py")

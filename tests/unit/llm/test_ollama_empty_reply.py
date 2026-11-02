@@ -9,7 +9,7 @@ from sensai.core.errors import LLMError
 from sensai.core.messages import Message
 from sensai.llm.ollama import OllamaClient
 from sensai.llm.ollama_api import UsageError
-from sensai.telemetry import BoundedEventSink
+from sensai.quality.telemetry import BoundedEventSink
 
 
 @pytest.mark.parametrize("chunks", [

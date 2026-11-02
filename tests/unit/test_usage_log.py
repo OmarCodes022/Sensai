@@ -4,7 +4,7 @@ import json
 import pytest
 
 from fakes import FakeClient
-from sensai import usage_log
+from sensai.quality import usage_log
 from sensai.chat.session import ChatSession
 from sensai.cli import main as cli
 from sensai.cli.main import repl

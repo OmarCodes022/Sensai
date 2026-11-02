@@ -1,7 +1,7 @@
 """EV3 in the terminal: one log line per chat turn, with the tools it used."""
 import json
 
-from sensai import usage_log
+from sensai.quality import usage_log
 
 
 def tool_entry(call, result) -> dict:

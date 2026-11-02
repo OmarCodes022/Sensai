@@ -188,14 +188,14 @@ class ControlledLLMClient(LLMClient):
         self.usage_sink = usage_sink
         self.telemetry = None
         if event_sink is not None:
-            from sensai.telemetry import Telemetry
+            from sensai.quality.telemetry import Telemetry
             self.telemetry = Telemetry(event_sink)
 
     def stream(self, model: str, messages: Sequence[Message],
                cancellation: CancellationToken | None = None) -> Iterator[str]:
         if cancellation is not None:
             cancellation.raise_if_cancelled()
-        from sensai.telemetry import new_operation_id
+        from sensai.quality.telemetry import new_operation_id
         operation_id = new_operation_id()
         started = monotonic()
         usage = None

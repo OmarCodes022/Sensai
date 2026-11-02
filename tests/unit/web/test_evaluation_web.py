@@ -3,7 +3,7 @@ import json
 from types import SimpleNamespace
 
 from sensai.core.errors import LLMConnectionError
-from sensai.judge import Judgement, Statement
+from sensai.quality.judge import Judgement, Statement
 from sensai_web import evaluation
 
 VERDICT = Judgement(relevance=5, coherence=4, faithfulness=2, statements=[
