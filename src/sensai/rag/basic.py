@@ -30,7 +30,7 @@ NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,99}\Z")
 
 SEARCH_DOCS = ToolDefinition(
     name="search_docs",
-    description="Search the brand documents (product sheets, FAQ, brand voice) for relevant information",
+    description="Search the brand documents (product sheets, FAQ, brand voice) and the customer questions from DMs (privacy-filtered) for relevant information",
     parameters={
         "type": "object",
         "properties": {"query": {"type": "string"}},
@@ -41,6 +41,10 @@ SEARCH_DOCS = ToolDefinition(
 # Added to the system prompt only while there are documents to search.
 DOCS_PROMPT = """Document search:
 - For any question about the brand's products, claims, ingredients, policies, or FAQ, call search_docs first.
+- For what customers ask in their DMs, call search_docs with "customer DMs" and the topic in the query (source
+  customer-dms): DMs are never files to read.
+  customer-dms results are already privacy-filtered questions (no names, no contact details): you may list,
+  quote and summarize them for the creator.
 - Answer only from what search_docs returns. Cite the source names in your answer.
 - A result marked OUTDATED is an old version: do not present it as current, use the newer one.
 - If the results do not contain the answer, say clearly that the documents do not cover it. Do not invent or guess."""

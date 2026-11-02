@@ -7,10 +7,12 @@ import json
 
 NAME = "dms.json"
 HEADER = "---\nsource: customer-dms\ntitle: Customer questions (DMs, privacy-filtered)\n---\n\n"
+GROUP = 10  # Questions per search result: a short inbox comes back whole for "what DMs did I get?"
 
 
 def inbox_document(path: str, guard) -> str:
-    """The indexable text of the inbox: one paragraph per usable question."""
+    """The indexable text of the inbox: blocks of up to GROUP usable questions (one result lists them, for "what
+    DMs did I get?"), then each question on its own (a topic search such as "shipping" finds the one it is about)."""
     try:
         with open(path, encoding="utf-8") as f:
             dms = json.load(f).get("dms", [])
@@ -25,5 +27,7 @@ def inbox_document(path: str, guard) -> str:
             continue
         decision = guard.inspect(question, "input")
         if decision.allowed:
-            questions.append(f"A customer asked: {decision.text.strip()}")
-    return HEADER + "\n\n".join(questions)
+            questions.append(" ".join(decision.text.split()))
+    blocks = ["Customer questions received by DM (privacy-filtered):\n" + "\n".join(f"- {q}" for q in questions[i:i + GROUP])
+              for i in range(0, len(questions), GROUP)]
+    return HEADER + "\n\n".join([*blocks, *(f"Customer question received by DM: {q}" for q in questions)])

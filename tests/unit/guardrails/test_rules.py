@@ -95,3 +95,16 @@ def test_the_guarded_client_streams_checked_lines_and_stops_on_a_refusal(guard):
         for chunk in client.stream("m", [Message(role="user", content="hi")]):
             shown.append(chunk)
     assert shown == ["Fine line\n"] and refused.value.reason == "unsupported_claim"
+
+
+@pytest.mark.parametrize("line", ["1. Does it cure acne ?", "- A customer asked: will it heal my scars?",
+                                  'They ask "Does it cure eczema?"', "One customer asked whether it cures acne.",
+                                  "Several followers want to know if the balm heals scars."])
+def test_a_question_quoting_a_claim_word_is_not_a_claim(guard, line):
+    assert guard.inspect(line, "output").allowed
+
+
+@pytest.mark.parametrize("line", ["Does it cure acne? Yes, it cures acne.", "It cures acne, doesn't it?",
+                                  "Cures eczema", "You asked, and yes: it cures acne."])
+def test_a_statement_next_to_or_inside_a_question_is_still_checked(guard, line):
+    assert not guard.inspect(line, "output").allowed

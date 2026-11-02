@@ -31,6 +31,19 @@ PATTERNS: dict[str, list[str]] = {
 }
 IDENTIFIERS = ("email", "phone", "handle")
 ISO_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+SENTENCE = re.compile(r"(?<=[.!?])\s+")
+TAG = re.compile(r",\s*(?:\w+n't \w+|right|no|isn't that so)\s*\?\W*$", re.I)  # "It cures acne, doesn't it?" asserts
+
+
+REPORTED = re.compile(r"\b(?:asks?|asked|asking|wonders?|wondered|wants? to know)\b.{0,40}\b(?:if|whether)\b", re.I)
+
+
+def _question(sentence: str) -> bool:
+    """A real or reported question ("a customer asked whether it cures acne"), not an assertion."""
+    asked = sentence.rstrip(" \"'»)*").endswith("?") or REPORTED.search(sentence)
+    return bool(asked) and not TAG.search(sentence)
+
+
 # What each class does in each direction (the rules file may change these).
 ACTIONS = {
     "input": {DataClass.UNSAFE_REQUEST.value: "refuse", DataClass.SENSITIVE_DETAIL.value: "refuse",
@@ -93,7 +106,11 @@ class Guardrail:
         return GuardrailDecision(True, cleaned, ",".join(classes))
 
     def _claim(self, line: str) -> str:
-        """unapproved_claim:<id> for a known bad claim, unsupported_claim for a claim word with no approved text."""
+        """unapproved_claim:<id> for a known bad claim, unsupported_claim for a claim word with no approved text.
+
+        Questions are left out: "Does it cure acne?" (a customer's DM) asserts nothing; the answer is checked.
+        """
+        line = " ".join(s for s in SENTENCE.split(line) if not _question(s))
         low = line.lower()
         for claim_id, text in self.claims.blocked:
             if text.lower() in low:

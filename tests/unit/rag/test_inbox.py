@@ -26,7 +26,7 @@ def inbox(tmp_path):
 
 def test_only_privacy_safe_questions_are_kept_redacted_and_without_ids(tmp_path):
     text = inbox_document(str(inbox(tmp_path)), load_guardrail(None, None))
-    assert "A customer asked: Does the serum work on dry skin?" in text
+    assert "Customer questions received by DM (privacy-filtered):\n- Does the serum work on dry skin?" in text
     assert "Emma" not in text and "emma@example.com" not in text and "eczema" not in text  # Flagged: never read.
     assert "06 12 34 56 78" not in text and "refill" in text  # Kept, with the phone redacted.
     assert "DM01" not in text and "DM05" not in text
@@ -52,3 +52,13 @@ def test_the_raw_dms_never_reach_the_python_sandbox(tmp_path):
     inbox(tmp_path)
     (tmp_path / "engagement.csv").write_text("date,reach\n", encoding="utf-8")
     assert data_file_names(str(tmp_path)) == ["engagement.csv"]
+
+
+def test_questions_come_in_blocks_of_ten_so_a_short_inbox_is_one_result(tmp_path):
+    many = {"dms": [{"question": f"Question number {n} about the serum?", "eligible": True, "privacy_safe": True}
+                    for n in range(12)]}
+    (tmp_path / "dms.json").write_text(json.dumps(many), encoding="utf-8")
+    text = inbox_document(str(tmp_path / "dms.json"), load_guardrail(None, None))
+    parts = text.split("---\n\n", 1)[1].split("\n\n")
+    assert [p.count("\n- ") for p in parts[:2]] == [10, 2]
+    assert parts[2:] == [f"Customer question received by DM: Question number {n} about the serum?" for n in range(12)]
