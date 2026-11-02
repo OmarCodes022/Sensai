@@ -53,7 +53,7 @@ from sensai.chat.prompts import load_system_prompt
 from sensai.chat.personas import PersonaRegistry
 from sensai.chat.session import ChatSession
 from sensai.settings import Settings
-from sensai.mcp_client import EXAMPLE_CONFIG, GUIDE_URL, Catalogue
+from sensai.mcp.client import EXAMPLE_CONFIG, GUIDE_URL, Catalogue
 from sensai.memory.sqlite_store import StorageError, StorageRepository
 from sensai.core.messages import Message
 from sensai.sandbox import (PYTHON_ATTEMPTS, RUN_PYTHON, SandboxError, SandboxLimits, data_file_names,

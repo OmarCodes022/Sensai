@@ -22,7 +22,7 @@ from sensai.llm.structured import OllamaStructuredClient
 from sensai.memory.sqlite_store import StorageRepository
 from sensai.sandbox import RUN_PYTHON, SandboxError, data_file_names, data_prompt, remove_stale_folders
 from sensai.settings import Settings
-from sensai.mcp_client import Catalogue as MCPCatalogue
+from sensai.mcp.client import Catalogue as MCPCatalogue
 from sensai.llm.embeddings import OllamaEmbeddingAdapter
 from sensai.rag.basic import DOCS_PROMPT, SEARCH_DOCS, DocLibrary
 from sensai.campaign import CampaignStore

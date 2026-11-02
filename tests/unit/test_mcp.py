@@ -6,8 +6,8 @@ import sys
 import pytest
 
 from sensai.core.ports import ToolCall
-from sensai.mcp_client import Catalogue
-from sensai.mcp_server import weekly_engagement
+from sensai.mcp.client import Catalogue
+from sensai.mcp.server import weekly_engagement
 from sensai.tools import ToolRegistry
 
 
@@ -20,7 +20,7 @@ def trusted_config(monkeypatch):
 def test_real_packaged_server_roundtrip(tmp_path):
     path = tmp_path / 'mcp.json'
     path.write_text(json.dumps({'mcpServers': {'sensai': {
-        'command': sys.executable, 'args': ['-m', 'sensai.mcp_server'],
+        'command': sys.executable, 'args': ['-m', 'sensai.mcp.server'],
         'env': {'PYTHONPATH': str(Path(__file__).resolve().parents[2] / 'src')}}}}))
     catalogue = Catalogue(path)
     assert catalogue.reload()
