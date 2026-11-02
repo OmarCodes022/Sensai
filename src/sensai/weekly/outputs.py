@@ -145,14 +145,14 @@ def replies(doc, dms: list[dict], ask, guard, instructions: str) -> Outcome:
 def posts(doc, ask, guard, claims, instructions: str, examples: list[str]):
     """(doc with the new posts, outcome); fewer than 3 usable posts fails and changes nothing."""
     shown = "\n".join(f"- {caption}" for caption in examples) or "- (none)"
-    request = (f"Write {MIN_ITEMS + 1} different Instagram post captions for the week of {doc.start}. Each caption "
+    request = (f"Write {MIN_ITEMS + 3} different Instagram post captions for the week of {doc.start}. Each caption "
                "either quotes one approved claim exactly, as its own sentence copied character for character (for "
                "example: Hydrates skin for up to 8 hours.), or makes no product promise at all (a routine tip, a "
                "question to followers). Never write claim ids in the caption: list them in claim_ids.\n"
                f"Last week's approved captions, for the voice:\n{shown}")
     draft, dropped = doc.model_copy(deep=True), []
     draft.sections.posts.items = []
-    for _ in range(2):  # One more try when too few captions pass the checks, told why.
+    for _ in range(3):  # Up to two more tries when too few captions pass the checks, told why.
         for item in ask(f"{instructions}\n{AVOID}", request, PostDrafts).posts:
             decision = guard.inspect(item.caption, "output")
             if not decision.allowed:
@@ -167,7 +167,9 @@ def posts(doc, ask, guard, claims, instructions: str, examples: list[str]):
                 dropped.append(str(exc))
         if len(draft.sections.posts.items) >= MIN_ITEMS:
             break
-        request += "\n\nSome captions were refused: " + "; ".join(dropped) + ". Write new ones that pass."
+        exact = "; ".join(f"{c.claim_id}: {c.exact_text}." for c in claims.approved)
+        request += ("\n\nSome captions were refused: " + "; ".join(dropped) + ". Write new ones that pass. "
+                    f"The only claim sentences allowed, copied exactly: {exact}")
     items = draft.sections.posts.items
     used = sorted({c for p in items for c in p.claim_ids})
     detail = f"{len(items)} drafts" + (f" (claims {', '.join(used)})" if used else "")

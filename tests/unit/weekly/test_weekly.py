@@ -125,8 +125,10 @@ def test_a_refused_reply_is_rewritten_once_then_left_out(folder, store):
 
 def test_too_few_posts_fail_and_leave_the_calendar_without_posts(folder, store):
     few = PostDrafts(posts=[PostDraft(caption="Hello", claim_ids=[])])
-    _, outcomes, _ = run_week(str(folder), store, model(PostDrafts=[few, few]))
+    ask = model(PostDrafts=[few, few, few])
+    _, outcomes, _ = run_week(str(folder), store, ask)
     assert not outcomes[2].ok and "at least 3" in outcomes[2].detail
+    assert [name for name, _ in ask.requests].count("PostDrafts") == 3  # Two retries, then it gives up.
     assert outcomes[3].detail == "no posts to schedule"
 
 
@@ -145,6 +147,15 @@ def test_a_second_bad_calendar_fails_without_a_third_try(folder, store):
     _, outcomes, _ = run_week(str(folder), store, ask)
     assert not outcomes[3].ok and "at least 3" in outcomes[3].detail
     assert [name for name, _ in ask.requests].count("EntryDrafts") == 2
+
+
+def test_reworded_claims_are_retried_with_the_exact_wordings(folder, store):
+    reworded = PostDrafts(posts=[PostDraft(caption="Keeps skin hydrated all day.", claim_ids=["C01"])])
+    ask = model(PostDrafts=[reworded, POSTS])
+    _, outcomes, _ = run_week(str(folder), store, ask)
+    assert outcomes[2].ok
+    retry = [r for name, r in ask.requests if name == "PostDrafts"][1]
+    assert "must keep its approved wording" in retry and "copied exactly: C01: Hydrates skin for up to 8 hours." in retry
 
 
 def test_a_model_failure_fails_only_its_output(folder, store):
