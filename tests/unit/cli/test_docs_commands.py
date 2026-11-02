@@ -10,7 +10,7 @@ from sensai.chat.personas import PersonaRegistry
 from sensai.chat.session import ChatSession
 from sensai.cli import main as cli
 from sensai.core.errors import ModelNotFoundError
-from sensai.rag import DOCS_PROMPT, DocLibrary
+from sensai.rag.basic import DOCS_PROMPT, DocLibrary
 from sensai.tools import ToolRegistry
 
 pytestmark = pytest.mark.usefixtures("isolated_settings")

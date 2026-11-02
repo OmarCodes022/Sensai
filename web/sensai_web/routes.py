@@ -12,7 +12,7 @@ from sensai.core.errors import LLMError
 from sensai.core.messages import Message
 from sensai.mcp_client import EXAMPLE_CONFIG, GUIDE_URL
 from sensai.memory.vector_index import VectorIndexError
-from sensai.rag import MAX_FILE_BYTES, MAX_TOTAL_BYTES, TYPES, DocError
+from sensai.rag.basic import MAX_FILE_BYTES, MAX_TOTAL_BYTES, TYPES, DocError
 from sensai.sandbox import SandboxLimits
 from sensai.tools import MAX_TOOL_CALLS
 from sensai_web import branching, campaign, compaction, evaluation, prompts, sharing, weekly, exports, scheduling, questions, websearch, facts, files, manage, models, sandbox, session_view

@@ -6,7 +6,7 @@ from urllib.parse import quote
 import pytest
 
 from sensai.core.errors import LLMConnectionError, ModelNotFoundError
-from sensai.rag import DOCS_PROMPT
+from sensai.rag.basic import DOCS_PROMPT
 
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures" / "docs"
 SEARCH = '{"tool": "search_docs", "arguments": {"query": "delivery"}}'

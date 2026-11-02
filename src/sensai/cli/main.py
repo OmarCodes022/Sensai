@@ -40,7 +40,7 @@ from sensai.guardrails.rules import Claims
 from sensai.llm.structured import StructuredOutputError
 from sensai.chat.blocks import split_block
 from sensai.export import Exporter, ExportRefused
-from sensai.rag_advanced import DocSearch, make_ranker
+from sensai.rag.advanced import DocSearch, make_ranker
 from sensai.search import WEB_SEARCH, SearchError, WebSearch, numbered, provider_for, search
 from sensai.chat.questions import ASK_USER, TerminalForm
 from sensai.chat.facts import DELETE_FACT, SAVE_FACT, FactMemory, with_facts
@@ -59,7 +59,7 @@ from sensai.core.messages import Message
 from sensai.sandbox import (PYTHON_ATTEMPTS, RUN_PYTHON, SandboxError, SandboxLimits, data_file_names,
                             data_prompt, format_run, python_tool, remove_stale_folders, report_summary)
 from sensai.tools import CALCULATE, ToolRegistry, calculate, run_with_tools, tool_instructions
-from sensai.rag import (DOCS_PROMPT, SEARCH_DOCS, DocLibrary, add_command, docs_command, reindex_command,
+from sensai.rag.basic import (DOCS_PROMPT, SEARCH_DOCS, DocLibrary, add_command, docs_command, reindex_command,
                        remove_command, search_docs_handler)
 from sensai.llm.embeddings import OllamaEmbeddingAdapter
 
