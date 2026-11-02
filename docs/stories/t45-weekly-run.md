@@ -4,8 +4,8 @@
 - Drafting lead: Omar
 - Status: done
 
-Code: [`weekly/`](../../src/sensai/weekly/) (inputs, outputs, run),
-[`cli/weekly.py`](../../src/sensai/cli/weekly.py) and [`weekly.py`](../../web/sensai_web/weekly.py) (web).
+Code: [`weekly/`](https://github.com/OmarCodes022/Sensai/tree/main/src/sensai/weekly/) (inputs, outputs, run),
+[`cli/weekly.py`](https://github.com/OmarCodes022/Sensai/blob/main/src/sensai/cli/weekly.py) and [`weekly.py`](https://github.com/OmarCodes022/Sensai/blob/main/web/sensai_web/weekly.py) (web).
 Guide: [The weekly run](../user-guide/campaign.md#the-weekly-run).
 
 ## Story 1: Prepare the whole week in one go
