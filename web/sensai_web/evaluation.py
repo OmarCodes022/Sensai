@@ -4,7 +4,7 @@ import os
 
 from sensai.core.errors import LLMConnectionError, LLMError
 from sensai.judge import judge
-from sensai.rag import search_with_hits
+from sensai.rag.basic import search_with_hits
 from sensai_web.errors import ApiError
 
 RESULTS = os.environ.get("SENSAI_EVALS_DIR", os.path.join("evals", "faithfulness", "results"))

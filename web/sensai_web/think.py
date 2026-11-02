@@ -13,7 +13,7 @@ from sensai_web.approvals import WebApproval
 from sensai_web.errors import llm_failure
 from sensai_web.facts import settle
 from sensai_web.guard import screen, stopped
-from sensai.rag_advanced import make_ranker
+from sensai.rag.advanced import make_ranker
 from sensai_web.questions import WebForm
 from sensai_web import websearch
 from sensai_web.tools import ObservedRegistry

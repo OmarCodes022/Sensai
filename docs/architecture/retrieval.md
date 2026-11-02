@@ -81,7 +81,7 @@ adapter provides tenant authorization, privacy filtering or claim approval.
 
 ## Advanced search (R2)
 
-`src/sensai/rag_advanced.py` sits on top of `DocLibrary`: it filters the candidates by the
+`src/sensai/rag/advanced.py` sits on top of `DocLibrary`: it filters the candidates by the
 document headers (`product`, newest `version` per product, products named in the question),
 searches the index wide (50) because it has no filter, keeps the ten closest allowed chunks,
 asks the model for `{passage, score}` entries through `OllamaStructuredClient` (a missing

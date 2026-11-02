@@ -6,8 +6,8 @@ import pytest
 
 from fakes import BagOfWordsEmbedding
 from sensai.llm.structured import StructuredOutputError
-from sensai.rag import DocLibrary
-from sensai.rag_advanced import DocSearch, advanced_search, allowed_sources, make_ranker
+from sensai.rag.basic import DocLibrary
+from sensai.rag.advanced import DocSearch, advanced_search, allowed_sources, make_ranker
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "docs"
 

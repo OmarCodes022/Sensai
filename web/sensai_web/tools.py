@@ -7,8 +7,8 @@ from functools import partial
 from time import monotonic
 
 from sensai.core.ports import ToolCall, ToolResult
-from sensai.rag import SEARCH_DOCS, DocLibrary, search_with_hits
-from sensai.rag_advanced import advanced_search
+from sensai.rag.basic import SEARCH_DOCS, DocLibrary, search_with_hits
+from sensai.rag.advanced import advanced_search
 from sensai.sandbox import PYTHON_ATTEMPTS, RUN_PYTHON
 from sensai.chat.facts import DELETE_FACT, SAVE_FACT, FactMemory
 from sensai.chat.questions import ASK_USER

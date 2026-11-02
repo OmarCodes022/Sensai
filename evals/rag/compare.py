@@ -19,8 +19,8 @@ sys.path.insert(0, str(ROOT / "src"))
 from sensai.core.errors import LLMError  # noqa: E402
 from sensai.llm.embeddings import OllamaEmbeddingAdapter  # noqa: E402
 from sensai.llm.structured import OllamaStructuredClient  # noqa: E402
-from sensai.rag import DocLibrary  # noqa: E402
-from sensai.rag_advanced import advanced_search, make_ranker  # noqa: E402
+from sensai.rag.basic import DocLibrary  # noqa: E402
+from sensai.rag.advanced import advanced_search, make_ranker  # noqa: E402
 
 DOCS = ROOT / "tests" / "fixtures" / "docs"
 

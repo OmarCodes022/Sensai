@@ -13,7 +13,7 @@ from sensai.core.errors import LLMError
 from sensai.core.messages import Message
 from sensai.core.ports import ToolResult
 from sensai.llm.structured import StructuredOutputError
-from sensai.rag import DocLibrary, superseded_by
+from sensai.rag.basic import DocLibrary, superseded_by
 
 CANDIDATES = 10
 KEEP = 3

@@ -10,8 +10,8 @@ from fakes import BagOfWordsEmbedding
 from sensai.chat.prompts import load_system_prompt
 from sensai.core.errors import LLMConnectionError, ModelNotFoundError
 from sensai.llm.embeddings import EmbeddingError
-from sensai import rag
-from sensai.rag import (DOCS_PROMPT, DocError, DocLibrary, add_command, docs_command, reindex_command,
+from sensai.rag import basic as rag
+from sensai.rag.basic import (DOCS_PROMPT, DocError, DocLibrary, add_command, docs_command, reindex_command,
                         remove_command, search_docs_handler)
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "docs"

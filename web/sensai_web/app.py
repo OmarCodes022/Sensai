@@ -24,7 +24,7 @@ from sensai.sandbox import RUN_PYTHON, SandboxError, data_file_names, data_promp
 from sensai.settings import Settings
 from sensai.mcp_client import Catalogue as MCPCatalogue
 from sensai.llm.embeddings import OllamaEmbeddingAdapter
-from sensai.rag import DOCS_PROMPT, SEARCH_DOCS, DocLibrary
+from sensai.rag.basic import DOCS_PROMPT, SEARCH_DOCS, DocLibrary
 from sensai.campaign import CampaignStore
 from sensai.export import Exporter
 from sensai.chat.facts import DELETE_FACT, SAVE_FACT
