@@ -2,6 +2,10 @@
 
 As a skincare creator, I want Sensai to show me exactly what it will change in work I already approved, so that nothing I signed off is rewritten behind my back
 
+Features: Human in the loop (A3), Weekly campaign document (M4)
+
 ## Story 2
 
 As a creator, I want to be asked only when it matters, so that confirmations don't slow down normal work
+
+Features: Human in the loop (A3), Weekly campaign document (M4)

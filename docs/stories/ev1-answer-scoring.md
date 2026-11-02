@@ -6,7 +6,11 @@ As a developer working on Sensai, I want one command that scores answers for rel
 coherence and faithfulness, so that I can tell whether a change made Sensai better or worse
 before showing it.
 
+Features: Answer scoring (EV1)
+
 ## Story 2: No invented or outdated claim ends up in a post
 
 As Nadia, the creator of Serein Studio, I want answers checked for claims my documents do not
 support, so that no invented or outdated claim ends up in my posts.
+
+Features: Answer scoring (EV1)

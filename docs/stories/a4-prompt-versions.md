@@ -5,7 +5,11 @@
 As Nadia, the creator of Serein Studio, I want to compare two versions of my assistant's
 instructions on the same questions, so that I can keep the better one with evidence.
 
+Features: Prompt versions (A4)
+
 ## Story 2: Undo a bad change
 
 As Nadia, I want to go back to an older version of the instructions, so that a bad change does not
 stick.
+
+Features: Prompt versions (A4)
