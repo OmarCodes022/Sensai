@@ -18,6 +18,7 @@ import tempfile
 import threading
 from time import monotonic, sleep
 
+from sensai.rag.inbox import NAME as INBOX
 from sensai.core.cancellation import CancellationToken, OperationCancelled
 from sensai.core.ports import PermissionPort, PermissionRequest, ToolDefinition, ToolResult
 
@@ -144,12 +145,13 @@ def remove_stale_folders() -> None:
 
 
 def _wanted(entry):
-    """Visible, printable, non-importable regular file: no .env, no csv.py shadowing the stdlib.
+    """Visible, printable, non-importable regular file: no .env, no csv.py shadowing the stdlib, and never
+    the raw customer DMs (they reach the model only through the privacy filter, sensai.rag.inbox).
 
     A name with a newline or another non-printable character is skipped, so it
     can never add a line to the model's prompt or report.
     """
-    return (not entry.name.startswith(".") and entry.name.isprintable()
+    return (not entry.name.startswith(".") and entry.name.isprintable() and entry.name != INBOX
             and not entry.name.lower().endswith(_IMPORTABLE)
             and entry.is_file(follow_symlinks=False))
 

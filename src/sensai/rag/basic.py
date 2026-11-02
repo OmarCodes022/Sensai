@@ -16,6 +16,7 @@ import threading
 from datetime import datetime, timezone
 from time import monotonic
 
+from sensai.rag.inbox import NAME as INBOX, inbox_document
 from sensai.core.errors import LLMError, ModelNotFoundError
 from sensai.core.ports import ToolDefinition, ToolResult
 from sensai.memory.vector_index import IndexChunk, LocalVectorIndex, VectorIndexError
@@ -137,8 +138,13 @@ class DocLibrary:
         self._error: str | None = None
         self._retry_at = 0.0
         self._notices: list[str] = []
+        self._inbox: tuple | None = None  # (dms.json path, guard): the customer DMs, privacy-filtered
 
     # Folder scan and background indexing
+
+    def add_inbox(self, path: str, guard) -> None:
+        """Index the customer DMs of `path` too, after the privacy filter (sensai.rag.inbox)."""
+        self._inbox = (path, guard)
 
     @property
     def enabled(self) -> bool:
@@ -154,6 +160,9 @@ class DocLibrary:
                         and entry.name.lower() != "readme.md" and entry.is_file(follow_symlinks=False)):
                     info = entry.stat(follow_symlinks=False)
                     found[entry.name] = (info.st_size, info.st_mtime_ns)
+        if self._inbox is not None and os.path.isfile(self._inbox[0]):  # Not a .md/.txt name: never a clash.
+            info = os.stat(self._inbox[0])
+            found[INBOX] = (info.st_size, info.st_mtime_ns)
         return found
 
     def sync(self, wait: bool = False) -> None:
@@ -196,6 +205,8 @@ class DocLibrary:
                 self._notices.append(f"Document search: {indexed} document{'s' if indexed != 1 else ''} indexed.")
 
     def _read(self, name: str, fingerprint: tuple) -> dict | None:
+        if name == INBOX and self._inbox is not None:
+            return parse_document(name, inbox_document(*self._inbox), fingerprint[1] / 1e9)
         try:
             with open(os.path.join(self.folder, name), encoding="utf-8") as f:
                 text = f.read()

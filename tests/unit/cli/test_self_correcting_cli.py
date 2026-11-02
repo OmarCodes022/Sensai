@@ -19,7 +19,7 @@ from sensai.tools.sandbox import FIX_IT, PREFIX
 
 pytestmark = pytest.mark.usefixtures("isolated_settings")
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"
-NAMES = "Data files available to run_python: brand.json, dms.json, engagement.csv, posts.json."
+NAMES = "Data files available to run_python: brand.json, engagement.csv, posts.json."
 WRONG = 'import csv\nrows = list(csv.DictReader(open("engagement.csv")))\nprint(rows[0]["engaged"])\n'
 RIGHT = """\
 import csv

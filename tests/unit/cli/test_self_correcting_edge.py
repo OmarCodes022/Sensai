@@ -21,7 +21,7 @@ from sensai.tools.registry import ToolRegistry
 
 pytestmark = pytest.mark.usefixtures("isolated_settings")
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"
-NAMES = "Data files available to run_python: brand.json, dms.json, engagement.csv, posts.json."
+NAMES = "Data files available to run_python: brand.json, engagement.csv, posts.json."
 BULLET = ("- When a number must be computed from a data file, call run_python with code that prints "
           "the result and answer with the number it printed. If a run fails, read the error, fix "
           "the code and run it again; when the attempts run out, report the last error instead of "

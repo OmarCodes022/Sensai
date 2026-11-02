@@ -60,6 +60,7 @@ from sensai.core.messages import Message
 from sensai.tools.sandbox import (PYTHON_ATTEMPTS, RUN_PYTHON, SandboxError, SandboxLimits, data_file_names,
                             data_prompt, format_run, python_tool, remove_stale_folders, report_summary)
 from sensai.tools.registry import CALCULATE, ToolRegistry, calculate, run_with_tools, tool_instructions
+from sensai.rag.inbox import NAME as INBOX
 from sensai.rag.basic import (DOCS_PROMPT, SEARCH_DOCS, DocLibrary, add_command, docs_command, reindex_command,
                        remove_command, search_docs_handler)
 from sensai.llm.embeddings import OllamaEmbeddingAdapter
@@ -139,13 +140,15 @@ def _mcp_reload(mcp: Catalogue, session: ChatSession, tool_registry: ToolRegistr
         write("MCP configuration reloaded." if not mcp.error else "MCP reload failed.")
 
 
-def _setup_docs(args, settings, tool_registry, searcher=None) -> DocLibrary | None:
+def _setup_docs(args, settings, tool_registry, searcher=None, guard=None) -> DocLibrary | None:
     """The documents folder as a library that indexes itself in the background; None if switched off."""
     if not args.docs:
         return None
     embedding = OllamaEmbeddingAdapter(settings.embed_model, host=args.host)
     library = DocLibrary(args.docs, embedding, args.creator, cache_path=args.db or DEFAULT_DB_PATH,
                          model=settings.embed_model)
+    if guard is not None:  # The customer DMs, privacy-filtered, are searchable too.
+        library.add_inbox(os.path.join(getattr(args, "data_dir", None) or "data", INBOX), guard)
     handler = searcher(library) if searcher else partial(search_docs_handler, library=library)
     tool_registry.register(SEARCH_DOCS, handler, timeout=None)
     library.sync()
@@ -983,7 +986,7 @@ def run_chat(settings: Settings, args: argparse.Namespace, prepared: PreparedCha
                                                             context_length=settings.context_length), args.model)
                 found.append(DocSearch(library, ranker, on_search=lambda report: print(report.summary())))
                 return found[-1]
-            docs = _setup_docs(args, settings, tool_registry, advanced if settings.rag_mode == "advanced" else None)
+            docs = _setup_docs(args, settings, tool_registry, advanced if settings.rag_mode == "advanced" else None, guard)
             try:
                 files = open_project(os.getcwd(), args.creator)
             except (PolicyDenied, PortError) as e:

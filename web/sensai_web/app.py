@@ -40,6 +40,7 @@ from sensai_web.config import WebConfig
 from sensai_web.cache import make_cache, make_examples
 from sensai_web.sharing import make_shares
 from sensai_web.datafiles import DataFolder
+from sensai.rag.inbox import NAME as INBOX
 from sensai_web.notes import NotesFolder
 from sensai_web.errors import ApiError
 from sensai_web.facts import make_memory
@@ -142,6 +143,7 @@ class WebApp:
             self.brand_file = settings.brand_file  # /team's researcher reads every claim and its status.
         except GuardrailConfigError as exc:
             raise StartupError(str(exc)) from None
+        self.docs.add_inbox(os.path.join(cfg.data_dir or "data", INBOX), self.guard)  # Privacy-filtered DMs, searchable.
         self.cache = make_cache(settings)  # A6: None unless SENSAI_CACHE=1.
         self.shares, self.pending_share = make_shares(settings), None  # X3: public links, only after a yes
         self.examples = make_examples(settings)  # A7: None unless SENSAI_EXAMPLES=1.

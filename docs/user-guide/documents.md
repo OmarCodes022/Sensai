@@ -37,6 +37,14 @@ stay out of git.
   newer one for the same product exists.
 - `README.md` is never indexed.
 
+## Customer questions (DMs)
+
+The customer DMs in `data/dms.json` are searchable too, as the source `customer-dms`, but only after
+the same privacy filter as the weekly run: a DM flagged as not eligible or not privacy-safe is never
+indexed, the others go through the guardrails' input check (emails and phone numbers redacted), and
+no names or message ids are kept. Ask "what do customers ask about dry skin?" and the sources show
+`[customer-dms]`. The raw file is never copied into the Python sandbox.
+
 ## Adding documents
 
 In the terminal chat, from anywhere on your computer:

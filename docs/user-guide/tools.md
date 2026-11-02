@@ -141,7 +141,8 @@ SENSAI_DATA_DIR=tests/fixtures .venv/bin/sensai qwen2.5:7b
 
 Hidden files (such as `.env`), files whose name holds a line break or another
 non-printable character, subfolders, symbolic links and files Python
-could import (`.py`, `.pyc`, `.pyw`, `.so`, `.pyd`) are not copied, and the
+could import (`.py`, `.pyc`, `.pyw`, `.so`, `.pyd`) are not copied, nor is `dms.json` (raw customer
+messages reach the model only through the privacy filter of document search), and the
 model is never told their names. If the
 folder does not exist, Sensai stops at startup with
 `error: data folder not found: <path>`, and if it cannot be read, with
